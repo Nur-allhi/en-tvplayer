@@ -554,14 +554,9 @@ function handleRemoteAction(action, value) {
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
       const prevChannel = displayChannels[prev];
-      pendingPreview = prevChannel;
-      ui.showChannelPreview(prevChannel, 'up', () => {
-        // On preview land: switch to the channel
-        currentIndex = channels.indexOf(prevChannel);
-        ui.selectChannel(currentIndex, true);
-        ui.showChannelOsd(prevChannel);
-        pendingPreview = null;
-      });
+      currentIndex = channels.indexOf(prevChannel);
+      ui.selectChannel(currentIndex, true);
+      ui.showChannelPreview(prevChannel, 'up');
       break;
     }
     case 'down':
@@ -572,14 +567,9 @@ function handleRemoteAction(action, value) {
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const next = (idx + 1) % displayChannels.length;
       const nextChannel = displayChannels[next];
-      pendingPreview = nextChannel;
-      ui.showChannelPreview(nextChannel, 'down', () => {
-        // On preview land: switch to the channel
-        currentIndex = channels.indexOf(nextChannel);
-        ui.selectChannel(currentIndex, true);
-        ui.showChannelOsd(nextChannel);
-        pendingPreview = null;
-      });
+      currentIndex = channels.indexOf(nextChannel);
+      ui.selectChannel(currentIndex, true);
+      ui.showChannelPreview(nextChannel, 'down');
       break;
     }
     case 'left':

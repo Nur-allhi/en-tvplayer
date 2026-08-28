@@ -667,26 +667,20 @@ function updateRightFocus() {
 let osdTimer = null;
 
 let previewTimer = null;
-let previewLandCallback = null;
 
-export function showChannelPreview(channel, direction, onLand) {
+export function showChannelPreview(channel, direction) {
   if (!channel) return;
   const el = document.getElementById('channel-preview');
   if (!el) return;
   clearTimeout(previewTimer);
-  previewLandCallback = onLand || null;
   el.classList.remove('fade');
   el.classList.remove('hidden');
   const dir = direction === 'up' ? '↑' : '↓';
   el.innerHTML = '<span class="preview-direction">' + dir + '</span>'
     + '<span class="preview-number">' + (channel.channelNumber || '') + '</span>'
     + '<span class="preview-name">' + escapeHtml(channel.name) + '</span>';
-  // After 0.5s of no presses, land on this channel
+  // Auto-hide after 0.5s
   previewTimer = setTimeout(() => {
-    if (previewLandCallback) {
-      previewLandCallback();
-      previewLandCallback = null;
-    }
     el.classList.add('fade');
     setTimeout(() => {
       el.classList.add('hidden');
@@ -696,7 +690,6 @@ export function showChannelPreview(channel, direction, onLand) {
 
 export function hideChannelPreview() {
   clearTimeout(previewTimer);
-  previewLandCallback = null;
   const el = document.getElementById('channel-preview');
   if (el) {
     el.classList.add('fade');
