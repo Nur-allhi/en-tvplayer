@@ -87,7 +87,7 @@
 
 ## BUG-008: Playlist fetch fails on fresh install
 
-- **Status:** open
+- **Status:** fixed
 - **Severity:** high
 - **Found:** 2026-08-28 (user reported)
 - **Location:** `player/src/main.js` — `showFirstLaunch()` callback
