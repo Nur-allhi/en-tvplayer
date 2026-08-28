@@ -63,17 +63,14 @@ export async function initPlayer(videoEl) {
         }
       }
       if (!currentChannel || currentChannel.useProxy !== true) {
-        if (url && url.includes('.m3u8')) console.log('[PROXY] SKIP (proxy off):', (url || '').slice(0, 120));
         return;
       }
       let proxyUrl = currentChannel.proxyUrl;
-      if (!proxyUrl) { console.log('[PROXY] SKIP (no proxyUrl):', (url || '').slice(0, 120)); return; }
       if (window.location.protocol === 'https:' && proxyUrl.startsWith('http://')) {
         proxyUrl = window.location.origin + '/proxy/';
       }
       if (!url || !url.startsWith('http')) return;
       if (url.startsWith(proxyUrl)) return;
-      console.log('[PROXY] PROC:', (url || '').slice(0, 120));
       request.uris[0] = proxyUrl.replace(/\/+$/, '') + '/' + url;
     });
   }
