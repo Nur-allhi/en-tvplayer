@@ -11,7 +11,6 @@ let selectedGroup = null;
 let bufferingInterval = null;
 let cleanupListeners = [];
 let pendingPreview = null;
-let selectDownTime = null;
 
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
@@ -41,12 +40,7 @@ async function init() {
 
   remote.init(handleRemoteAction);
   
-  // Track keyup for long-press detection
-  document.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter' || e.keyCode === 13) {
-      selectDownTime = null;
-    }
-  }, true);
+
 
   registerTizenKeys();
 
@@ -401,11 +395,6 @@ function registerTizenKeys() {
 }
 
 function handleRemoteAction(action, value) {
-  // Track select (OK) keydown time for long-press
-  if (action === 'select') {
-    selectDownTime = Date.now();
-  }
-  
   if (action === 'back') {
     const now = Date.now();
     if (now - lastBackTime < 600) return;
@@ -565,17 +554,14 @@ function handleRemoteAction(action, value) {
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
       const prevChannel = displayChannels[prev];
-      
-      if (pendingPreview && pendingPreview === prevChannel) {
+      pendingPreview = prevChannel;
+      ui.showChannelPreview(prevChannel, 'up', () => {
+        // On preview land: switch to the channel
         currentIndex = channels.indexOf(prevChannel);
         ui.selectChannel(currentIndex, true);
         ui.showChannelOsd(prevChannel);
-        ui.hideChannelPreview();
         pendingPreview = null;
-      } else {
-        pendingPreview = prevChannel;
-        ui.showChannelPreview(prevChannel, 'up');
-      }
+      });
       break;
     }
     case 'down':
@@ -586,17 +572,14 @@ function handleRemoteAction(action, value) {
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const next = (idx + 1) % displayChannels.length;
       const nextChannel = displayChannels[next];
-      
-      if (pendingPreview && pendingPreview === nextChannel) {
+      pendingPreview = nextChannel;
+      ui.showChannelPreview(nextChannel, 'down', () => {
+        // On preview land: switch to the channel
         currentIndex = channels.indexOf(nextChannel);
         ui.selectChannel(currentIndex, true);
         ui.showChannelOsd(nextChannel);
-        ui.hideChannelPreview();
         pendingPreview = null;
-      } else {
-        pendingPreview = nextChannel;
-        ui.showChannelPreview(nextChannel, 'down');
-      }
+      });
       break;
     }
     case 'left':
@@ -605,21 +588,9 @@ function handleRemoteAction(action, value) {
     case 'right':
       ui.toggleRightSidebar();
       break;
-    case 'select': {
-      // Long-press detection: if held > 1s, toggle proxy
-      if (selectDownTime && Date.now() - selectDownTime > 1000) {
-        ui.toggleCurrentChannelProxy();
-        const ch = channels[currentIndex];
-        if (ch) {
-          const status = ch.useProxy ? 'Proxy: ON' : 'Proxy: OFF';
-          ui.showChannelOsd({ channelNumber: '', name: status });
-        }
-        selectDownTime = null;
-      } else {
-        ui.toggleSidebar();
-      }
+    case 'select':
+      ui.toggleSidebar();
       break;
-    }
     case 'back':
       ui.showConfirmDialog('Exit the app?', (confirmed) => {
         if (confirmed) {

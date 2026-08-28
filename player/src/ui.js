@@ -667,28 +667,36 @@ function updateRightFocus() {
 let osdTimer = null;
 
 let previewTimer = null;
+let previewLandCallback = null;
 
-export function showChannelPreview(channel, direction) {
+export function showChannelPreview(channel, direction, onLand) {
   if (!channel) return;
   const el = document.getElementById('channel-preview');
   if (!el) return;
   clearTimeout(previewTimer);
+  previewLandCallback = onLand || null;
   el.classList.remove('fade');
   el.classList.remove('hidden');
-  const dir = direction === 'up' ? '\u2191' : '\u2193';
+  const dir = direction === 'up' ? '↑' : '↓';
   el.innerHTML = '<span class="preview-direction">' + dir + '</span>'
     + '<span class="preview-number">' + (channel.channelNumber || '') + '</span>'
     + '<span class="preview-name">' + escapeHtml(channel.name) + '</span>';
+  // After 0.5s of no presses, land on this channel
   previewTimer = setTimeout(() => {
+    if (previewLandCallback) {
+      previewLandCallback();
+      previewLandCallback = null;
+    }
     el.classList.add('fade');
     setTimeout(() => {
       el.classList.add('hidden');
     }, 300);
-  }, 1500);
+  }, 500);
 }
 
 export function hideChannelPreview() {
   clearTimeout(previewTimer);
+  previewLandCallback = null;
   const el = document.getElementById('channel-preview');
   if (el) {
     el.classList.add('fade');
