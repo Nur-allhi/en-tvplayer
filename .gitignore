@@ -7,12 +7,18 @@ player/dist/
 # Tizen build artifacts
 tizen/temp-wgt/
 tizen/*.p12
+tizen/*.p12
 tizen/*.pem
 tizen/unsigned.zip
+tizen/author-cert.pem
+tizen/author-key.pem
 
 # WGT files (use releases/ folder for distribution)
 *.wgt
 !releases/*.wgt
+
+# Stable folder (build output)
+stable/
 
 # Logs
 *.log
@@ -24,3 +30,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Agent files (personal, not for repo)
+.session_log.md
