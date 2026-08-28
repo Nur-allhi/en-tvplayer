@@ -1,22 +1,13 @@
 import { defineConfig } from 'vite';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function getAppVersion() {
-  const rootPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), 'utf-8'));
-  const version = rootPkg.version || '0.0.0';
-  try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: path.resolve(__dirname, '..', '..'), encoding: 'utf-8' }).trim();
-    if (branch === 'main') return 'stable_' + version;
-    const commit = execSync('git rev-parse --short HEAD', { cwd: path.resolve(__dirname, '..', '..'), encoding: 'utf-8' }).trim();
-    return 'beta_' + version + '(' + commit + ')';
-  } catch {
-    return 'beta_' + version;
-  }
+  const rootPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf-8'));
+  return rootPkg.version || '0.0.0';
 }
 
 export default defineConfig({

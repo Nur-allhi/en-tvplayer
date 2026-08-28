@@ -4,14 +4,14 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..', '..');
-const DIST = join(ROOT, 'packages', 'player', 'dist');
+const ROOT = join(__dirname, '..');
+const DIST = join(ROOT, 'player', 'dist');
 const TIZEN = __dirname;
 
 const PKG = 'IPTVPlayer'; // Must be EXACTLY 10 chars!
 
 // Read app version from player package.json
-const playerPkg = JSON.parse(readFileSync(join(ROOT, 'packages', 'player', 'package.json'), 'utf-8'));
+const playerPkg = JSON.parse(readFileSync(join(ROOT, 'player', 'package.json'), 'utf-8'));
 const APP_VERSION = playerPkg.version;
 
 // Get git info for build naming
