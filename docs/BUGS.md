@@ -85,6 +85,20 @@
 
 ---
 
+## BUG-008: Playlist fetch fails on fresh install
+
+- **Status:** open
+- **Severity:** high
+- **Found:** 2026-08-28 (user reported)
+- **Location:** `player/src/main.js` — `showFirstLaunch()` callback
+- **Description:** On fresh install, adding a playlist and clicking "Fetch Active" does nothing. The player never starts. User must force-close and reopen the app.
+- **Root Cause:** `showFirstLaunch()`'s `onPlaylistFetched` callback calls `ui.stopInactivityTimer()` BEFORE `ui.init()` has been called. This throws an error that is silently caught by an empty `catch(e) {}` block. The fetch itself succeeds (channels saved to localStorage), but the player never starts.
+- **Fix:** Removed premature `ui.stopInactivityTimer()` call. Added `console.error()` to catch block.
+
+---
+
 ## Fixed Bugs
 
-*Move resolved bugs here with date and commit reference.*
+| Bug | Fixed | Commit |
+|-----|-------|--------|
+| BUG-008 | 2026-08-28 | fix/first-fetch-failure |
