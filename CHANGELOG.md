@@ -2,6 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.1.3] - 2026-08-28
+
+### Closed
+- BUG-005: innerHTML safety (not an issue — all content properly escaped)
+
+---
+
 ## [1.1.2] - 2026-08-28
 
 ### Fixed
