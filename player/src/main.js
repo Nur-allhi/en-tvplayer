@@ -207,16 +207,15 @@ function showFirstLaunch() {
         applyProxyOverrides(newChannels);
         channels = newChannels;
         settings.hide();
-        ui.stopInactivityTimer();
         showPlayer();
         startPlayer();
       } catch (e) {
+        console.error('Failed to start player after fetch:', e);
       }
     },
     onClose: () => {
       if (channels && channels.length > 0) {
         settings.hide();
-        ui.stopInactivityTimer();
         showPlayer();
       }
     },
