@@ -2,6 +2,15 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.1.2] - 2026-08-28
+
+### Fixed
+- Added event listener cleanup to prevent duplicate listeners (BUG-007)
+- Added Tizen key registration warning (BUG-006)
+- Removed TODO comment from red key handler (BUG-004)
+
+---
+
 ## [1.1.1] - 2026-08-28
 
 ### Fixed
