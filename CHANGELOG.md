@@ -2,6 +2,27 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.3.0] - 2026-08-28
+
+### Added
+- Responsive TV scaling — UI components scale proportionally based on screen size.
+- Minimum 1.35x scale for comfortable couch viewing on 1080p TVs.
+- Settings page now uses 100% width instead of fixed 1920px.
+
+### Changed
+- All CSS pixel values now use `calc(Xpx * var(--tv-scale))` for responsive sizing.
+- JS detects screen resolution and sets `--tv-scale` CSS variable.
+
+---
+
+## [1.2.1] - 2026-08-28
+
+### Fixed
+- Back button now closes sidebars one by one (left, then right, then exit).
+- Back on left sidebar previously showed group list instead of closing it.
+
+---
+
 ## [1.2.0] - 2026-08-28
 
 ### Summary
