@@ -11,6 +11,7 @@ let selectedGroup = null;
 let bufferingInterval = null;
 let cleanupListeners = [];
 let pendingPreview = null;
+let selectDownTime = null;
 
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
@@ -39,6 +40,13 @@ async function init() {
   }
 
   remote.init(handleRemoteAction);
+  
+  // Track keyup for long-press detection
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      selectDownTime = null;
+    }
+  }, true);
 
   registerTizenKeys();
 
@@ -393,6 +401,11 @@ function registerTizenKeys() {
 }
 
 function handleRemoteAction(action, value) {
+  // Track select (OK) keydown time for long-press
+  if (action === 'select') {
+    selectDownTime = Date.now();
+  }
+  
   if (action === 'back') {
     const now = Date.now();
     if (now - lastBackTime < 600) return;
@@ -592,9 +605,21 @@ function handleRemoteAction(action, value) {
     case 'right':
       ui.toggleRightSidebar();
       break;
-    case 'select':
-      ui.toggleSidebar();
+    case 'select': {
+      // Long-press detection: if held > 1s, toggle proxy
+      if (selectDownTime && Date.now() - selectDownTime > 1000) {
+        ui.toggleCurrentChannelProxy();
+        const ch = channels[currentIndex];
+        if (ch) {
+          const status = ch.useProxy ? 'Proxy: ON' : 'Proxy: OFF';
+          ui.showChannelOsd({ channelNumber: '', name: status });
+        }
+        selectDownTime = null;
+      } else {
+        ui.toggleSidebar();
+      }
       break;
+    }
     case 'back':
       ui.showConfirmDialog('Exit the app?', (confirmed) => {
         if (confirmed) {
