@@ -66,9 +66,7 @@ async function init() {
 }
 
 function startPlayer() {
-  console.log('[DEBUG] startPlayer called, channels:', channels ? channels.length : 0);
   if (!channels || channels.length === 0) {
-    console.log('[DEBUG] No channels — opening settings');
     showFirstLaunch();
     return;
   }
@@ -204,7 +202,6 @@ function showFirstLaunch() {
 
   settings.init(document.getElementById('settings-page'), {
     onPlaylistFetched: (newChannels) => {
-      console.log('[DEBUG] showFirstLaunch onPlaylistFetched:', newChannels ? newChannels.length : 0);
       try {
         sortChannels(newChannels);
         applyProxyOverrides(newChannels);
@@ -214,7 +211,6 @@ function showFirstLaunch() {
         showPlayer();
         startPlayer();
       } catch (e) {
-        console.error('[DEBUG] showFirstLaunch callback error:', e);
       }
     },
     onClose: () => {
