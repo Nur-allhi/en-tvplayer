@@ -17,16 +17,17 @@
 
 ## BUG-002: Files exceed 300 LOC limit
 
-- **Status:** open
+- **Status:** deferred (too risky without tests)
 - **Severity:** medium
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** Multiple files
 - **Description:** Several files exceed the 300 LOC limit defined in AGENTS.md:
-  - `main.js` — 647 LOC
-  - `player.js` — 613 LOC
+  - `main.js` — 665 LOC
+  - `player.js` — 610 LOC
   - `settings.js` — 713 LOC
   - `ui.js` — 838 LOC
 - **Expected:** Each file ≤ 300 LOC.
+- **Resolution:** Deferred due to tight coupling and lack of tests. Splitting would risk breaking the app. See docs/FILE_SPLIT_PLAN.md for future reference.
 
 ---
 
