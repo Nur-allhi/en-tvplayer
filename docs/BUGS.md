@@ -76,7 +76,7 @@
 
 ## BUG-007: No cleanup of event listeners on destroy
 
-- **Status:** open
+- **Status:** fixed
 - **Severity:** low
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** `player/src/main.js` (multiple)
