@@ -354,7 +354,7 @@ function registerTizenKeys() {
     'ChannelUp', 'ChannelDown',
   ];
   for (const key of keys) {
-    try { window.tizen.tvinputdevice.registerKey(key); } catch (e) {}
+    try { window.tizen.tvinputdevice.registerKey(key); } catch (e) { console.warn('Failed to register Tizen key:', key); }
   }
 }
 
@@ -565,7 +565,7 @@ function handleRemoteAction(action, value) {
       ui.toggleSidebar();
       break;
     case 'red':
-      // TODO T-021: toggle favorite
+      // Reserved for future use
       break;
     case 'green':
       if (!ui.isSidebarOpen()) {
