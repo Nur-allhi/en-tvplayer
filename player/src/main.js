@@ -8,6 +8,8 @@ import { processStreamUrl, parseM3u, fetchPlaylist as fetchFromPlaylistUrl } fro
 let currentIndex = 0;
 let channels;
 let selectedGroup = null;
+let bufferingInterval = null;
+let cleanupListeners = [];
 
 function getDisplayChannels() {
   if (selectedGroup === 'all' || !selectedGroup) return channels;
@@ -65,12 +67,33 @@ async function init() {
 
 }
 
+function cleanupEventListeners() {
+  cleanupListeners.forEach(({ element, event, handler }) => {
+    if (element && element.removeEventListener) {
+      element.removeEventListener(event, handler);
+    }
+  });
+  cleanupListeners = [];
+  if (bufferingInterval) {
+    clearInterval(bufferingInterval);
+    bufferingInterval = null;
+  }
+}
+
+function addCleanupListener(element, event, handler) {
+  if (element && element.addEventListener) {
+    element.addEventListener(event, handler);
+    cleanupListeners.push({ element, event, handler });
+  }
+}
+
 function startPlayer() {
   if (!channels || channels.length === 0) {
     showFirstLaunch();
     return;
   }
 
+  cleanupEventListeners();
   sortChannels(channels);
 
   settings.init(document.getElementById('settings-page'), {
@@ -107,7 +130,7 @@ function startPlayer() {
 
   let playPauseButton = document.getElementById('playpause-button');
   if (playPauseButton) {
-    playPauseButton.addEventListener('click', (e) => {
+    addCleanupListener(playPauseButton, 'click', (e) => {
       e.stopPropagation();
       player.togglePlay();
     });
@@ -115,14 +138,14 @@ function startPlayer() {
 
   let refreshStreamBtn = document.getElementById('refresh-stream-btn');
   if (refreshStreamBtn) {
-    refreshStreamBtn.addEventListener('click', () => {
+    addCleanupListener(refreshStreamBtn, 'click', () => {
       showProgress('Reloading');
       player.reloadChannel();
     });
   }
   let refreshChannelsBtn = document.getElementById('refresh-channels-btn');
   if (refreshChannelsBtn) {
-    refreshChannelsBtn.addEventListener('click', async () => {
+    addCleanupListener(refreshChannelsBtn, 'click', async () => {
       showProgress('Refreshing');
       await refreshChannels();
       hideProgress();
@@ -131,32 +154,32 @@ function startPlayer() {
 
   let toggleProxyBtn = document.getElementById('toggle-proxy-btn');
   if (toggleProxyBtn) {
-    toggleProxyBtn.addEventListener('click', () => {
+    addCleanupListener(toggleProxyBtn, 'click', () => {
       ui.toggleCurrentChannelProxy();
     });
   }
 
   let settingsBtn = document.getElementById('settings-btn');
   if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => {
+    addCleanupListener(settingsBtn, 'click', () => {
       showSettingsPage();
     });
   }
 
   let videoEl = document.getElementById('video');
-  videoEl.addEventListener('playing', () => hideProgress());
-  videoEl.addEventListener('click', () => player.togglePlay());
+  addCleanupListener(videoEl, 'playing', () => hideProgress());
+  addCleanupListener(videoEl, 'click', () => player.togglePlay());
 
-  videoEl.addEventListener('play', () => {
+  addCleanupListener(videoEl, 'play', () => {
     let btn = document.getElementById('playpause-button');
     if (btn) btn.innerHTML = '&#10073;&#10073;';
   });
-  videoEl.addEventListener('pause', () => {
+  addCleanupListener(videoEl, 'pause', () => {
     let btn = document.getElementById('playpause-button');
     if (btn) btn.innerHTML = '&#9654;';
   });
 
-  document.addEventListener('fullscreenchange', () => {
+  addCleanupListener(document, 'fullscreenchange', () => {
     if (!document.fullscreenElement && ui.isFullscreenMode()) {
       ui.exitFullscreenMode();
     }
@@ -173,7 +196,7 @@ function startPlayer() {
       ui.hideBuffering();
     }
   });
-  setInterval(() => {
+  bufferingInterval = setInterval(() => {
     if (bufferingActive) {
       ui.updateBuffering(player.getBufferingPercent());
     }
