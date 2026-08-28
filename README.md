@@ -95,3 +95,15 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 ## License
 
 MIT
+
+---
+
+## ⭐ Support the Project
+
+If you find EN TV Player useful, please consider giving it a ⭐ star on GitHub!
+
+It helps others discover the project and motivates continued development.
+
+**Star the repo:** [github.com/Nur-allhi/en-tvplayer](https://github.com/Nur-allhi/en-tvplayer)
+
+Thank you for your support! 🙏
