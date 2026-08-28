@@ -62,7 +62,7 @@ async function init() {
     showFirstLaunch();
   }
 
-  console.log('IPTV TV Mode initialized with', channels ? channels.length : 0, 'channels');
+
 }
 
 function startPlayer() {
@@ -207,16 +207,15 @@ function showFirstLaunch() {
         applyProxyOverrides(newChannels);
         channels = newChannels;
         settings.hide();
-        ui.stopInactivityTimer();
         showPlayer();
         startPlayer();
       } catch (e) {
+        console.error('Failed to start player after fetch:', e);
       }
     },
     onClose: () => {
       if (channels && channels.length > 0) {
         settings.hide();
-        ui.stopInactivityTimer();
         showPlayer();
       }
     },
@@ -340,7 +339,7 @@ async function refreshChannelsInBackground() {
     sortChannels(newChannels);
     channels = newChannels;
     ui.refreshChannelList(channels);
-    console.log('Background playlist refresh:', channels.length, 'channels');
+
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
   }
@@ -627,7 +626,7 @@ export async function refreshChannels() {
       sortChannels(newChannels);
       channels = newChannels;
       ui.refreshChannelList(channels);
-      console.log('Channels refreshed from playlist:', channels.length);
+
     } catch (e) {
       console.warn('Failed to refresh from playlist:', e.message);
     }

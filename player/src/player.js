@@ -162,7 +162,7 @@ export function isEmeSupported() {
   const hasApi = typeof navigator !== 'undefined' && typeof navigator.requestMediaKeySystemAccess === 'function';
   const hasMediaKeys = typeof window !== 'undefined' && 'MediaKeys' in window;
   const ok = hasApi && hasMediaKeys;
-  console.log('EME check: requestMediaKeySystemAccess=' + (typeof navigator.requestMediaKeySystemAccess) + ' MediaKeys=' + ('MediaKeys' in window) + ' => ' + ok);
+
   return ok;
 }
 
