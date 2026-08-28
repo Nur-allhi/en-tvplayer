@@ -11,6 +11,16 @@ let selectedGroup = null;
 let bufferingInterval = null;
 let cleanupListeners = [];
 
+
+/* Responsive TV scaling: detect screen size and set CSS variable */
+function applyResponsiveScale() {
+  const sw = screen.width || 1920;
+  const sh = screen.height || 1080;
+  const scale = Math.max(sw / 1920, sh / 1080);
+  document.documentElement.style.setProperty("--tv-scale", scale);
+}
+applyResponsiveScale();
+
 function getDisplayChannels() {
   if (selectedGroup === 'all' || !selectedGroup) return channels;
   return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
