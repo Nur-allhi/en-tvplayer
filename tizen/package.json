@@ -1,0 +1,10 @@
+{
+  "name": "@en-iptv/tizen",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EN IPTV — Tizen WGT build tools",
+  "scripts": {
+    "build": "node package.mjs",
+    "deploy": "node install.mjs"
+  }
+}

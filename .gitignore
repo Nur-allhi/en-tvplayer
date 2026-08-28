@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+player/dist/
+
+# Tizen build artifacts
+tizen/temp-wgt/
+tizen/*.p12
+tizen/*.pem
+tizen/unsigned.zip
+
+# WGT files (use releases/ folder for distribution)
+*.wgt
+!releases/*.wgt
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

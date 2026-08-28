@@ -1,0 +1,18 @@
+{
+  "name": "en-tvplayer",
+  "version": "1.1.0",
+  "description": "Samsung Tizen TV IPTV Player — install on any Tizen 5.0+ TV",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev -w player",
+    "build": "npm run build -w player",
+    "tizen": "cd tizen && node package.mjs"
+  },
+  "workspaces": [
+    "player",
+    "tizen"
+  ],
+  "keywords": ["tizen", "iptv", "samsung", "tv", "player"],
+  "author": "Nur-allhi",
+  "license": "MIT"
+}

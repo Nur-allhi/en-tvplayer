@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>IPTV Player</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Channel List Sidebar -->
+    <div id="sidebar" class="sidebar closed">
+      <div class="sidebar-header">
+        <span class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" width="28" height="28" fill="none">
+            <rect x="2" y="4" width="20" height="16" rx="2" stroke="#ED421F" stroke-width="1.8"/>
+            <polygon points="10,8 10,16 17,12" fill="#ED421F"/>
+          </svg>
+          IPTV
+        </span>
+      </div>
+      <div id="channel-list" class="channel-list"></div>
+      <div id="group-list" class="group-list hidden"></div>
+    </div>
+
+      <!-- Main Content -->
+      <div id="main" class="main">
+
+        <!-- Fullscreen left-edge hover zone to reveal the channel list -->
+        <div id="sidebar-hover-zone" class="sidebar-hover-zone"></div>
+
+        <!-- Fullscreen right-edge hover zone -->
+        <div id="right-hover-zone" class="right-hover-zone"></div>
+
+        <!-- Channel OSD (brief overlay when switching channels) -->
+        <div id="channel-osd" class="channel-osd hidden"></div>
+
+        <!-- Video Player -->
+        <div id="player-container" class="player-container">
+          <video id="video" autoplay></video>
+          <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Loading...</span>
+          </div>
+          <div id="resolution-badge" class="resolution-badge hidden">Auto</div>
+          <div id="error" class="error hidden"></div>
+
+          <!-- Buffering percentage -->
+          <div id="buffering-indicator" class="buffering-indicator hidden">
+            <div class="spinner small"></div>
+            <span>Buffering <span id="buffering-percent">0%</span></span>
+          </div>
+
+          <!-- Play/Pause status overlay -->
+          <div id="play-state" class="play-state hidden">
+            <div class="play-state-icon"><span></span><span></span></div>
+          </div>
+
+          <!-- Progress toast for right sidebar actions -->
+          <div id="progress-toast" class="progress-toast hidden">
+            <div class="progress-spinner"></div>
+            <span id="progress-text">Loading</span>
+          </div>
+
+          <!-- Proxy suggestion toast -->
+          <div id="proxy-toast" class="proxy-toast hidden">
+            <span id="proxy-toast-text">Stream not loading — try enabling Proxy in the right menu</span>
+          </div>
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div id="now-playing" class="now-playing">
+          <span id="channel-name" class="channel-name">No Channel</span>
+          <span id="channel-info" class="channel-info"></span>
+          <button id="playpause-button" class="playpause-button" type="button">&#10073;&#10073;</button>
+        </div>
+
+      </div>
+
+      <!-- Right Sidebar -->
+      <div id="right-sidebar" class="right-sidebar closed">
+        <div class="right-sidebar-header">
+          <span class="right-sidebar-title">Menu</span>
+        </div>
+        <div class="right-sidebar-content">
+          <div class="section-label">Quality</div>
+          <div id="resolution-list-right" class="resolution-list-right"></div>
+          <div class="section-label">Actions</div>
+          <button id="refresh-stream-btn" class="right-sidebar-btn" type="button">&#8635; Reload Stream</button>
+          <button id="refresh-channels-btn" class="right-sidebar-btn" type="button">&#8634; Refresh Channels</button>
+          <button id="toggle-proxy-btn" class="right-sidebar-btn" type="button">Proxy: OFF</button>
+          <button id="settings-btn" class="right-sidebar-btn" type="button">&#9881; Settings</button>
+        </div>
+      </div>
+
+      <!-- Settings Page (hidden by default) -->
+      <div id="settings-page" class="settings-page hidden"></div>
+
+      <!-- Confirm Dialog -->
+      <div id="confirm-dialog" class="confirm-dialog hidden">
+        <div class="confirm-dialog-box">
+          <p id="confirm-dialog-message" class="confirm-dialog-message"></p>
+          <div class="confirm-dialog-buttons">
+            <button id="confirm-dialog-cancel" class="btn btn-secondary" type="button">Cancel</button>
+            <button id="confirm-dialog-confirm" class="btn btn-primary" type="button">Confirm</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
