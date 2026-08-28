@@ -447,6 +447,8 @@ function handleRemoteAction(action, value) {
         ui.rightSidebarSelect();
         break;
       case 'back':
+        ui.toggleRightSidebar();
+        return;
       case 'left':
       case 'right':
         ui.toggleRightSidebar();
@@ -509,11 +511,7 @@ function handleRemoteAction(action, value) {
           ui.toggleRightSidebar();
           break;
         case 'back':
-          if (ui.getGroups().length > 0) {
-            ui.showGroupList();
-          } else {
-            ui.toggleSidebar();
-          }
+          ui.toggleSidebar();
           break;
         case 'playpause':
           player.togglePlay();
