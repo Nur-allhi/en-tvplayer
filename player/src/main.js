@@ -62,7 +62,7 @@ async function init() {
     showFirstLaunch();
   }
 
-  console.log('IPTV TV Mode initialized with', channels ? channels.length : 0, 'channels');
+
 }
 
 function startPlayer() {
@@ -339,7 +339,7 @@ async function refreshChannelsInBackground() {
     sortChannels(newChannels);
     channels = newChannels;
     ui.refreshChannelList(channels);
-    console.log('Background playlist refresh:', channels.length, 'channels');
+
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
   }
@@ -626,7 +626,7 @@ export async function refreshChannels() {
       sortChannels(newChannels);
       channels = newChannels;
       ui.refreshChannelList(channels);
-      console.log('Channels refreshed from playlist:', channels.length);
+
     } catch (e) {
       console.warn('Failed to refresh from playlist:', e.message);
     }
