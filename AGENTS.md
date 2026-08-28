@@ -4,9 +4,11 @@
 
 ## 1. Project Overview
 
-**EN TV Player** is a standalone Samsung Tizen TV IPTV player. No server required — fetches M3U8 playlists directly.
+**EN TV Player** is a standalone Samsung Tizen TV IPTV player that solves DRM-protected channel playback issues on Tizen OS.
 
-**Key principle:** Everything must work with a Samsung TV remote alone (5-way pad, number pad, color keys, Back).
+**Key value:** Plays DRM channels that other players can't on Tizen TVs.
+
+**Key principle:** Simple, privacy-focused, no server required.
 
 ## 2. Available Skills
 
@@ -58,30 +60,25 @@ en-tvplayer/
 - `feature/<name>` — new functionality
 - `fix/<name>` — bug fixes
 
-## 5. Remote Control Keys
+## 5. Remote Control (Currently Supported)
 
 | Key | Action |
 |-----|--------|
-| ↑ / ↓ | Previous / Next channel |
-| ← / → | Navigate menus |
-| Enter | Select / Play |
-| Back | Close menu / Exit |
-| 0–9 | Tune to channel number |
-| Channel ↑/↓ | Next / Previous channel |
-| Play/Pause | Toggle playback |
-| 🔴 Red | Favorite toggle |
-| 🟢 Green | Groups sidebar |
-| 🟡 Yellow | Proxy toggle |
-| 🔵 Blue | Open settings |
+| ↑ / ↓ | Navigate channel list |
+| ← / → | Open/close sidebar |
+| Enter | Select channel |
+| Back | Close menu |
+| Volume ↑/↓ | Adjust volume |
+
+**Note:** Other remote buttons (color keys, channel up/down, etc.) are not yet supported.
 
 ## 6. Key Features
 
+- **Solves DRM issue** — Plays ClearKey and PlayReady channels on Tizen
 - No server required — fetches M3U8 playlists directly
-- Full remote control support (14 actions)
-- HLS / DASH / MSS streaming via Shaka Player
-- DRM support (ClearKey, PlayReady)
-- Virtualized channel list (5,000+ channels)
+- M3U/M3U8 support
 - Per-channel proxy toggle
+- Virtualized channel list (5,000+ channels)
 
 ## 7. Installation Methods
 
