@@ -152,6 +152,8 @@ html, body {
   font-weight: 600;
 }
 
+
+
 .channel-item.focused .channel-number {
   color: #ED421F;
 }
@@ -178,11 +180,17 @@ html, body {
 
 .channel-name {
   flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.channel-name-text {
+  display: inline-block;
   font-size: calc(21px * var(--tv-scale));
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+
+
 
 .channel-proxy {
   font-size: calc(13px * var(--tv-scale));

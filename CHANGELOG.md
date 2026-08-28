@@ -2,6 +2,20 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.4.0] - 2026-08-28
+
+### Added
+- Channel name marquee scroll — long channel names auto-scroll horizontally in the sidebar so the full name is readable.
+- Channel name text wrapped in inner span for proper marquee viewport clipping.
+
+### Fixed
+- Sequential channel numbers in sidebar, channels sorted alphabetically within groups.
+- Sidebar scroll not showing focused item at bottom of list.
+- Instant channel switch on Up/Down, toast auto-hides after 0.5s.
+- Consistent Left/Right sidebar navigation.
+
+---
+
 ## [1.3.0] - 2026-08-28
 
 ### Added

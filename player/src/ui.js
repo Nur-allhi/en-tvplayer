@@ -230,7 +230,7 @@ export function renderChannelList() {
 
     item.innerHTML =
       '<span class="channel-number">' + (displayIndex + 1) + '</span>' +
-      '<span class="channel-name">' + escapeHtml(channel.name) + '</span>' +
+      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(channel.name) + '</span></span>' +
       (channel.useProxy ? '<span class="channel-proxy">Use Proxied</span>' : '');
 
     item.addEventListener('click', () => {
@@ -767,11 +767,53 @@ function updateActiveChannel() {
   });
 }
 
+let marqueeAnimation = null;
+let marqueeNameEl = null;
+
+function startMarquee(textEl) {
+  stopMarquee();
+  const overflow = textEl.scrollWidth - textEl.parentElement.clientWidth;
+  if (overflow <= 0) return;
+  const offset = overflow + 20;
+  marqueeNameEl = textEl;
+  textEl.classList.add('marquee');
+  marqueeAnimation = textEl.animate([
+    { transform: 'translateX(0)' },
+    { transform: 'translateX(0)', offset: 0.15 },
+    { transform: 'translateX(-' + offset + 'px)', offset: 0.45 },
+    { transform: 'translateX(-' + offset + 'px)', offset: 0.55 },
+    { transform: 'translateX(0)', offset: 0.85 },
+    { transform: 'translateX(0)' },
+  ], {
+    duration: 4000,
+    iterations: Infinity,
+  });
+}
+
+function stopMarquee() {
+  if (marqueeAnimation) {
+    marqueeAnimation.cancel();
+    marqueeAnimation = null;
+  }
+  if (marqueeNameEl) {
+    marqueeNameEl.classList.remove('marquee');
+    marqueeNameEl = null;
+  }
+}
+
 function updateFocus() {
+  stopMarquee();
   const items = document.querySelectorAll('.channel-item');
   items.forEach((item) => {
     const idx = parseInt(item.dataset.index, 10);
-    item.classList.toggle('focused', idx === focusedIndex);
+    const nowFocused = idx === focusedIndex;
+    item.classList.toggle('focused', nowFocused);
+    if (nowFocused) {
+      const textEl = item.querySelector('.channel-name-text');
+      if (textEl) {
+        requestAnimationFrame(() => startMarquee(textEl));
+      }
+    }
   });
 }
 
