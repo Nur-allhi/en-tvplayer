@@ -2,25 +2,86 @@
 
 > Log bugs immediately. Never delete entries. Resolved bugs move to bottom.
 
-**Entry format:**
-```markdown
-## BUG-<id>: <title>
+---
 
-- **Status:** open | in-progress | fixed | wontfix
-- **Severity:** critical | high | medium | low
-- **Found:** YYYY-MM-DD
-- **Location:** <file/component>
-- **Description:** observed vs expected
-- **Root Cause:** (after diagnosis)
-- **Fix Approach:** (after owner confirms)
-- **Resolved:** YYYY-MM-DD — commit ref
-```
+## BUG-001: Debug console.log statements in production code
+
+- **Status:** open
+- **Severity:** medium
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/main.js:69,71,207,217`
+- **Description:** Multiple `[DEBUG]` console.log statements left in production code. These leak internal state to users and clutter the console.
+- **Expected:** No debug logs in production builds.
 
 ---
 
-## Open Bugs
+## BUG-002: Files exceed 300 LOC limit
 
-*No open bugs yet.*
+- **Status:** open
+- **Severity:** medium
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** Multiple files
+- **Description:** Several files exceed the 300 LOC limit defined in AGENTS.md:
+  - `main.js` — 647 LOC
+  - `player.js` — 613 LOC
+  - `settings.js` — 713 LOC
+  - `ui.js` — 838 LOC
+- **Expected:** Each file ≤ 300 LOC.
+
+---
+
+## BUG-003: Excessive proxy debug logging
+
+- **Status:** open
+- **Severity:** low
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/player.js:66,70,76`
+- **Description:** Verbose proxy logging (`[PROXY] SKIP`, `[PROXY] PROC`) in production. Leaks URL information.
+- **Expected:** Minimal or no logging in production.
+
+---
+
+## BUG-004: Unimplemented feature (TODO)
+
+- **Status:** open
+- **Severity:** low
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/main.js:573`
+- **Description:** `// TODO T-021: toggle favorite` — Favorite toggle not implemented but Red key is documented as "Favorite toggle".
+- **Expected:** Either implement or remove from documentation.
+
+---
+
+## BUG-005: innerHTML usage without escapeHtml
+
+- **Status:** open
+- **Severity:** medium
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/main.js:20,154,158`
+- **Description:** Some innerHTML assignments use static strings (safe), but pattern is inconsistent. Should use textContent where possible.
+- **Expected:** Consistent use of textContent or escapeHtml for all dynamic content.
+
+---
+
+## BUG-006: Missing error handling in tizen key registration
+
+- **Status:** open
+- **Severity:** low
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/main.js:362`
+- **Description:** `try { window.tizen.tvinputdevice.registerKey(key); } catch (e) {}` — Silent catch with no fallback.
+- **Expected:** Log warning or handle gracefully.
+
+---
+
+## BUG-007: No cleanup of event listeners on destroy
+
+- **Status:** open
+- **Severity:** low
+- **Found:** 2026-08-28 (during: code analysis)
+- **Location:** `player/src/main.js` (multiple)
+- **Description:** Event listeners added but never removed. Not critical for SPA but could cause issues if player is reinitialized.
+- **Expected:** Cleanup function for event listeners.
 
 ---
 
