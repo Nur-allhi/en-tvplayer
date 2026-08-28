@@ -776,9 +776,9 @@ function updateFocus() {
 }
 
 function scrollToFocused() {
-  const items = document.querySelectorAll('.channel-item');
-  if (items[focusedIndex]) {
-    items[focusedIndex].scrollIntoView({ block: 'nearest' });
+  const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
+  if (el) {
+    el.scrollIntoView({ block: 'nearest' });
   }
 }
 
