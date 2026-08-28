@@ -10,6 +10,7 @@ let channels;
 let selectedGroup = null;
 let bufferingInterval = null;
 let cleanupListeners = [];
+let pendingPreview = null;
 
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
@@ -550,9 +551,18 @@ function handleRemoteAction(action, value) {
       const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
-      currentIndex = channels.indexOf(displayChannels[prev]);
-      ui.selectChannel(currentIndex, true);
-      ui.showChannelOsd(displayChannels[prev]);
+      const prevChannel = displayChannels[prev];
+      
+      if (pendingPreview && pendingPreview === prevChannel) {
+        currentIndex = channels.indexOf(prevChannel);
+        ui.selectChannel(currentIndex, true);
+        ui.showChannelOsd(prevChannel);
+        ui.hideChannelPreview();
+        pendingPreview = null;
+      } else {
+        pendingPreview = prevChannel;
+        ui.showChannelPreview(prevChannel, 'up');
+      }
       break;
     }
     case 'down':
@@ -562,9 +572,18 @@ function handleRemoteAction(action, value) {
       const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
       const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
       const next = (idx + 1) % displayChannels.length;
-      currentIndex = channels.indexOf(displayChannels[next]);
-      ui.selectChannel(currentIndex, true);
-      ui.showChannelOsd(displayChannels[next]);
+      const nextChannel = displayChannels[next];
+      
+      if (pendingPreview && pendingPreview === nextChannel) {
+        currentIndex = channels.indexOf(nextChannel);
+        ui.selectChannel(currentIndex, true);
+        ui.showChannelOsd(nextChannel);
+        ui.hideChannelPreview();
+        pendingPreview = null;
+      } else {
+        pendingPreview = nextChannel;
+        ui.showChannelPreview(nextChannel, 'down');
+      }
       break;
     }
     case 'left':

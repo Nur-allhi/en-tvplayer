@@ -666,6 +666,37 @@ function updateRightFocus() {
 /* Channel OSD */
 let osdTimer = null;
 
+let previewTimer = null;
+
+export function showChannelPreview(channel, direction) {
+  if (!channel) return;
+  const el = document.getElementById('channel-preview');
+  if (!el) return;
+  clearTimeout(previewTimer);
+  el.classList.remove('fade');
+  el.classList.remove('hidden');
+  const dir = direction === 'up' ? '\u2191' : '\u2193';
+  el.innerHTML = '<span class="preview-direction">' + dir + '</span>'
+    + '<span class="preview-number">' + (channel.channelNumber || '') + '</span>'
+    + '<span class="preview-name">' + escapeHtml(channel.name) + '</span>';
+  previewTimer = setTimeout(() => {
+    el.classList.add('fade');
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 300);
+  }, 1500);
+}
+
+export function hideChannelPreview() {
+  clearTimeout(previewTimer);
+  const el = document.getElementById('channel-preview');
+  if (el) {
+    el.classList.add('fade');
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 300);
+  }
+}
 export function showChannelOsd(channel) {
   if (!channel) return;
   const el = document.getElementById('channel-osd');
