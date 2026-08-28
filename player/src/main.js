@@ -16,7 +16,7 @@ let cleanupListeners = [];
 function applyResponsiveScale() {
   const sw = screen.width || 1920;
   const sh = screen.height || 1080;
-  const scale = Math.max(sw / 1920, sh / 1080);
+  const scale = Math.max(sw / 1920, sh / 1080, 1.35);
   document.documentElement.style.setProperty("--tv-scale", scale);
 }
 applyResponsiveScale();
