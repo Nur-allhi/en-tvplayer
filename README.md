@@ -31,13 +31,14 @@
 
 ## Features
 
+- **No server required** — Works standalone, fetches M3U8 playlists directly
 - **Full remote control** — Back key, color keys, number pad, all 14 Samsung remote actions
 - **HLS / DASH / MSS** — All streaming formats via Shaka Player
 - **DRM support** — ClearKey, PlayReady (including DRM license from MPD URL)
-- **Per-channel proxy toggle** — Enable/disable CORS proxy per channel, persists via localStorage
+- **Per-channel proxy toggle** — Enable/disable CORS proxy per channel in app settings
 - **Virtualized channel list** — Handles 5,000+ channels smoothly
 - **Settings page** — Playlist management, proxy config, about info
-- **Local network only** — No external servers, no cloud, no telemetry
+- **Local only** — No cloud, no telemetry
 
 ---
 
@@ -53,31 +54,20 @@
 
 1. Open from "My Apps" on your TV
 2. Settings page opens automatically when no channels are loaded
-3. Enter your playlist URL or upload an M3U file
+3. Paste your M3U8 playlist URL
+4. Click "Fetch Playlist"
+5. Start watching!
 
 ---
 
-## Server Connection
+## Proxy Setup (Optional)
 
-This player connects to an **EN IPTV Server** running on your local network.
+If some channels don't load (CORS issues), you can enable a proxy:
 
-**Default server:** `https://<YOUR_PC_IP>:5000`
-
-### Setting Up the Server
-
-```bash
-# Clone the full project (includes server + proxy)
-git clone https://github.com/Nur-allhi/EN_TvPlayer.git
-cd EN_TvPlayer
-npm install
-npm start
-```
-
-This starts:
-- **Server** on `:5000` — Channel API + static files
-- **Proxy** on `:5001` — CORS proxy for streams
-
-See [EN_TvPlayer](https://github.com/Nur-allhi/EN_TvPlayer) for full documentation.
+1. Open Settings (🔵 Blue key)
+2. Go to Connection tab
+3. Enter your proxy URL
+4. For per-channel proxy: Select channel → toggle Proxy ON
 
 ---
 
@@ -105,18 +95,18 @@ See [EN_TvPlayer](https://github.com/Nur-allhi/EN_TvPlayer) for full documentati
 | Problem | Solution |
 |---------|----------|
 | "Stream not loading" | Press 🔵 Blue → enable Proxy for that channel |
-| Channel list empty | Paste your M3U URL in Settings |
-| 403 on streams | Enable per-channel proxy or check server |
+| Channel list empty | Paste your M3U8 URL in Settings |
+| 403 on streams | Enable per-channel proxy in channel settings |
 | App not in My Apps | Restart TV, check Developer Mode |
 
 ---
 
 ## Links
 
-- [EN_TvPlayer (Full Project)](https://github.com/Nur-allhi/EN_TvPlayer) — Server + Proxy + Player
 - [Releases](https://github.com/Nur-allhi/en-tvplayer/releases) — Download WGT files
 - [Tizen Community Packages](https://github.com/Apps2Samsung/tizen-community-packages) — Included in community bundle
 - [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) — Easy TV installer
+- [Report Bugs](https://github.com/Nur-allhi/en-tvplayer/issues)
 
 ---
 
