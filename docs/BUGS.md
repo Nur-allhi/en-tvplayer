@@ -43,7 +43,7 @@
 
 ## BUG-004: Unimplemented feature (TODO)
 
-- **Status:** open
+- **Status:** fixed
 - **Severity:** low
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** `player/src/main.js:573`
@@ -65,7 +65,7 @@
 
 ## BUG-006: Missing error handling in tizen key registration
 
-- **Status:** open
+- **Status:** fixed
 - **Severity:** low
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** `player/src/main.js:362`
