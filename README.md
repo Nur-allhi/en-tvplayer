@@ -1,6 +1,6 @@
 # EN TV Player
 
-**Samsung Tizen TV IPTV Player** — Install on any Tizen 5.0+ TV via Developer Mode or USB.
+**Samsung Tizen TV IPTV Player** — Install on any Tizen 5.0+ TV.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tizen](https://img.shields.io/badge/Tizen-5.0+-red?logo=samsung)]()
@@ -10,10 +10,22 @@
 
 ## Quick Install
 
-1. Download [`releases/EN-IPTV_Player_v1.1.0.zip`](releases/EN-IPTV_Player_v1.1.0.zip)
-2. Extract to get the `.wgt` file
-3. Install via [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download) or USB
-4. Open from "My Apps" on your TV
+### Option 1: Apps2Samsung Windows App (Recommended)
+
+1. Download [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung/releases)
+2. Install and open Apps2Samsung on your PC
+3. Enable Developer Mode on your TV (see below)
+4. Enter your TV's IP in Apps2Samsung
+5. Download `EN-IPTV_Player.wgt` from [Releases](https://github.com/Nur-allhi/en-tvplayer/releases/tag/v1.1.0)
+6. Click "Install" in Apps2Samsung
+
+### Option 2: Tizen Studio CLI
+
+1. Download `EN-IPTV_Player.wgt` from [Releases](https://github.com/Nur-allhi/en-tvplayer/releases/tag/v1.1.0)
+2. Install via command line:
+   ```bash
+   tizen install -n EN-IPTV_Player.wgt -s <TV_IP_ADDRESS>
+   ```
 
 ---
 
@@ -32,30 +44,16 @@
 ## Samsung TV Setup
 
 ### Enable Developer Mode
+
 1. Go to `Menu` → `Apps` → press `1-2-3-4-5` on your remote
 2. Enable "Developer Mode" and enter your PC's IP address
 3. Restart the TV
 
-### Install the WGT
-
-**Option A — Tizen Studio CLI:**
-```bash
-tizen install -n EN-IPTV_Player.wgt -s <TV_IP_ADDRESS>
-```
-
-**Option B — USB:**
-1. Copy the `.wgt` file to a USB drive
-2. Plug into TV
-3. Install from the file manager
-
-**Option C — Web:**
-1. Open `http://<TV_IP>:23049` from your browser
-2. Upload the `.wgt` file
-
 ### Start the App
-- Open from "My Apps" on your TV
-- Settings page opens automatically when no channels are loaded
-- Enter your playlist URL or upload an M3U file
+
+1. Open from "My Apps" on your TV
+2. Settings page opens automatically when no channels are loaded
+3. Enter your playlist URL or upload an M3U file
 
 ---
 
@@ -83,83 +81,33 @@ See [EN_TvPlayer](https://github.com/Nur-allhi/EN_TvPlayer) for full documentati
 
 ---
 
-## Development
-
-### Prerequisites
-- Node.js 18+
-- Python (for WGT packaging)
-- OpenSSL (for signing)
-
-### Build from Source
-
-```bash
-# Install dependencies
-cd player && npm install && cd ..
-cd tizen && npm install && cd ..
-
-# Build player SPA
-cd player && npm run build && cd ..
-
-# Package WGT (outputs to releases/)
-cd tizen && node package.mjs
-```
-
-### Project Structure
-
-```
-en-tvplayer/
-├── player/              Player SPA (Vite + Shaka Player)
-│   ├── src/             Source code
-│   │   ├── main.js      App entry point
-│   │   ├── player.js    Shaka Player wrapper
-│   │   ├── ui.js        Channel list + sidebar
-│   │   ├── settings.js  Settings page
-│   │   ├── remote.js    Remote control handler
-│   │   ├── config.js    localStorage settings
-│   │   └── utils.js     Shared utilities
-│   ├── public/          Static assets (favicon)
-│   └── vite.config.js   Vite configuration
-├── tizen/               WGT build tools
-│   ├── package.mjs      Build + sign script
-│   ├── config.xml       Tizen app manifest
-│   ├── icons/           App icons
-│   └── ziphelper.py     ZIP packaging helper
-├── releases/            Pre-built WGT releases
-└── README.md
-```
-
----
-
 ## Remote Control Keys
 
 | Key | Action |
 |-----|--------|
 | ↑ / ↓ | Previous / Next channel |
-| ← / → | Navigate menus / Toggle sidebar |
+| ← / → | Navigate menus |
 | Enter | Select / Play |
-| Back | Close menu / Exit confirm |
-| 0–9 | Number pad (tune to channel) |
-| Channel Up/Down | Next / Previous channel |
+| Back | Close menu / Exit |
+| 0–9 | Tune to channel number |
+| Channel ↑/↓ | Next / Previous channel |
 | Play/Pause | Toggle playback |
 | Stop | Stop playback |
-| Next/Prev | Next / Previous track |
-| Red | Favorite toggle |
-| Green | Groups sidebar |
-| Yellow | Proxy toggle |
-| Blue | Open settings |
+| 🔴 Red | Favorite toggle |
+| 🟢 Green | Groups sidebar |
+| 🟡 Yellow | Proxy toggle |
+| 🔵 Blue | Open settings |
 
 ---
 
 ## Troubleshooting
 
 | Problem | Solution |
-|---|---|
-| TV "Invalid certificate" | Delete `*.p12` + `profile.xml`, regenerate certs |
-| App not in My Apps | Restart TV, check Developer Mode is enabled |
-| Video won't play | Enable **Proxy** from the right sidebar for that channel |
-| "Stream not loading" | Open right sidebar → toggle Proxy OFF to ON |
-| Channel list empty | Settings page opens automatically — paste playlist URL |
-| 403 on streams | Enable per-channel proxy or check header rules |
+|---------|----------|
+| "Stream not loading" | Press 🔵 Blue → enable Proxy for that channel |
+| Channel list empty | Paste your M3U URL in Settings |
+| 403 on streams | Enable per-channel proxy or check server |
+| App not in My Apps | Restart TV, check Developer Mode |
 
 ---
 
@@ -167,7 +115,8 @@ en-tvplayer/
 
 - [EN_TvPlayer (Full Project)](https://github.com/Nur-allhi/EN_TvPlayer) — Server + Proxy + Player
 - [Releases](https://github.com/Nur-allhi/en-tvplayer/releases) — Download WGT files
-- [Tizen Developer Docs](https://developer.tizen.org/development/tizen-studio/download)
+- [Tizen Community Packages](https://github.com/Apps2Samsung/tizen-community-packages) — Included in community bundle
+- [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) — Easy TV installer
 
 ---
 
