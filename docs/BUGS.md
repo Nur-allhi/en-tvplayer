@@ -6,7 +6,7 @@
 
 ## BUG-001: Debug console.log statements in production code
 
-- **Status:** open
+- **Status:** fixed
 - **Severity:** medium
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** `player/src/main.js:69,71,207,217`
