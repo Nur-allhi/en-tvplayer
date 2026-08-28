@@ -88,11 +88,63 @@ en-tvplayer/
 1. **Apps2Samsung** (recommended) — network install
 2. **Tizen Studio CLI** — `tizen install -n EN-IPTV_Player.wgt -s <TV_IP>`
 
-## 8. Release Process
+## 8. Release Process — MANDATORY STEPS
 
-1. Update version in `package.json` and `player/package.json`
-2. Build: `npm run build && npm run tizen`
-3. Copy WGT to `releases/`
-4. Commit, tag, push
-5. Create GitHub release with direct .wgt file
-6. Update `packages/Nur-allhi__en-tvplayer.json` if needed
+**⚠️ ALL steps must be completed. Skipping any step breaks the community package.**
+
+### Step 1: Update Version
+- Update `package.json` → `"version": "X.Y.Z"`
+- Update `player/package.json` → `"version": "X.Y.Z"`
+
+### Step 2: Build
+```bash
+npm run build && npm run tizen
+```
+
+### Step 3: Copy WGT
+- Copy built WGT to `releases/EN-IPTV_Player.wgt`
+
+### Step 4: Commit & Tag
+```bash
+git add -A
+git commit -m "release: vX.Y.Z"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push && git push origin vX.Y.Z
+```
+
+### Step 5: Create GitHub Release
+- Use `gh release create` or GitHub UI
+- Upload `releases/EN-IPTV_Player.wgt` (direct .wgt, NOT zip)
+- Write release notes
+
+### Step 6: ⚠️ UPDATE COMMUNITY JSON (MANDATORY)
+- Edit `packages/Nur-allhi__en-tvplayer.json` in tizen-community-packages repo
+- Ensure `output_name` matches your release asset filename
+- Commit and push
+- Verify PR builds successfully
+
+**Without Step 6, the community bundle will have an OLD version of your app!**
+
+## 9. Community Packages Maintenance
+
+- **Repository:** `Apps2Samsung/tizen-community-packages`
+- **Your file:** `packages/Nur-allhi__en-tvplayer.json`
+- **Always update when:** releasing new version, changing asset filename, or fixing release issues
+
+### How to Update
+
+```bash
+# Clone the community repo
+git clone https://github.com/Nur-allhi/tizen-community-packages.git
+
+# Edit your JSON file
+# packages/Nur-allhi__en-tvplayer.json
+
+# Commit and push
+git add .
+git commit -m "update: EN TV Player to vX.Y.Z"
+git push
+
+# Create PR
+gh pr create --repo Apps2Samsung/tizen-community-packages
+```
