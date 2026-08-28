@@ -632,11 +632,10 @@ function sortChannels(ch) {
   if (!ch || !ch.length) return;
   ch.sort((a, b) => {
     if (!a || !b) return 0;
-    const aHas = a.channelNumber != null && !isNaN(a.channelNumber);
-    const bHas = b.channelNumber != null && !isNaN(b.channelNumber);
-    if (aHas && bHas) return a.channelNumber - b.channelNumber;
-    if (aHas) return -1;
-    if (bHas) return 1;
+    // Sort by group first, then alphabetically by name within group
+    const aGroup = (a.group || 'Ungrouped').toLowerCase();
+    const bGroup = (b.group || 'Ungrouped').toLowerCase();
+    if (aGroup !== bGroup) return aGroup.localeCompare(bGroup);
     return (a.name || '').localeCompare(b.name || '');
   });
 }

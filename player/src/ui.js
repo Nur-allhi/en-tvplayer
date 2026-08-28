@@ -229,7 +229,7 @@ export function renderChannelList() {
     item.dataset.index = displayIndex;
 
     item.innerHTML =
-      '<span class="channel-number">' + (channel.channelNumber || displayIndex + 1) + '</span>' +
+      '<span class="channel-number">' + (displayIndex + 1) + '</span>' +
       '<span class="channel-name">' + escapeHtml(channel.name) + '</span>' +
       (channel.useProxy ? '<span class="channel-proxy">Use Proxied</span>' : '');
 
