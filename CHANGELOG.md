@@ -2,6 +2,26 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.2.0] - 2026-08-28
+
+### Summary
+- All critical bugs fixed (6 of 8 resolved)
+- BUG-002 deferred (needs tests before file splitting)
+- Ready for feature development
+
+### Fixed
+- BUG-001: Debug console.log statements
+- BUG-003: Proxy debug logging
+- BUG-004: Favorite TODO comment
+- BUG-006: Tizen key registration warning
+- BUG-007: Event listener cleanup
+- BUG-008: Fresh install playlist fetch
+
+### Closed
+- BUG-005: innerHTML safety (not an issue — all content properly escaped)
+
+---
+
 ## [1.1.3] - 2026-08-28
 
 ### Closed
