@@ -2,12 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
-## [Unreleased]
+## [1.1.1] - 2026-08-28
 
 ### Fixed
 - Playlist fetch fails on first add after fresh install (BUG-008)
 - Removed `ui.stopInactivityTimer()` call before `ui.init()` was ready
 - Added error logging in `showFirstLaunch()` callback (was silently swallowing errors)
+- Removed debug console.log statements from production code (BUG-001)
 
 ---
 
