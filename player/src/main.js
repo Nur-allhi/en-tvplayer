@@ -460,8 +460,10 @@ function handleRemoteAction(action, value) {
         ui.toggleRightSidebar();
         return;
       case 'left':
-      case 'right':
         ui.toggleRightSidebar();
+        ui.toggleSidebar();
+        break;
+      case 'right':
         break;
       default:
         break;
@@ -483,7 +485,6 @@ function handleRemoteAction(action, value) {
           ui.selectFocusedGroup();
           break;
         case 'left':
-          ui.toggleSidebar();
           break;
         case 'right':
           ui.toggleSidebar();
