@@ -54,12 +54,12 @@
 
 ## BUG-005: innerHTML usage without escapeHtml
 
-- **Status:** open
+- **Status:** closed (not an issue)
 - **Severity:** medium
 - **Found:** 2026-08-28 (during: code analysis)
 - **Location:** `player/src/main.js:20,154,158`
 - **Description:** Some innerHTML assignments use static strings (safe), but pattern is inconsistent. Should use textContent where possible.
-- **Expected:** Consistent use of textContent or escapeHtml for all dynamic content.
+- **Resolution:** All user content is already escaped with `escapeHtml()`. innerHTML usages are either static strings, HTML entities for icons, or properly escaped user content. No security issue found.
 
 ---
 
