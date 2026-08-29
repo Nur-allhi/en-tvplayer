@@ -92,6 +92,50 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 ---
 
+## 🐛 Report Bugs & 💡 Request Features
+
+Found a bug or have an idea? Open an issue on [GitHub Issues](https://github.com/Nur-allhi/en-tvplayer/issues).
+
+### Rules
+
+1. **Search first** — check if the issue already exists before creating a new one.
+2. **One issue per ticket** — don't mix multiple bugs or features into one issue.
+3. **Be specific** — vague issues are hard to reproduce and fix.
+4. **Stay respectful** — keep the discussion constructive.
+
+### Bug Report Format
+
+```
+Title: [Bug] Short description
+
+TV Model: e.g. Samsung TU8000
+Tizen Version: e.g. 5.0
+App Version: e.g. 1.1.0
+
+Steps to Reproduce:
+1. Open the app
+2. ...
+3. ...
+
+Expected Behavior: What should happen
+Actual Behavior: What actually happens
+
+Screenshots/Videos: (if applicable)
+```
+
+### Feature Request Format
+
+```
+Title: [Feature] Short description
+
+Description: What you want and why
+Use Case: How this helps you or other users
+
+Alternatives Considered: Any workarounds you already tried
+```
+
+---
+
 ## License
 
 MIT
