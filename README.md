@@ -46,7 +46,6 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 - **M3U/M3U8 Support** — Works with any IPTV playlist
 - **Channel Groups** — Organized by category
 - **Per-Channel Proxy** — Toggle proxy for channels that need it
-- **Virtualized List** — Handles 5,000+ channels smoothly
 
 ---
 
