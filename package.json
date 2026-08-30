@@ -1,6 +1,6 @@
 {
   "name": "en-tvplayer",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Samsung Tizen TV IPTV Player — install on any Tizen 5.0+ TV",
   "type": "module",
   "scripts": {

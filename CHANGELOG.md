@@ -2,6 +2,14 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.5.0] - 2026-08-30
+
+### Changed
+- Updated app logo with new design.
+- Updated Tizen community JSON for auto-release detection.
+
+---
+
 ## [1.4.0] - 2026-08-28
 
 ### Added
