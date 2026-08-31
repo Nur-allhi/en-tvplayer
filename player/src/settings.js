@@ -663,6 +663,7 @@ function renderAboutCard() {
 }
 
 async function handleFetch() {
+  const fetchBtn = document.getElementById('settings-fetch-btn');
   const statusEl = document.getElementById('settings-fetch-status');
   if (!statusEl) return;
   const active = getActivePlaylist();
@@ -672,6 +673,8 @@ async function handleFetch() {
     statusEl.classList.remove('hidden');
     return;
   }
+  // Disable button to prevent double-click during fetch
+  if (fetchBtn) fetchBtn.disabled = true;
   statusEl.className = 'status-info';
   statusEl.textContent = 'Fetching...';
   statusEl.classList.remove('hidden');
@@ -682,6 +685,8 @@ async function handleFetch() {
     if (onPlaylistFetched) onPlaylistFetched(channels);
   } catch (e) {
     statusEl.textContent = 'Error: ' + e.message;
+  } finally {
+    if (fetchBtn) fetchBtn.disabled = false;
   }
 }
 

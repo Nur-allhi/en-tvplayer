@@ -2,6 +2,15 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.5.1] - 2026-08-31
+
+### Fixed
+- BUG-009: Fetch Active intermittent error during stream playback.
+- Wrapped relay fallback in `fetchPlaylist` with its own try/catch so relay failures produce meaningful error messages instead of masking the real cause.
+- Added double-click protection on Fetch Active button to prevent concurrent fetch operations.
+
+---
+
 ## [1.5.0] - 2026-08-30
 
 ### Changed

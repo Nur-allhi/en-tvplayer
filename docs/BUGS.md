@@ -98,6 +98,21 @@
 
 ---
 
+## BUG-009: Fetch Active intermittent error during stream playback
+
+- **Status:** open
+- **Severity:** high
+- **Found:** 2026-08-31 (user reported)
+- **Location:** `player/src/utils.js:102-132` (`fetchPlaylist`), `player/src/settings.js:668-690` (`handleFetch`)
+- **Description:** While a stream is actively playing, clicking "Fetch Active" in settings sometimes shows a generic error (e.g., "Fetch timed out"). The error is intermittent — it works sometimes and fails other times.
+- **Root Cause:** Two compounding issues:
+  1. **`fetchPlaylist` relay fallback has no inner try-catch.** When the direct `fetch(url)` fails (timeout, CORS, network congestion from active stream), the catch block tries a relay endpoint (`/api/fetch?url=...`). On Tizen TV, this relay endpoint does not exist, so `fetchWithTimeout(relayUrl, ...)` itself throws. This relay error is **not caught** — it propagates up with an unhelpful message like "Fetch timed out" instead of the actual cause.
+  2. **No double-click protection on Fetch Active button.** The button doesn't disable during fetch, so rapid clicks can trigger multiple concurrent fetch operations, compounding network congestion.
+- **Expected:** `fetchPlaylist` should gracefully handle relay failures and show a meaningful error. The Fetch Active button should disable during operation.
+- **Fix:** Wrapped relay fallback in its own try-catch. Added button disable during fetch. Added user-friendly error messages.
+
+---
+
 ## Fixed Bugs
 
 | Bug | Fixed | Commit |

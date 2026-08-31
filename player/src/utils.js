@@ -140,11 +140,17 @@ export async function fetchPlaylist(url) {
     contentType = resp.headers.get('content-type') || '';
     text = await resp.text();
   } catch (e) {
-    const relayUrl = '/api/fetch?url=' + encodeURIComponent(url);
-    const relayResp = await fetchWithTimeout(relayUrl, 10000);
-    if (!relayResp.ok) throw e;
-    contentType = relayResp.headers.get('content-type') || '';
-    text = await relayResp.text();
+    // Direct fetch failed — try relay endpoint as fallback
+    try {
+      const relayUrl = '/api/fetch?url=' + encodeURIComponent(url);
+      const relayResp = await fetchWithTimeout(relayUrl, 10000);
+      if (!relayResp.ok) throw new Error('Relay returned HTTP ' + relayResp.status);
+      contentType = relayResp.headers.get('content-type') || '';
+      text = await relayResp.text();
+    } catch (relayErr) {
+      // Both direct and relay failed — throw a meaningful combined error
+      throw new Error('Playlist fetch failed: ' + e.message + (relayErr.message ? ' (relay: ' + relayErr.message + ')' : ''));
+    }
   }
   if (contentType.includes('json') || text.trim().startsWith('[') || text.trim().startsWith('{')) {
     const data = JSON.parse(text);
