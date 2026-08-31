@@ -18,7 +18,7 @@ const APP_VERSION = playerPkg.version;
 const commitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
 const versionType = branch === 'main' ? 'stable' : 'beta';
-const WGT_NAME = `EN-IPTV_Player_${versionType}_${APP_VERSION}_${commitHash}.wgt`;
+const WGT_NAME = `EN-IPTV_Player_v${APP_VERSION}_${commitHash}.wgt`;
 const OUTPUT_DIR = join(ROOT, versionType);
 if (!existsSync(OUTPUT_DIR)) mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -125,7 +125,7 @@ const configXml = `<?xml version="1.0" encoding="UTF-8"?>
   <content src="index.html"/>
   <feature name="http://tizen.org/feature/screen.size.all"/>
   <icon src="icon.png"/>
-  <name>EN-IPTV Player</name>
+  <name>EN-IPTV Player v${APP_VERSION}</name>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:profile name="tv-samsung"/>
