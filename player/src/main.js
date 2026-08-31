@@ -54,15 +54,33 @@ async function init() {
   const s = getSettings();
   const activePlaylist = getActivePlaylist();
 
-  // Cache-first boot: show cached channels instantly, refresh in background.
-  // A hung playlist fetch must never block boot (TV network may not be ready).
-  if (s.channels && s.channels.length > 0) {
+  const autoRefresh = s.autoRefreshPlaylist !== false;
+
+  if (autoRefresh && activePlaylist && activePlaylist.url) {
+    // Auto-refresh: always fetch fresh playlist on boot.
+    // Show cached channels instantly if available, then replace with fresh data.
+    if (s.channels && s.channels.length > 0) {
+      channels = s.channels;
+      startPlayer();
+      refreshChannelsInBackground();
+    } else {
+      try {
+        const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
+        applyProxyOverrides(newChannels);
+        saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
+        channels = newChannels;
+        startPlayer();
+      } catch (e) {
+        console.warn('Failed to fetch playlist:', e.message);
+        showFirstLaunch();
+      }
+    }
+  } else if (s.channels && s.channels.length > 0) {
+    // Auto-refresh OFF: load from localStorage only, no network fetch.
     channels = s.channels;
     startPlayer();
-    if (activePlaylist && activePlaylist.url) {
-      refreshChannelsInBackground();
-    }
   } else if (activePlaylist && activePlaylist.url) {
+    // No cached channels but has playlist URL — fetch once to bootstrap.
     try {
       const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
       applyProxyOverrides(newChannels);

@@ -2,6 +2,16 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.6.0] - 2026-08-31
+
+### Added
+- Auto-refresh playlist on app launch — when enabled, playlist is downloaded and updated from source every time the app opens. Toggle available in Settings → Playback.
+
+### Changed
+- Boot flow now respects the `autoRefreshPlaylist` setting. When OFF, only cached channels from localStorage are loaded (no network fetch).
+
+---
+
 ## [1.5.1] - 2026-08-31
 
 ### Fixed

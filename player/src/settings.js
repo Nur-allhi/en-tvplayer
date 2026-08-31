@@ -323,6 +323,7 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('settings-proxy-save-btn'));
   } else if (activeSection === 'playback') {
     focusOrder.push(document.getElementById('toggle-autoq'));
+    focusOrder.push(document.getElementById('toggle-auto-refresh'));
   }
 }
 
@@ -533,6 +534,9 @@ function render() {
           const enabled = this.classList.contains('on');
           saveSettings({ autoQuality: enabled });
           player.setAutoQuality(enabled);
+        } else if (this.id === 'toggle-auto-refresh') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ autoRefreshPlaylist: enabled });
         }
       });
     });
@@ -635,6 +639,7 @@ function renderConnectionCard(s) {
 function renderPlaybackCard() {
   const s = getSettings();
   const autoQ = s.autoQuality !== false;
+  const autoRefresh = s.autoRefreshPlaylist !== false;
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -642,6 +647,10 @@ function renderPlaybackCard() {
   html += '<div class="toggle-row">';
   html += '<div><div class="toggle-label">Auto quality</div><div class="toggle-desc">Automatically adjust resolution based on bandwidth</div></div>';
   html += '<div class="toggle' + (autoQ ? ' on' : '') + '" id="toggle-autoq"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Auto refresh playlist</div><div class="toggle-desc">Download and update playlist from source on app launch</div></div>';
+  html += '<div class="toggle' + (autoRefresh ? ' on' : '') + '" id="toggle-auto-refresh"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   return html;
