@@ -27,6 +27,21 @@ function getDisplayChannels() {
   return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
 }
 
+function showBootSplash(statusText) {
+  const el = document.getElementById('boot-splash');
+  const statusEl = document.getElementById('boot-status');
+  if (!el) return;
+  if (statusEl && statusText) statusEl.textContent = statusText;
+  el.classList.remove('hidden', 'fade-out');
+}
+
+function hideBootSplash() {
+  const el = document.getElementById('boot-splash');
+  if (!el) return;
+  el.classList.add('fade-out');
+  setTimeout(() => el.classList.add('hidden'), 400);
+}
+
 async function init() {
   const videoEl = document.getElementById('video');
   if (!player.initPlayer(videoEl)) {
@@ -58,20 +73,25 @@ async function init() {
 
   if (autoRefresh && activePlaylist && activePlaylist.url) {
     // Auto-refresh: always fetch fresh playlist on boot.
-    // Show cached channels instantly if available, then replace with fresh data.
     if (s.channels && s.channels.length > 0) {
+      // Cached channels available — show instantly, refresh in background.
       channels = s.channels;
       startPlayer();
-      refreshChannelsInBackground();
+      showBootSplash('Updating playlist...');
+      refreshChannelsInBackground().then(() => hideBootSplash());
     } else {
+      // No cached channels — show splash while fetching.
+      showBootSplash('Downloading playlist...');
       try {
         const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
         applyProxyOverrides(newChannels);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
+        hideBootSplash();
         startPlayer();
       } catch (e) {
         console.warn('Failed to fetch playlist:', e.message);
+        hideBootSplash();
         showFirstLaunch();
       }
     }
@@ -81,14 +101,17 @@ async function init() {
     startPlayer();
   } else if (activePlaylist && activePlaylist.url) {
     // No cached channels but has playlist URL — fetch once to bootstrap.
+    showBootSplash('Loading playlist...');
     try {
       const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
       applyProxyOverrides(newChannels);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
+      hideBootSplash();
       startPlayer();
     } catch (e) {
       console.warn('Failed to fetch playlist:', e.message);
+      hideBootSplash();
       showFirstLaunch();
     }
   } else {

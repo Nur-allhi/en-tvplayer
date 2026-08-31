@@ -2,6 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.6.1] - 2026-08-31
+
+### Added
+- Boot splash loading animation — full-screen overlay with app logo and spinner shown while playlist is being fetched on app launch. Status text updates dynamically ("Downloading playlist...", "Updating playlist...", "Loading playlist..."). Fades out smoothly when fetch completes.
+
+---
+
 ## [1.6.0] - 2026-08-31
 
 ### Added
