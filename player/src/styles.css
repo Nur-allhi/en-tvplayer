@@ -602,7 +602,7 @@ html, body {
   align-items: center;
   justify-content: center;
   z-index: 200;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 
 .boot-splash.fade-out {
@@ -614,30 +614,95 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(24px * var(--tv-scale));
 }
 
+/* Logo container — icon + text side by side, centered */
 .boot-logo {
   display: flex;
   align-items: center;
-  gap: calc(14px * var(--tv-scale));
+  gap: calc(16px * var(--tv-scale));
+  opacity: 0;
+  animation: bootLogoIn 0.6s ease-out forwards;
+  animation-delay: 0.2s;
+}
+
+@keyframes bootLogoIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.boot-logo-icon {
+  flex-shrink: 0;
+}
+
+.boot-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .boot-logo-text {
-  font-size: calc(36px * var(--tv-scale));
+  font-size: calc(40px * var(--tv-scale));
   font-weight: 700;
   color: #fff;
   letter-spacing: 2px;
+  line-height: 1.1;
 }
 
 .boot-logo-text span {
   color: #ED421F;
 }
 
+.boot-version {
+  font-size: calc(13px * var(--tv-scale));
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+/* Typewriter text below the logo */
+.boot-typewriter {
+  font-size: calc(16px * var(--tv-scale));
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.04em;
+  min-height: calc(20px * var(--tv-scale));
+}
+
+.boot-typewriter::after {
+  content: '|';
+  animation: bootBlink 0.6s step-end infinite;
+  color: #ED421F;
+  margin-left: 1px;
+}
+
+.boot-typewriter.done::after {
+  display: none;
+}
+
+@keyframes bootBlink {
+  50% { opacity: 0; }
+}
+
+/* Loading section (spinner + status) — fades in after typewriter */
+.boot-loading {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--tv-scale));
+  margin-top: calc(32px * var(--tv-scale));
+  opacity: 0;
+  animation: bootLoadingIn 0.4s ease-out forwards;
+  animation-delay: 2.2s;
+}
+
+@keyframes bootLoadingIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .boot-spinner {
-  width: calc(40px * var(--tv-scale));
-  height: calc(40px * var(--tv-scale));
-  border: calc(3px * var(--tv-scale)) solid rgba(255,255,255,0.1);
+  width: calc(28px * var(--tv-scale));
+  height: calc(28px * var(--tv-scale));
+  border: calc(3px * var(--tv-scale)) solid rgba(255,255,255,0.08);
   border-top-color: #ED421F;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -645,7 +710,7 @@ html, body {
 
 .boot-status {
   font-size: calc(18px * var(--tv-scale));
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.45);
   letter-spacing: 0.02em;
 }
 
@@ -1288,6 +1353,139 @@ html, body {
   padding: calc(12px * var(--tv-scale)) calc(23px * var(--tv-scale));
   font-size: calc(17px * var(--tv-scale));
   min-height: calc(46px * var(--tv-scale));
+}
+
+/* What's New modal */
+.whats-new-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: wnFadeIn 0.3s ease-out;
+}
+
+.whats-new-modal.hidden {
+  display: none;
+}
+
+@keyframes wnFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.whats-new-box {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: calc(14px * var(--tv-scale));
+  width: calc(600px * var(--tv-scale));
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: wnSlideUp 0.35s ease-out;
+}
+
+@keyframes wnSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.whats-new-header {
+  padding: calc(24px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.whats-new-header h2 {
+  font-size: calc(24px * var(--tv-scale));
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.whats-new-version {
+  font-size: calc(14px * var(--tv-scale));
+  color: #ED421F;
+  background: rgba(237,66,31,0.1);
+  border: 1px solid rgba(237,66,31,0.25);
+  border-radius: calc(20px * var(--tv-scale));
+  padding: 3px 14px;
+  font-weight: 600;
+}
+
+.whats-new-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(20px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+
+.whats-new-body::-webkit-scrollbar {
+  width: 6px;
+}
+.whats-new-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.whats-new-body::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+.wn-section {
+  margin-bottom: calc(20px * var(--tv-scale));
+}
+
+.wn-section:last-child {
+  margin-bottom: 0;
+}
+
+.wn-section-title {
+  font-size: calc(15px * var(--tv-scale));
+  font-weight: 600;
+  color: #ED421F;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: calc(10px * var(--tv-scale));
+}
+
+.wn-item {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(10px * var(--tv-scale));
+  padding: calc(6px * var(--tv-scale)) 0;
+  font-size: calc(17px * var(--tv-scale));
+  color: #c9d1d9;
+  line-height: 1.45;
+}
+
+.wn-icon {
+  flex-shrink: 0;
+  width: calc(22px * var(--tv-scale));
+  text-align: center;
+  font-size: calc(16px * var(--tv-scale));
+  margin-top: 2px;
+}
+
+.wn-icon.added { color: #2ea043; }
+.wn-icon.fixed { color: #d29922; }
+.wn-icon.changed { color: #58a6ff; }
+
+.whats-new-footer {
+  padding: calc(16px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-top: 1px solid #222;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .confirm-dialog { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.7); }

@@ -100,20 +100,40 @@
       <!-- Boot splash / loading overlay -->
       <div id="boot-splash" class="boot-splash hidden">
         <div class="boot-splash-content">
-          <div class="boot-logo">
-            <svg class="boot-logo-icon" viewBox="0 0 24 24" width="48" height="48" fill="none">
+          <div class="boot-logo" id="boot-logo">
+            <svg class="boot-logo-icon" id="boot-logo-icon" viewBox="0 0 24 24" width="56" height="56" fill="none">
               <rect x="2" y="4" width="20" height="16" rx="2" stroke="#ED421F" stroke-width="1.8"/>
               <polygon points="10,8 10,16 17,12" fill="#ED421F"/>
             </svg>
-            <span class="boot-logo-text">EN <span>IPTV</span></span>
+            <div class="boot-text-group">
+              <span class="boot-logo-text" id="boot-logo-text">EN <span>IPTV</span></span>
+              <span id="boot-version" class="boot-version"></span>
+              <span id="boot-typewriter" class="boot-typewriter"></span>
+            </div>
           </div>
-          <div class="boot-spinner"></div>
-          <span id="boot-status" class="boot-status">Updating playlist...</span>
+          <div class="boot-loading" id="boot-loading">
+            <div class="boot-spinner"></div>
+            <span id="boot-status" class="boot-status">Updating playlist...</span>
+          </div>
         </div>
       </div>
 
       <!-- Settings Page (hidden by default) -->
       <div id="settings-page" class="settings-page hidden"></div>
+
+      <!-- What's New modal -->
+      <div id="whats-new-modal" class="whats-new-modal hidden">
+        <div class="whats-new-box">
+          <div class="whats-new-header">
+            <h2>What's New</h2>
+            <span id="whats-new-version" class="whats-new-version"></span>
+          </div>
+          <div id="whats-new-body" class="whats-new-body"></div>
+          <div class="whats-new-footer">
+            <button id="whats-new-close" class="btn btn-primary" type="button">Got it</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Confirm Dialog -->
       <div id="confirm-dialog" class="confirm-dialog hidden">

@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, getProxyOverrides, getActivePlaylist } from './config.js';
+import { getSettings, saveSettings, getProxyOverrides, getActivePlaylist, APP_VERSION } from './config.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
 import * as remote from './remote.js';
@@ -27,19 +27,149 @@ function getDisplayChannels() {
   return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
 }
 
+const BOOT_TAGLINE = 'Smart IPTV Player for Samsung Tizen';
+let bootTypewriterTimer = null;
+
 function showBootSplash(statusText) {
   const el = document.getElementById('boot-splash');
   const statusEl = document.getElementById('boot-status');
+  const typeEl = document.getElementById('boot-typewriter');
+  const loadingEl = document.getElementById('boot-loading');
+  const verEl = document.getElementById('boot-version');
   if (!el) return;
   if (statusEl && statusText) statusEl.textContent = statusText;
+  if (verEl) verEl.textContent = 'v' + APP_VERSION;
+  // Reset animation state
+  if (typeEl) { typeEl.textContent = ''; typeEl.classList.remove('done'); }
+  if (loadingEl) { loadingEl.style.animation = 'none'; loadingEl.offsetHeight; loadingEl.style.animation = ''; }
   el.classList.remove('hidden', 'fade-out');
+  // Start typewriter after logo animation
+  clearTimeout(bootTypewriterTimer);
+  startTypewriter(typeEl, BOOT_TAGLINE, 40, 800);
+}
+
+function startTypewriter(el, text, charDelay, startDelay) {
+  if (!el) return;
+  let i = 0;
+  bootTypewriterTimer = setTimeout(function tick() {
+    if (i < text.length) {
+      el.textContent = text.slice(0, i + 1);
+      i++;
+      bootTypewriterTimer = setTimeout(tick, charDelay);
+    } else {
+      el.classList.add('done');
+    }
+  }, startDelay);
 }
 
 function hideBootSplash() {
+  clearTimeout(bootTypewriterTimer);
   const el = document.getElementById('boot-splash');
   if (!el) return;
   el.classList.add('fade-out');
-  setTimeout(() => el.classList.add('hidden'), 400);
+  setTimeout(() => {
+    el.classList.add('hidden');
+    el.classList.remove('fade-out');
+  }, 500);
+}
+
+const LAST_SEEN_KEY = 'en_last_seen_version';
+
+const CHANGELOG = [
+  {
+    version: '1.6.0',
+    sections: [
+      { type: 'added', items: ['Boot splash with logo animation, typewriter tagline, and spinner', 'App version displayed on splash screen', 'What\u2019s New modal shown once after each update', 'Auto-refresh playlist on app launch — toggle in Settings → Playback'] },
+      { type: 'fixed', items: ['Fetch Active intermittent error during stream playback', 'Relay fallback now shows meaningful error messages', 'Fetch Active button disables during loading'] },
+    ],
+  },
+  {
+    version: '1.5.0',
+    sections: [
+      { type: 'changed', items: ['Updated app logo with new design'] },
+    ],
+  },
+  {
+    version: '1.4.0',
+    sections: [
+      { type: 'added', items: ['Channel name auto-scroll for long names'] },
+      { type: 'fixed', items: ['Sidebar navigation and channel switching improvements'] },
+    ],
+  },
+  {
+    version: '1.3.0',
+    sections: [
+      { type: 'added', items: ['Responsive TV scaling for all screen sizes'] },
+    ],
+  },
+];
+
+function checkWhatsNew() {
+  try {
+    const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
+    if (lastSeen === APP_VERSION) return false;
+    return true;
+  } catch { return true; }
+}
+
+function markVersionSeen() {
+  try { localStorage.setItem(LAST_SEEN_KEY, APP_VERSION); } catch {}
+}
+
+function showWhatsNew() {
+  const modal = document.getElementById('whats-new-modal');
+  const body = document.getElementById('whats-new-body');
+  const verEl = document.getElementById('whats-new-version');
+  const closeBtn = document.getElementById('whats-new-close');
+  if (!modal || !body) return;
+
+  if (verEl) verEl.textContent = 'v' + APP_VERSION;
+
+  const iconMap = { added: ['\u2713', 'added'], fixed: ['\u26A0', 'fixed'], changed: ['\u2192', 'changed'] };
+  let html = '';
+  for (const entry of CHANGELOG) {
+    if (entry.version === '1.0.0') break;
+    html += '<div class="wn-section">';
+    html += '<div class="wn-section-title">v' + entry.version + '</div>';
+    for (const sec of entry.sections) {
+      const [icon, cls] = iconMap[sec.type] || ['\u2022', 'added'];
+      for (const item of sec.items) {
+        html += '<div class="wn-item"><span class="wn-icon ' + cls + '">' + icon + '</span><span>' + item + '</span></div>';
+      }
+    }
+    html += '</div>';
+  }
+  body.innerHTML = html;
+  modal.classList.remove('hidden');
+  // Focus the button for remote/keyboard navigation
+  closeBtn.focus();
+  // Also handle keyboard Enter/Escape for desktop
+  const onKey = (e) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      e.preventDefault();
+      document.removeEventListener('keydown', onKey);
+      closeWhatsNew();
+    }
+  };
+  document.addEventListener('keydown', onKey);
+}
+
+function hideBootSplashAndMaybeWhatsNew() {
+  hideBootSplash();
+  if (checkWhatsNew()) {
+    setTimeout(showWhatsNew, 600);
+  }
+}
+
+function isWhatsNewOpen() {
+  const el = document.getElementById('whats-new-modal');
+  return el && !el.classList.contains('hidden');
+}
+
+function closeWhatsNew() {
+  const modal = document.getElementById('whats-new-modal');
+  if (modal) modal.classList.add('hidden');
+  markVersionSeen();
 }
 
 async function init() {
@@ -78,7 +208,7 @@ async function init() {
       channels = s.channels;
       startPlayer();
       showBootSplash('Updating playlist...');
-      refreshChannelsInBackground().then(() => hideBootSplash());
+      refreshChannelsInBackground().then(() => hideBootSplashAndMaybeWhatsNew());
     } else {
       // No cached channels — show splash while fetching.
       showBootSplash('Downloading playlist...');
@@ -87,11 +217,11 @@ async function init() {
         applyProxyOverrides(newChannels);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
-        hideBootSplash();
+        hideBootSplashAndMaybeWhatsNew();
         startPlayer();
       } catch (e) {
         console.warn('Failed to fetch playlist:', e.message);
-        hideBootSplash();
+        hideBootSplashAndMaybeWhatsNew();
         showFirstLaunch();
       }
     }
@@ -107,11 +237,11 @@ async function init() {
       applyProxyOverrides(newChannels);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
-      hideBootSplash();
+      hideBootSplashAndMaybeWhatsNew();
       startPlayer();
     } catch (e) {
       console.warn('Failed to fetch playlist:', e.message);
-      hideBootSplash();
+      hideBootSplashAndMaybeWhatsNew();
       showFirstLaunch();
     }
   } else {
@@ -440,6 +570,15 @@ function handleRemoteAction(action, value) {
     const now = Date.now();
     if (now - lastBackTime < 600) return;
     lastBackTime = now;
+  }
+  if (isWhatsNewOpen()) {
+    switch (action) {
+      case 'select':
+      case 'back':
+        closeWhatsNew();
+        break;
+    }
+    return;
   }
   if (ui.isDialogOpen()) {
     switch (action) {

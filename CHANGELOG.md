@@ -2,6 +2,21 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.6.0] - 2026-08-31
+
+### Added
+- Boot splash loading animation with logo entrance, typewriter tagline, and spinner.
+- App version displayed on boot splash.
+- What's New modal — shows once after update with all recent changes.
+- Auto-refresh playlist on app launch (toggle in Settings → Playback).
+
+### Fixed
+- BUG-009: Fetch Active intermittent error during stream playback.
+- Relay fallback now shows meaningful error messages.
+- Fetch Active button disables during loading to prevent double-click.
+
+---
+
 ## [1.6.1] - 2026-08-31
 
 ### Added
