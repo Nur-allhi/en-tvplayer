@@ -693,7 +693,7 @@ async function handleFetch() {
     statusEl.textContent = 'Fetched ' + channels.length + ' channels';
     if (onPlaylistFetched) onPlaylistFetched(channels);
   } catch (e) {
-    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.textContent = 'Could not load playlist: ' + e.message;
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;
   }

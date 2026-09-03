@@ -113,6 +113,34 @@
 
 ---
 
+## BUG-010: Some IPTV channels show black screen with no error
+
+- **Status:** fixed
+- **Severity:** critical
+- **Found:** 2026-09-03 (user reported, model: Samsung 55M2EHAU)
+- **Location:** `player/src/player.js`, `player/src/config.js`
+- **Description:** Some M3U channels play fine while others show a persistent black screen with no error message. Same channels work on other IPTV players (TiviMate, IPTV Smarters, etc.).
+- **Root Causes (5 compounding issues):**
+  1. **No MIME type hint for direct TS stream URLs.** IPTV playlists contain raw `.ts` stream URLs (e.g. `http://server:8080/1234`). Shaka Player cannot auto-detect the MIME type for these URLs, causing it to silently fail to render video. Without `video/mp2t` hint, Shaka treats the response as an unknown format.
+  2. **`manifest.hls.ignoreManifestProgramDateTime: true`** in config.js. This forces Shaka to ignore HLS date-time synchronization. Streams that rely on `EXT-X-PROGRAM-DATE-TIME` for A/V sync break — video loads but never renders (black screen).
+  3. **Missing `forceTransmuxTS: true`** in streaming config. Direct TS segments from IPTV servers need transmuxing to work with MSE (Media Source Extensions) on Tizen. Without this, TS segments fail silently.
+  4. **Missing HLS segment format hint.** Many IPTV HLS streams use MPEG-TS segments (not fMP4). Without `segmentFormat: 'mpegts'`, Shaka defaults to fMP4 which these streams don't have.
+  5. **No video element error listener.** The native `<video>` element fires `error` and `stalled` events when decoding fails, but these were never captured. Shaka catches manifest-level errors but not browser-level codec failures.
+- **Fix:**
+  - Added `detectMimeType()` function that identifies `.ts`, `.mp4`, `.mkv`, `.flv` URLs and direct numeric paths (common IPTV pattern) and passes the correct MIME type to `player.load(url, undefined, mimeType)`
+  - Changed `ignoreManifestProgramDateTime` from `true` to `false`
+  - Added `forceTransmuxTS: true` to streaming config
+  - Added `segmentFormat: 'mpegts'` and `segmentVideoCodec: 'h264'` to HLS config
+  - Added `video.addEventListener('error')`, `stalled`, and `waiting` listeners to catch native playback failures
+  - Added `onVideoError()` with debounce and 2-strike detection to show "stream format may not be supported" message
+  - Reduced load timeout from 30s to 15s with visible error message instead of silent retry
+  - Added reconnect limit (3 attempts) instead of infinite retry — shows clear error after exhausting retries
+  - Improved all Shaka error messages with actionable hints (e.g. "try enabling Proxy", "codec not supported on this device")
+  - Increased `bufferingGoal` from 10s to 15s and `bufferBehind` from 5s to 30s for more stable live stream playback
+  - Reduced `segmentPrefetchLimit` from 5 to 3 to prevent memory pressure on low-end Tizen TVs
+
+---
+
 ## Fixed Bugs
 
 | Bug | Fixed | Commit |

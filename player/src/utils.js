@@ -126,7 +126,7 @@ export function parseM3u(text) {
 function fetchWithTimeout(url, ms) {
   return Promise.race([
     fetch(url),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Fetch timed out')), ms)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please check your internet connection.')), ms)),
   ]);
 }
 
@@ -136,7 +136,7 @@ export async function fetchPlaylist(url) {
   let contentType = '';
   try {
     resp = await fetchWithTimeout(url, 10000);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) throw new Error('Server returned error ' + resp.status);
     contentType = resp.headers.get('content-type') || '';
     text = await resp.text();
   } catch (e) {
@@ -144,12 +144,12 @@ export async function fetchPlaylist(url) {
     try {
       const relayUrl = '/api/fetch?url=' + encodeURIComponent(url);
       const relayResp = await fetchWithTimeout(relayUrl, 10000);
-      if (!relayResp.ok) throw new Error('Relay returned HTTP ' + relayResp.status);
+      if (!relayResp.ok) throw new Error('Relay server returned error ' + relayResp.status);
       contentType = relayResp.headers.get('content-type') || '';
       text = await relayResp.text();
     } catch (relayErr) {
       // Both direct and relay failed — throw a meaningful combined error
-      throw new Error('Playlist fetch failed: ' + e.message + (relayErr.message ? ' (relay: ' + relayErr.message + ')' : ''));
+      throw new Error('Could not load playlist. Please check the URL and your internet connection.');
     }
   }
   if (contentType.includes('json') || text.trim().startsWith('[') || text.trim().startsWith('{')) {
@@ -164,12 +164,11 @@ export async function fetchPlaylist(url) {
       }
       return data.channels;
     }
-    throw new Error('Invalid JSON format');
+    throw new Error('The playlist file has an unexpected format.');
   }
   if (text.includes('#EXTM3U')) {
     return parseM3u(text);
-  }
-  throw new Error('Unknown playlist format');
+  }    throw new Error('This playlist format is not supported. Please use an M3U or JSON playlist.');
 }
 
 export function escapeHtml(text) {

@@ -31,6 +31,30 @@ let lastResortAttempts = 0;
 let advancePending = false;
 
 let loadingTimeout = null;
+let stalledTimer = null;
+
+// Detect MIME type from URL pattern for direct stream URLs.
+// IPTV playlists often contain raw .ts or .mp4 URLs without manifest wrappers.
+// Shaka Player needs a MIME type hint to play these correctly on Samsung Tizen.
+function detectMimeType(url) {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.toLowerCase();
+    if (path.endsWith('.m3u8')) return null; // HLS — Shaka detects automatically
+    if (path.endsWith('.mpd')) return null; // DASH — Shaka detects automatically
+    if (path.endsWith('.ts')) return 'video/mp2t';
+    if (path.endsWith('.mp4')) return 'video/mp4';
+    if (path.endsWith('.mkv')) return 'video/x-matroska';
+    if (path.endsWith('.flv')) return 'video/x-flv';
+    // Direct numeric or query-only paths (e.g. /1234 or /stream?id=123)
+    // are almost always MPEG-TS streams in IPTV playlists.
+    const segs = path.split('/').filter(Boolean);
+    if (segs.length > 0 && /^\d+$/.test(segs[segs.length - 1])) {
+      return 'video/mp2t';
+    }
+  } catch {}
+  return null; // let Shaka auto-detect
+}
 
 export async function initPlayer(videoEl) {
   videoElement = videoEl;
@@ -103,10 +127,16 @@ export async function initPlayer(videoEl) {
   videoEl.removeEventListener('timeupdate', notifyBufferingProgress);
   videoEl.removeEventListener('play', onPlayEvent);
   videoEl.removeEventListener('pause', onPauseEvent);
+  videoEl.removeEventListener('error', onVideoError);
+  videoEl.removeEventListener('stalled', onVideoStalled);
+  videoEl.removeEventListener('waiting', onVideoWaiting);
   videoEl.addEventListener('progress', notifyBufferingProgress);
   videoEl.addEventListener('timeupdate', notifyBufferingProgress);
   videoEl.addEventListener('play', onPlayEvent);
   videoEl.addEventListener('pause', onPauseEvent);
+  videoEl.addEventListener('error', onVideoError);
+  videoEl.addEventListener('stalled', onVideoStalled);
+  videoEl.addEventListener('waiting', onVideoWaiting);
 
   await player.attach(videoEl).catch((e) => console.error('Player attach failed:', e));
   return true;
@@ -124,6 +154,53 @@ function onPlayEvent() {
 
 function onPauseEvent() {
   showPlayState(true);
+}
+
+let videoErrorCount = 0;
+let lastVideoErrorTime = 0;
+
+function onVideoError() {
+  if (!videoElement) return;
+  const err = videoElement.error;
+  if (!err) return;
+  const now = Date.now();
+  // Debounce: ignore duplicate errors within 3s
+  if (now - lastVideoErrorTime < 3000) return;
+  lastVideoErrorTime = now;
+  videoErrorCount++;
+  const mediaErrorMessages = {
+    1: 'Video playback was aborted',
+    2: 'A network error occurred while loading the video',
+    3: 'The video could not be decoded — unsupported codec or corrupt stream',
+    4: 'Video source not supported on this device — try a different quality or proxy',
+  };
+  const msg = mediaErrorMessages[err.code] || ('Video error (code ' + err.code + ')');
+  logEvent('ERROR', 'Video element error: ' + msg + ' (code=' + err.code + ', mediaErr=' + (err.message || '') + ')');
+  if (videoErrorCount >= 2 && currentChannel) {
+    // 2+ native errors in a row — this stream format is likely unsupported
+    logEvent('ERROR', 'Channel appears unsupported on this device: ' + (currentChannel.name || currentChannel.url.slice(0, 60)));
+    showError('This channel could not play. Try turning on Proxy in the menu, or pick a different channel.');
+    videoErrorCount = 0;
+  }
+}
+
+function onVideoStalled() {
+  if (!videoElement || videoElement.paused) return;
+  clearTimeout(stalledTimer);
+  stalledTimer = setTimeout(() => {
+    if (!videoElement || videoElement.paused) return;
+    const currentTime = videoElement.currentTime;
+    if (videoElement.readyState < 3 && currentTime === (videoElement._lastStallTime || 0)) {
+      logEvent('WARN', 'Video stalled for 10s — may not be playable on this device');
+      showError('This channel is taking too long to load. Please wait or try a different channel.');
+    }
+    videoElement._lastStallTime = currentTime;
+  }, 10000);
+}
+
+function onVideoWaiting() {
+  // Clear stalled timer since waiting is normal during buffering
+  clearTimeout(stalledTimer);
 }
 
 export function onBuffering(callback) {
@@ -171,7 +248,7 @@ export async function loadChannel(channel) {
 
   if (channel.drm && !isEmeSupported()) {
     logEvent('ERROR', 'DRM not available — EME (Encrypted Media Extensions) is not supported in this browser/context');
-    showError('DRM not available — play this on the actual TV, or try Chrome/Edge');
+    showError('This channel is protected and cannot play here. Try a different channel.');
     return false;
   }
 
@@ -220,18 +297,27 @@ export async function loadChannel(channel) {
       player.configure({ drm: { clearKeys: {} } });
     }
 
-    // Timeout: if player.load hangs for 30s, destroy the player so the
-    // pending load() promise rejects, unblocking the catch path below.
+    // Timeout: if player.load hangs for 15s, show feedback and destroy
+    // the player so the pending load() promise rejects.
     loadingTimeout = setTimeout(() => {
-      logEvent('WARN', 'Load timed out — destroying stuck player');
+      logEvent('WARN', 'Load timed out after 15s — stream may be unsupported');
+      showError('This channel is not responding. It may be turned off right now.');
       if (player) player.destroy().catch(() => {});
       if (videoElement) {
         videoElement.src = '';
         videoElement.load();
       }
-    }, 30000);
+    }, 15000);
 
-    await player.load(url);
+    // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
+    // Without this hint, Shaka may fail to identify the format and show a black screen.
+    const mimeType = detectMimeType(url);
+    if (mimeType) {
+      logEvent('INFO', 'Detected MIME type: ' + mimeType + ' for ' + url.slice(0, 80));
+      await player.load(url, undefined, mimeType);
+    } else {
+      await player.load(url);
+    }
     clearTimeout(loadingTimeout);
     loadingTimeout = null;
 
@@ -240,6 +326,7 @@ export async function loadChannel(channel) {
     showLoading(false);
     reconnectAttempts = 0;
     consecutiveErrors = 0;
+    videoErrorCount = 0;
     startStallWatchdog();
     logEvent('INFO', 'Loaded: ' + (channel.name || channel.url.slice(0, 60)));
     return true;
@@ -249,6 +336,7 @@ export async function loadChannel(channel) {
     if (myToken !== loadToken) return false;
 
     showLoading(false);
+    videoErrorCount = 0;
 
     if (error && error.code === 7000) return false;
 
@@ -261,13 +349,22 @@ export async function loadChannel(channel) {
       if (el && myToken === loadToken) {
         await initPlayer(el);
       }
-      scheduleReconnect();
+      if (reconnectAttempts < 3) {
+        scheduleReconnect();
+      } else {
+        showError('Could not load this channel after several tries. It may be turned off or not available on your TV.');
+        logEvent('ERROR', 'Reconnect limit reached — ' + (channel.name || channel.url.slice(0, 60)));
+      }
       return false;
     }
 
     if (isRecoverable(error)) {
       logEvent('WARN', 'Load failed (recoverable ' + error.code + ')');
-      scheduleReconnect();
+      if (reconnectAttempts < 3) {
+        scheduleReconnect();
+      } else {
+        showError(getErrorMessage(error) + ' — channel may be turned off');
+      }
       return false;
     }
 
@@ -284,6 +381,7 @@ async function destroyPlayer(keepElement) {
   stopStallWatchdog();
   clearTimeout(reconnectTimer);
   clearTimeout(loadingTimeout);
+  clearTimeout(stalledTimer);
   reconnectPending = false;
   if (player) {
     try { await player.destroy(); } catch {}
@@ -321,7 +419,7 @@ function handlePlayerError(error) {
       logEvent('WARN', '403 on segment — retry ' + lastResortAttempts + '/3');
       if (lastResortAttempts <= 3) {
         reconnectAttempts = Math.max(reconnectAttempts, 1);
-        showReconnectMessage('Refreshing session (' + lastResortAttempts + '/3)...');
+        showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
         setTimeout(() => {
           logEvent('INFO', '403 retry ' + lastResortAttempts + '/3 — reloading MPD');
           loadChannel(currentChannel);
@@ -335,7 +433,7 @@ function handlePlayerError(error) {
     // After 3 consecutive errors, force a hard reload (cache-bust + fresh edge)
     if (consecutiveErrors >= 3) {
       consecutiveErrors = 0;
-      showReconnectMessage('reloading');
+      showReloadingMessage();
       loadChannel(currentChannel);
       return;
     }
@@ -343,7 +441,7 @@ function handlePlayerError(error) {
     return;
   }
 
-  logEvent('ERROR', 'Unrecoverable error ' + error.code + ' — ' + getErrorMessage(error));
+  logEvent('ERROR', 'Unrecoverable error ' + error.code + ' (' + (currentChannel && currentChannel.name ? currentChannel.name : 'unknown') + ') — ' + getErrorMessage(error));
   showError(getErrorMessage(error));
 
   // Auto-advance to next channel after 3 failed 403 retries
@@ -352,7 +450,7 @@ function handlePlayerError(error) {
     if (status === 403 && lastResortAttempts > 3) {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
-      showError('Stream expired \u2014 advancing to next channel...');
+      showError('This channel link has expired. Moving to the next channel...');
       setTimeout(() => {
         advancePending = false;
         logEvent('INFO', 'Advancing channel');
@@ -405,7 +503,15 @@ function scheduleReconnect() {
 function showReconnectMessage(attempt) {
   const el = document.getElementById('error');
   if (el) {
-    el.textContent = 'Connection lost. Reconnecting\u2026 (attempt ' + attempt + ')';
+    el.textContent = 'Connection lost. Trying again... (' + attempt + ')';
+    el.classList.remove('hidden');
+  }
+}
+
+function showReloadingMessage() {
+  const el = document.getElementById('error');
+  if (el) {
+    el.textContent = 'Reloading channel...';
     el.classList.remove('hidden');
   }
 }
@@ -423,7 +529,7 @@ function startStallWatchdog() {
       if (consecutiveErrors >= 3) {
         consecutiveErrors = 0;
         logEvent('INFO', '3 stalls — hard reloading channel');
-        showReconnectMessage('reloading');
+        showReloadingMessage();
         loadChannel(currentChannel);
       } else {
         scheduleReconnect();
@@ -552,50 +658,49 @@ function hideError() {
 }
 
 function getErrorMessage(error) {
-  if (!error) return 'Unknown error';
+  if (!error) return 'Something went wrong. Please try another channel.';
 
-  // Shaka error codes
   const code = error.code;
-  const severity = error.severity;
 
-  // Common error messages
+  // Simple, non-technical messages users can understand and report back
   const messages = {
-    1000: 'Network error',
-    1001: 'Network timeout',
-    7000: 'Loading interrupted',
-    2000: 'Media error',
-    2001: 'Media decoding error',
-    2002: 'Media not supported',
-    2003: 'Source not found',
-    2004: 'Source Access error',
-    2005: 'DRM error',
-     2006: 'DRM license request failed',
-     6000: 'DRM not recognized (no usable key system in manifest)',
-     6001: 'DRM key system not supported on this device',
-     6002: 'DRM CDM failed to initialize',
-     6007: 'DRM license request failed',
-     6020: 'DRM not supported (MISSING_EME_SUPPORT) — browser does not support ClearKey DRM',
-    3000: 'Player error',
-    3001: 'Invalid stream',
-    3002: 'Stream not found',
-    3003: 'Could not load manifest',
-    4000: 'Seek error',
+    1000: 'Could not connect to the channel. Please check your internet connection and try again.',
+    1001: 'The channel took too long to respond. It may be slow or turned off right now.',
+    7000: 'Channel loading was interrupted.',
+    2000: 'This channel could not play on your TV. It may use a format your TV does not support.',
+    2001: 'This channel could not play. The video type is not supported on your TV.',
+    2002: 'This channel cannot play on your TV. The video format is not supported.',
+    2003: 'Could not recognize this channel format. Try turning on Proxy in the menu.',
+    2004: 'This channel denied access. You may need permission to watch it.',
+    2005: 'This channel is protected and requires a special key to play.',
+    2006: 'This channel is protected but the key could not be obtained.',
+    6000: 'This channel uses a protection type that is not recognized.',
+    6001: 'This channel is protected and your TV cannot play protected channels.',
+    6002: 'Could not set up playback for this channel. Please restart the app and try again.',
+    6007: 'This channel is protected but the key could not be obtained.',
+    6020: 'This channel is protected and your TV does not support this type of protection.',
+    3000: 'Something went wrong while trying to play this channel.',
+    3001: 'This channel format is not supported. It may be an outdated or uncommon format.',
+    3002: 'This channel was not found. The link may have changed or expired.',
+    3003: 'Could not load this channel. The source may be offline.',
+    4000: 'Something went wrong while changing the playing position.',
   };
 
   if (code === 1002) {
     const status = error.data && error.data[0];
-    if (status === 403) return 'Stream blocked (403 Forbidden) \u2014 the source rejected the request';
-    if (status === 401) return 'Stream blocked (401 Unauthorized)';
-    if (status === 404) return 'Stream not found (404)';
-    if (typeof status === 'number' && status) return 'Stream error (HTTP ' + status + ')';
-    if (status) return 'Stream error \u2014 unexpected response';
-    return 'Network connection lost';
+    if (status === 403) return 'This channel is not allowed to play. You may need a subscription or different access.';
+    if (status === 401) return 'This channel requires a login or key to play.';
+    if (status === 404) return 'This channel was not found. The link may have changed.';
+    if (typeof status === 'number' && status >= 500) return 'The channel server is having problems. Please try again later.';
+    if (typeof status === 'number' && status) return 'Channel returned an error (code ' + status + '). Please try again.';
+    if (status) return 'Could not load this channel. Please try again.';
+    return 'Lost connection to the channel. Please check your internet and try again.';
   }
   if (code === 1004) {
-    return 'Manifest could not be loaded';
+    return 'Could not load the channel list from the server.';
   }
   if (code === 1005) {
-    return 'Manifest request timed out';
+    return 'The channel server took too long to respond.';
   }
 
   if (messages[code]) {
@@ -606,5 +711,5 @@ function getErrorMessage(error) {
     return error.message.substring(0, 100);
   }
 
-  return 'Playback error (' + code + ')';
+  return 'Something went wrong (error ' + code + '). Please try another channel or restart the app.';
 }

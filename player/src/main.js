@@ -77,6 +77,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '1.7.0',
+    sections: [
+      { type: 'fixed', items: ['Black screen on some IPTV channels — now detects stream format automatically', 'HLS streams that need date-time sync now work correctly', 'Raw TS/MP4 stream URLs now play correctly on Samsung Tizen', 'Video errors from the TV are now caught and shown to you', 'Streams that will never work now fail in 15 seconds instead of 30'] },
+      { type: 'changed', items: ['All error messages are now in plain English — no more technical jargon', 'Better error hints (try Proxy, check internet, channel may be offline)'] },
+    ],
+  },
+  {
     version: '1.6.0',
     sections: [
       { type: 'added', items: ['Boot splash with logo animation, typewriter tagline, and spinner', 'App version displayed on splash screen', 'What\u2019s New modal shown once after each update', 'Auto-refresh playlist on app launch — toggle in Settings → Playback'] },
@@ -177,8 +184,8 @@ async function init() {
   if (!player.initPlayer(videoEl)) {
     document.body.innerHTML =
       '<div style="text-align:center;padding:40px;color:#fff;">' +
-      '<h2>Browser Not Supported</h2>' +
-      '<p>This browser does not support MSE/EME required for streaming.</p>' +
+      '<h2>App cannot start</h2>' +
+      '<p>Your device does not support the video playback needed for this app. Please try restarting the app or updating your TV software.</p>' +
       '</div>';
     return;
   }

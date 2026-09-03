@@ -74,11 +74,11 @@ export default {
   useProxy: true,
   player: {
     streaming: {
-      bufferingGoal: 10,
-      rebufferingGoal: 4,
-      bufferBehind: 5,
-      segmentPrefetchLimit: 5,
-      startAtSegmentBoundary: true,
+      bufferingGoal: 15,
+      rebufferingGoal: 5,
+      bufferBehind: 30,
+      segmentPrefetchLimit: 3,
+      forceTransmuxTS: true,
       retryParameters: {
         maxAttempts: 8,
         baseDelay: 500,
@@ -103,7 +103,9 @@ export default {
         timeout: 10000,
       },
       hls: {
-        ignoreManifestProgramDateTime: true,
+        ignoreManifestProgramDateTime: false,
+        segmentFormat: 'mpegts',
+        segmentVideoCodec: 'h264',
       },
     },
   },

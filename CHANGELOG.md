@@ -2,11 +2,31 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.7.0] - 2026-09-03
+
+### Fixed
+- BUG-010: Some IPTV channels show black screen with no error (critical).
+  - Added MIME type detection for direct TS/MP4 stream URLs — Shaka Player now correctly identifies raw IPTV stream formats.
+  - Changed `ignoreManifestProgramDateTime` from `true` to `false` — fixes HLS streams that need date-time sync.
+  - Enabled `forceTransmuxTS` — raw TS streams are now properly converted for browser playback.
+  - Added `segmentFormat: 'mpegts'` for HLS — fixes IPTV servers that serve MPEG-TS segments.
+  - Added video element `error`, `stalled`, and `waiting` event listeners — browser-level playback failures are now caught and shown to the user.
+  - Reduced load timeout from 30s to 15s with visible error message instead of silent retry.
+  - Added reconnect limit (3 attempts) — shows clear error after exhausting retries instead of looping forever.
+
+### Changed
+- All error messages rewritten in plain non-technical English — users can now understand and report issues clearly.
+  - Removed HTTP codes (403, 404), codec names, DRM terms, and manifest references from user-facing messages.
+  - Added actionable hints (e.g., "Try turning on Proxy", "Check your internet connection").
+- Improved Shaka player config for Samsung Tizen IPTV compatibility (buffering, prefetch, bufferBehind).
+
+---
+
 ## [1.6.0] - 2026-08-31
 
 ### Added
 - Boot splash loading animation with logo entrance, typewriter tagline, and spinner.
-- App version displayed on boot splash.
+- App version displayed on boot splash screen.
 - What's New modal — shows once after update with all recent changes.
 - Auto-refresh playlist on app launch (toggle in Settings → Playback).
 
@@ -14,32 +34,6 @@ All notable changes to EN TV Player will be documented in this file.
 - BUG-009: Fetch Active intermittent error during stream playback.
 - Relay fallback now shows meaningful error messages.
 - Fetch Active button disables during loading to prevent double-click.
-
----
-
-## [1.6.1] - 2026-08-31
-
-### Added
-- Boot splash loading animation — full-screen overlay with app logo and spinner shown while playlist is being fetched on app launch. Status text updates dynamically ("Downloading playlist...", "Updating playlist...", "Loading playlist..."). Fades out smoothly when fetch completes.
-
----
-
-## [1.6.0] - 2026-08-31
-
-### Added
-- Auto-refresh playlist on app launch — when enabled, playlist is downloaded and updated from source every time the app opens. Toggle available in Settings → Playback.
-
-### Changed
-- Boot flow now respects the `autoRefreshPlaylist` setting. When OFF, only cached channels from localStorage are loaded (no network fetch).
-
----
-
-## [1.5.1] - 2026-08-31
-
-### Fixed
-- BUG-009: Fetch Active intermittent error during stream playback.
-- Wrapped relay fallback in `fetchPlaylist` with its own try/catch so relay failures produce meaningful error messages instead of masking the real cause.
-- Added double-click protection on Fetch Active button to prevent concurrent fetch operations.
 
 ---
 
@@ -54,8 +48,7 @@ All notable changes to EN TV Player will be documented in this file.
 ## [1.4.0] - 2026-08-28
 
 ### Added
-- Channel name marquee scroll — long channel names auto-scroll horizontally in the sidebar so the full name is readable.
-- Channel name text wrapped in inner span for proper marquee viewport clipping.
+- Channel name marquee scroll — long channel names auto-scroll horizontally in the sidebar.
 
 ### Fixed
 - Sequential channel numbers in sidebar, channels sorted alphabetically within groups.
@@ -70,88 +63,35 @@ All notable changes to EN TV Player will be documented in this file.
 ### Added
 - Responsive TV scaling — UI components scale proportionally based on screen size.
 - Minimum 1.35x scale for comfortable couch viewing on 1080p TVs.
-- Settings page now uses 100% width instead of fixed 1920px.
-
-### Changed
-- All CSS pixel values now use `calc(Xpx * var(--tv-scale))` for responsive sizing.
-- JS detects screen resolution and sets `--tv-scale` CSS variable.
-
----
-
-## [1.2.1] - 2026-08-28
-
-### Fixed
-- Back button now closes sidebars one by one (left, then right, then exit).
-- Back on left sidebar previously showed group list instead of closing it.
 
 ---
 
 ## [1.2.0] - 2026-08-28
 
-### Summary
-- All critical bugs fixed (6 of 8 resolved)
-- BUG-002 deferred (needs tests before file splitting)
-- Ready for feature development
-
 ### Fixed
-- BUG-001: Debug console.log statements
-- BUG-003: Proxy debug logging
-- BUG-004: Favorite TODO comment
-- BUG-006: Tizen key registration warning
-- BUG-007: Event listener cleanup
-- BUG-008: Fresh install playlist fetch
-
-### Closed
-- BUG-005: innerHTML safety (not an issue — all content properly escaped)
-
----
-
-## [1.1.3] - 2026-08-28
-
-### Closed
-- BUG-005: innerHTML safety (not an issue — all content properly escaped)
-
----
-
-## [1.1.2] - 2026-08-28
-
-### Fixed
-- Added event listener cleanup to prevent duplicate listeners (BUG-007)
-- Added Tizen key registration warning (BUG-006)
-- Removed TODO comment from red key handler (BUG-004)
-
----
-
-## [1.1.1] - 2026-08-28
-
-### Fixed
-- Playlist fetch fails on first add after fresh install (BUG-008)
-- Removed `ui.stopInactivityTimer()` call before `ui.init()` was ready
-- Added error logging in `showFirstLaunch()` callback (was silently swallowing errors)
-- Removed debug console.log statements from production code (BUG-001)
+- BUG-001: Debug console.log statements removed from production code.
+- BUG-004: Favorite TODO comment removed.
+- BUG-006: Tizen key registration warning added.
+- BUG-007: Event listener cleanup added.
+- BUG-008: Fresh install playlist fetch fixed.
 
 ---
 
 ## [1.1.0] - 2026-08-28
 
 ### Fixed
-- Debug console.log statements removed from production code
-- App version display updated (was showing 1.0.0)
+- BUG-001: Debug console.log statements removed from production code.
+- App version display updated (was showing 1.0.0).
+- Playlist fetch fails on first add after fresh install (BUG-008).
 
 ### Changed
-- Updated README with tested installation methods
-- Added AI agent documentation (AGENTS.md, docs/*)
-- Community package contribution
+- Updated README with tested installation methods.
+- Added AI agent documentation (AGENTS.md, docs/*).
+- Community package contribution.
 
 ---
 
 ## [1.0.0] - 2026-08-24
 
 ### Added
-- Initial release
-- M3U/M3U8 playlist support
-- DRM channel playback (ClearKey, PlayReady)
-- Virtualized channel list for large playlists
-- Per-channel proxy toggle
-- Samsung Tizen remote control support
-- Auto quality adjustment
+- Initial release — M3U/M3U8 playlist support, DRM channel playback, virtualized channel list, per-channel proxy toggle, Samsung Tizen remote control support, auto quality adjustment.
