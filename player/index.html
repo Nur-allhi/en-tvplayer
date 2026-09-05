@@ -49,13 +49,14 @@
           <div id="resolution-badge" class="resolution-badge hidden">Auto</div>
           <div id="error" class="error hidden"></div>
 
-          <!-- Buffering card: channel name + live percent + reassurance hint -->
+          <!-- Channel name toast (above the buffering pill, full name) -->
+          <div id="channel-toast" class="channel-toast hidden">
+            <span id="channel-toast-name">Loading</span>
+          </div>
+          <!-- Buffering pill -->
           <div id="buffering-indicator" class="buffering-indicator hidden">
             <div class="spinner small"></div>
-            <div class="buffering-text">
-              <span id="buffering-channel" class="buffering-channel">Loading</span>
-              <span>Buffering <span id="buffering-percent">0%</span><span id="buffering-hint" class="buffering-hint"></span></span>
-            </div>
+            <span>Buffering <span id="buffering-percent">0%</span><span id="buffering-hint" class="buffering-hint"></span></span>
           </div>
 
           <!-- Play/Pause status overlay -->

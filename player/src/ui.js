@@ -824,8 +824,8 @@ function scrollToFocused() {
   }
 }
 
-/* Buffering card: channel name + percent + time-aware reassurance hints.
-   A stuck number makes users zap away — the hint proves work is ongoing. */
+/* Channel toast (top) + buffering pill (bottom) with time-aware hints.
+   A stuck number makes users zap away — name + hint prove work is ongoing. */
 let bufferingChannelName = '';
 let bufferingStart = 0;
 let bufferingHintTimer = null;
@@ -836,14 +836,16 @@ const BUFFERING_HINTS = [
 
 export function setBufferingChannel(name) {
   bufferingChannelName = name || '';
+  const nameEl = document.getElementById('channel-toast-name');
+  if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
 }
 
 export function showBuffering(percent) {
   const el = document.getElementById('buffering-indicator');
+  const nameToast = document.getElementById('channel-toast');
   if (!el) return;
   el.classList.remove('hidden');
-  const nameEl = document.getElementById('buffering-channel');
-  if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
+  if (nameToast) nameToast.classList.remove('hidden');
   setBufferingPercent(percent);
   bufferingStart = Date.now();
   updateBufferingHint();
@@ -872,6 +874,8 @@ export function updateBuffering(percent) {
 export function hideBuffering() {
   const el = document.getElementById('buffering-indicator');
   if (el) el.classList.add('hidden');
+  const nameToast = document.getElementById('channel-toast');
+  if (nameToast) nameToast.classList.add('hidden');
   clearInterval(bufferingHintTimer);
   bufferingHintTimer = null;
   const hint = document.getElementById('buffering-hint');
