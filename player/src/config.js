@@ -90,8 +90,12 @@ export default {
     abr: {
       enabled: true,
       switchInterval: 3,
-      bandwidthUpgradeTarget: 0.6,
-      bandwidthDowngradeTarget: 0.85,
+      // Upgrade math (SimpleAbrManager): climbs when estimate > nextRung /
+      // upgradeTarget, drops when estimate < current / downgradeTarget. So a
+      // HIGHER upgradeTarget climbs easier, a HIGHER downgradeTarget drops
+      // calmer. (0.6/0.85 had it backwards and ratcheted into SD.)
+      bandwidthUpgradeTarget: 0.9,
+      bandwidthDowngradeTarget: 0.95,
       // BUG-019: start pessimistic so Auto mode opens on the lowest rung for
       // fast first frame, then ABR ramps up to what the line sustains.
       defaultBandwidthEstimate: 500000,

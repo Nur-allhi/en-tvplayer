@@ -267,6 +267,7 @@
 - **Description:** The top-right badge sometimes shows FHD while the channel actually plays in HD or lower.
 - **Root Cause:** Two parts. (1) The badge only listened to Shaka's `variantchanged` event (manual switches) — ABR switches fire `adaptation`, which we ignored, so the badge froze on the initial optimistic pick. (2) That initial pick was optimistic because `defaultBandwidthEstimate` was 1.5 Mbps.
 - **Fix:** Listen to `adaptation` and report the real active track, so the badge always matches what's on screen. Lowered `defaultBandwidthEstimate` to 0.5 Mbps so Auto mode opens on the lowest rung (fast first frame, less loading) and ABR ramps up to HD/FHD as the measured bandwidth allows. Fixed-resolution choice is unaffected (ABR off).
+- **Follow-up (SD stuck):** the old `bandwidthUpgradeTarget: 0.6` / `downgradeTarget: 0.85` pair was backwards — Shaka climbs only past `nextRung / upgradeTarget` (0.6 demanded 167% headroom) and dropped below `current / downgradeTarget` (0.85 = twitchy). The pair ratcheted into SD and stayed there. Now `0.9` / `0.95`: climbs past 111% headroom, drops calmly.
 
 ---
 
