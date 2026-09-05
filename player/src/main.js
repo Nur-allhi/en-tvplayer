@@ -77,6 +77,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '1.9.0',
+    sections: [
+      { type: 'fixed', items: ['Tokenized live playlists now play without dropping after the first frame', 'Access-denied channels retry with a fresh link before giving up', 'Clearer messages when a live stream breaks up'] },
+    ],
+  },
+  {
     version: '1.8.0',
     sections: [
       { type: 'fixed', items: ['Settings changes via remote now save — playlist edits and toggles stick', 'Enter inside Settings text boxes now saves on TV', 'Crashing channels retry automatically in compatibility mode', 'Unrecognized channel links are now identified and retried correctly', 'Channel error messages are now accurate (including access-denied detection)'] },

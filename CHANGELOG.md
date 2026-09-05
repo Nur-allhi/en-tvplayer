@@ -2,6 +2,16 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.9.0] - 2026-09-05
+
+### Fixed
+- BUG-017: Tokenized live playlists (e.g. kliv) now play — channels no longer die after the first frame with "Connection lost" / Shaka 4032.
+  - Stale-segment transmux failures and disabled-variant states are retried with a fresh playlist fetch (new token).
+  - Access-denied (403/401) at load is retried twice with a fresh token before showing an error.
+  - Accurate messages for stream-breakup errors; removed invalid Shaka config keys; fixed format-probe lookup on retry.
+
+---
+
 ## [1.8.0] - 2026-09-05
 
 ### Fixed
