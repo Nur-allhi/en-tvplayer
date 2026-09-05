@@ -31,6 +31,8 @@ export function init(settingsContainer, callbacks) {
 export function show() {
   if (!container) return;
   editIndex = -1;
+  addMode = false;
+  editMode = false;
   activeSection = 'source';
   focusIdx = 0;
   container.classList.remove('hidden');
@@ -168,12 +170,30 @@ export function selectFocused() {
   }
 
   if (el.classList.contains('toggle')) {
-    el.classList.toggle('on');
+    // Trigger the click handler registered in render() — it saves the setting
+    // and applies it to the player. (classList.toggle alone never persisted.)
+    el.click();
     return;
   }
 
   if (el.tagName === 'INPUT') {
-    el.focus();
+    // On TV the remote layer intercepts Enter/OK and routes it here, so the
+    // desktop-only keydown Enter handlers never run. Make OK inside a text
+    // field act like pressing Enter on a desktop form: advance to the next
+    // field, or save from the last field (proxy URL / playlist URL).
+    if (el.id === 'settings-proxy-url') {
+      handleProxySave();
+    } else if (el.id === 'pl-add-name') {
+      moveSettingsFocus('pl-add-url');
+    } else if (el.id === 'pl-add-url') {
+      saveAddPlaylist();
+    } else if (el.id === 'pl-edit-name') {
+      moveSettingsFocus('pl-edit-url');
+    } else if (el.id === 'pl-edit-url') {
+      saveEditPlaylist();
+    } else {
+      el.focus();
+    }
     return;
   }
 
@@ -184,7 +204,10 @@ export function selectFocused() {
     return;
   }
 
-  if (el.id && el.id.startsWith('pl-edit-')) {
+  // NOTE: only match per-row buttons like "pl-edit-0". The edit form's
+  // "pl-edit-save"/"pl-edit-cancel" buttons start with the same prefix and
+  // used to be swallowed here, so editing a playlist never saved.
+  if (el.id && /^pl-edit-\d+$/.test(el.id)) {
     const idx = parseInt(el.id.split('-')[2], 10);
     editMode = true;
     editIndex = idx;
@@ -193,7 +216,7 @@ export function selectFocused() {
     return;
   }
 
-  if (el.id && el.id.startsWith('pl-delete-')) {
+  if (el.id && /^pl-delete-\d+$/.test(el.id)) {
     const idx = parseInt(el.id.split('-')[2], 10);
     const p = getSettings().playlists[idx];
     const name = p ? p.name : 'this playlist';
@@ -211,24 +234,7 @@ export function selectFocused() {
   }
 
   if (el.id === 'pl-add-save') {
-    const nameEl = document.getElementById('pl-add-name');
-    const urlEl = document.getElementById('pl-add-url');
-    const name = nameEl ? nameEl.value.trim() : '';
-    const url = urlEl ? urlEl.value.trim() : '';
-    if (url) {
-      const playlists = getSettings().playlists;
-      playlists.push({ name: name || 'Unnamed', url });
-      saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
-      addMode = false;
-      render();
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        activeEl.blur();
-      }
-      document.body.focus();
-      focusIdx = 0;
-      applyFocus();
-    }
+    saveAddPlaylist();
     return;
   }
 
@@ -246,25 +252,7 @@ export function selectFocused() {
   }
 
   if (el.id === 'pl-edit-save') {
-    const nameEl = document.getElementById('pl-edit-name');
-    const urlEl = document.getElementById('pl-edit-url');
-    const name = nameEl ? nameEl.value.trim() : '';
-    const url = urlEl ? urlEl.value.trim() : '';
-    if (url && editIndex >= 0) {
-      const playlists = getSettings().playlists;
-      playlists[editIndex] = { name: name || 'Unnamed', url };
-      saveSettings({ playlists });
-      editMode = false;
-      editIndex = -1;
-      render();
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        activeEl.blur();
-      }
-      document.body.focus();
-      focusIdx = 0;
-      applyFocus();
-    }
+    saveEditPlaylist();
     return;
   }
 
@@ -286,6 +274,60 @@ export function selectFocused() {
     el.click();
     return;
   }
+}
+
+// Move focus to another element by id through the normal focus-order machinery.
+// Used to make Enter/OK advance from the name field to the URL field.
+function moveSettingsFocus(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  buildFocusOrder();
+  const idx = focusOrder.indexOf(target);
+  if (idx >= 0) {
+    focusIdx = idx;
+    applyFocus();
+  }
+}
+
+function saveAddPlaylist() {
+  const nameEl = document.getElementById('pl-add-name');
+  const urlEl = document.getElementById('pl-add-url');
+  const name = nameEl ? nameEl.value.trim() : '';
+  const url = urlEl ? urlEl.value.trim() : '';
+  if (!url) return;
+  const playlists = getSettings().playlists;
+  playlists.push({ name: name || 'Unnamed', url });
+  saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
+  addMode = false;
+  render();
+  const activeEl = document.activeElement;
+  if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+    activeEl.blur();
+  }
+  document.body.focus();
+  focusIdx = 0;
+  applyFocus();
+}
+
+function saveEditPlaylist() {
+  const nameEl = document.getElementById('pl-edit-name');
+  const urlEl = document.getElementById('pl-edit-url');
+  const name = nameEl ? nameEl.value.trim() : '';
+  const url = urlEl ? urlEl.value.trim() : '';
+  if (!url || editIndex < 0) return;
+  const playlists = getSettings().playlists;
+  playlists[editIndex] = { name: name || 'Unnamed', url };
+  saveSettings({ playlists });
+  editMode = false;
+  editIndex = -1;
+  render();
+  const activeEl = document.activeElement;
+  if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+    activeEl.blur();
+  }
+  document.body.focus();
+  focusIdx = 0;
+  applyFocus();
 }
 
 function buildFocusOrder() {

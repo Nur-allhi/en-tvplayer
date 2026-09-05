@@ -530,6 +530,26 @@ html, body {
 }
 .progress-toast > * + * { margin-left: 10px; }
 
+/* Proxy suggestion toast (bottom center, under the error box) */
+.proxy-toast {
+  position: absolute;
+  bottom: calc(16px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: calc(10px * var(--tv-scale)) calc(18px * var(--tv-scale));
+  border-radius: calc(10px * var(--tv-scale));
+  font-size: calc(16px * var(--tv-scale));
+  font-weight: 500;
+  color: #fff;
+  z-index: 100;
+  pointer-events: none;
+  text-align: center;
+}
+
 .progress-spinner {
   width: 18px;
   height: 18px;
@@ -875,6 +895,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: 13px;
   transition: all 0.15s;
 }
 

@@ -33,6 +33,19 @@ let advancePending = false;
 let loadingTimeout = null;
 let stalledTimer = null;
 
+// BUG-013: URLs that crashed with a native TypeError inside Shaka (e.g. HLS
+// streams with EXT-X-PROGRAM-DATE-TIME tags — upstream bug #5014, never
+// fixed upstream). These channels are retried once with HLS program-date-time
+// sync disabled, since v1.7.0 re-enabled PDT handling (BUG-010). Per-URL so
+// every other channel always uses the full configuration.
+const pdtFallbackUrls = new Set();
+
+// BUG-014: URLs Shaka could not identify (error 4000 = UNABLE_TO_GUESS_
+// MANIFEST_TYPE). The format is probed from the first bytes of the stream and
+// cached per URL so the retry load passes the right hint to Shaka.
+const sniffedMimeUrls = new Map();
+const sniffTriedUrls = new Set();
+
 // Detect MIME type from URL pattern for direct stream URLs.
 // IPTV playlists often contain raw .ts or .mp4 URLs without manifest wrappers.
 // Shaka Player needs a MIME type hint to play these correctly on Samsung Tizen.
@@ -89,13 +102,7 @@ export async function initPlayer(videoEl) {
       if (!currentChannel || currentChannel.useProxy !== true) {
         return;
       }
-      let proxyUrl = currentChannel.proxyUrl;
-      if (window.location.protocol === 'https:' && proxyUrl.startsWith('http://')) {
-        proxyUrl = window.location.origin + '/proxy/';
-      }
-      if (!url || !url.startsWith('http')) return;
-      if (url.startsWith(proxyUrl)) return;
-      request.uris[0] = proxyUrl.replace(/\/+$/, '') + '/' + url;
+      request.uris[0] = rewriteUrlThroughProxy(currentChannel, url);
     });
   }
 
@@ -103,6 +110,13 @@ export async function initPlayer(videoEl) {
   const playerConfig = { ...config.player };
   if (settings.autoQuality === false) {
     playerConfig.abr = { ...config.player.abr, enabled: false };
+  }
+  if (currentChannel && pdtFallbackUrls.has(currentChannel.url)) {
+    // BUG-013 fallback: skip HLS program-date-time sync for channels that
+    // crashed inside Shaka, avoiding the un-fixed upstream null dereference.
+    playerConfig.manifest = playerConfig.manifest ? { ...playerConfig.manifest } : {};
+    playerConfig.manifest.hls = playerConfig.manifest.hls ? { ...playerConfig.manifest.hls } : {};
+    playerConfig.manifest.hls.ignoreManifestProgramDateTime = true;
   }
   player.configure(playerConfig);
 
@@ -243,6 +257,110 @@ export function isEmeSupported() {
   return ok;
 }
 
+// Native JS crash thrown from inside Shaka (no shaka.util.Error code), e.g.
+// "Cannot read properties of null (reading 'next')".
+function isNativeLoadCrash(error) {
+  if (!error) return false;
+  if (typeof error.code === 'number') return false; // shaka.util.Error
+  if (error instanceof TypeError) return true;
+  const msg = error.message || '';
+  return /Cannot read propert/.test(msg) && /reading /.test(msg);
+}
+
+// Routes a stream URL through the channel's proxy the same way Shaka's
+// request filter does, so probing and playback hit the same endpoint.
+function rewriteUrlThroughProxy(channel, url) {
+  if (!channel || channel.useProxy !== true) return url;
+  const rawProxy = channel.proxyUrl;
+  if (!rawProxy) return url;
+  let proxyUrl = rawProxy;
+  if (window.location.protocol === 'https:' && proxyUrl.startsWith('http://')) {
+    proxyUrl = window.location.origin + '/proxy/';
+  }
+  if (!url || !url.startsWith('http')) return url;
+  if (url.startsWith(proxyUrl)) return url;
+  return proxyUrl.replace(/\/+$/, '') + '/' + url;
+}
+
+// BUG-014: Shaka reports error 4000 when it cannot guess a stream's format
+// from the URL (no extension) or the server's Content-Type. Probe the first
+// bytes of the stream ourselves and return the format Shaka should use.
+// Returns null when the format cannot be determined.
+async function probeChannelFormat(channel) {
+  if (!channel) return null;
+  try {
+    let targetUrl = rewriteUrlThroughProxy(channel, channel.url);
+    if (!targetUrl) return null;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const headers = {};
+    if (channel.userAgent) headers['User-Agent'] = channel.userAgent;
+    if (channel.customHeaders) {
+      for (const [k, v] of Object.entries(channel.customHeaders)) {
+        const lower = k.toLowerCase();
+        if (lower === 'user-agent') headers['User-Agent'] = v;
+        else if (lower === 'referer') headers['Referer'] = v;
+        else if (lower === 'origin') headers['Origin'] = v;
+        else headers[k] = v;
+      }
+    }
+
+    const resp = await fetch(targetUrl, { headers, signal: controller.signal });
+    if (!resp.ok) {
+      clearTimeout(timer);
+      return null;
+    }
+    if (!resp.body || typeof resp.body.getReader !== 'function') {
+      clearTimeout(timer);
+      return null;
+    }
+
+    const reader = resp.body.getReader();
+    let bytes = new Uint8Array(0);
+    const MAX = 65536;
+    while (bytes.length < MAX) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        const next = new Uint8Array(bytes.length + value.length);
+        next.set(bytes);
+        next.set(value, bytes.length);
+        bytes = next;
+      }
+    }
+    try { await reader.cancel(); } catch (e) {}
+    clearTimeout(timer);
+    if (bytes.length < 8) return null;
+
+    // MP4: ftyp box at offset 4.
+    const box = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]);
+    if (box === 'ftyp') return 'video/mp4';
+
+    // Text-based manifests: HLS (#EXTM3U / #EXT-X-...) and DASH (<MPD).
+    const head = new TextDecoder().decode(bytes.subarray(0, Math.min(bytes.length, 8192)));
+    const trimmed = head.trimStart();
+    if (trimmed.startsWith('#EXTM3U') || head.includes('#EXT-X-')) {
+      return 'application/vnd.apple.mpegurl'; // force Shaka's HLS parser
+    }
+    if (trimmed.startsWith('<MPD') || (trimmed.startsWith('<?xml') && head.includes('<MPD'))) {
+      return 'application/dash+xml'; // force Shaka's DASH parser
+    }
+
+    // MPEG-TS: sync byte 0x47 repeating every 188 bytes.
+    for (let start = 0; start < 4 && start + 564 < bytes.length; start++) {
+      if (bytes[start] === 0x47 && bytes[start + 188] === 0x47 &&
+          bytes[start + 376] === 0x47 && bytes[start + 564] === 0x47) {
+        return 'video/mp2t';
+      }
+    }
+    return null;
+  } catch (e) {
+    logEvent('WARN', 'Format probe failed: ' + (e && e.message ? e.message : e));
+    return null;
+  }
+}
+
 export async function loadChannel(channel) {
   if (!channel) return false;
 
@@ -311,7 +429,8 @@ export async function loadChannel(channel) {
 
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
     // Without this hint, Shaka may fail to identify the format and show a black screen.
-    const mimeType = detectMimeType(url);
+    // A probed format (BUG-014) takes priority over URL-pattern detection.
+    const mimeType = sniffedMimeUrls.get(url) || detectMimeType(url);
     if (mimeType) {
       logEvent('INFO', 'Detected MIME type: ' + mimeType + ' for ' + url.slice(0, 80));
       await player.load(url, undefined, mimeType);
@@ -358,6 +477,28 @@ export async function loadChannel(channel) {
       return false;
     }
 
+    // Shaka could not guess the stream format from the URL (error 4000).
+    // Many IPTV servers hide the channel type behind tokenized links with no
+    // file extension. Probe the first bytes and retry with the right hint.
+    if (error && error.code === 4000 && currentChannel && !sniffTriedUrls.has(currentChannel.url)) {
+      sniffTriedUrls.add(currentChannel.url);
+      const crashedChannel = currentChannel;
+      const tokenAtCatch = loadToken;
+      showCustomMessage('Identifying channel format...');
+      probeChannelFormat(crashedChannel).then((mime) => {
+        if (tokenAtCatch !== loadToken) return; // user switched channels meanwhile
+        if (!mime) {
+          logEvent('WARN', 'Could not identify channel format: ' + crashedChannel.url.slice(0, 100));
+          showError('This channel could not be identified. Try enabling Proxy in the menu, or try a different channel.');
+          return;
+        }
+        sniffedMimeUrls.set(crashedChannel.url, mime);
+        logEvent('INFO', 'Identified channel format: ' + mime + ' for ' + crashedChannel.url.slice(0, 80) + ' — retrying');
+        loadChannel(crashedChannel);
+      });
+      return false;
+    }
+
     if (isRecoverable(error)) {
       logEvent('WARN', 'Load failed (recoverable ' + error.code + ')');
       if (reconnectAttempts < 3) {
@@ -371,6 +512,29 @@ export async function loadChannel(channel) {
     if (currentChannel && currentChannel.useProxy === false && proxySuggestionCallback) {
       proxySuggestionCallback(currentChannel);
     }
+
+    if (isNativeLoadCrash(error) && currentChannel && !pdtFallbackUrls.has(currentChannel.url)) {
+      // Retry once with HLS program-date-time sync disabled (BUG-013): some
+      // HLS streams crash inside Shaka's PDT handling, which v1.7.0 enabled.
+      pdtFallbackUrls.add(currentChannel.url);
+      const crashedChannel = currentChannel;
+      const tokenAtCatch = loadToken;
+      logEvent('WARN', 'Native crash loading channel — retrying without PDT sync: ' +
+          (crashedChannel.name || crashedChannel.url.slice(0, 80)));
+      showCustomMessage('Retrying with compatibility mode...');
+      setTimeout(() => { if (tokenAtCatch === loadToken) loadChannel(crashedChannel); }, 1200);
+      return false;
+    }
+
+    if (isNativeLoadCrash(error)) {
+      logEvent('ERROR', 'Channel failed to load (native crash): ' +
+          (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
+          ' — ' + (error.message || ''));
+      if (typeof console !== 'undefined') console.error('Channel load crashed inside Shaka:', error, error.stack);
+      showError('This channel could not start — it uses a stream format this player could not handle. Try another channel or enable Proxy.');
+      return false;
+    }
+
     logEvent('ERROR', 'Failed to load — ' + getErrorMessage(error));
     showError(getErrorMessage(error));
     return false;
@@ -411,9 +575,30 @@ function handlePlayerError(error) {
 
   consecutiveErrors++;
 
-  // 403 on segment: retry up to 3 times with 2s gap to get fresh ?m= tokens
-  if (error.code === 1002 && currentChannel) {
-    const status = error.data && error.data[0];
+  // Native crash inside Shaka during playback — retry once with HLS PDT sync
+  // disabled (BUG-013), unless we are still inside load() (its catch handles
+  // that path).
+  if (isNativeLoadCrash(error) && !loadingTimeout) {
+    if (currentChannel && !pdtFallbackUrls.has(currentChannel.url)) {
+      pdtFallbackUrls.add(currentChannel.url);
+      logEvent('WARN', 'Native crash during playback — reloading without PDT sync: ' +
+          (currentChannel.name || currentChannel.url.slice(0, 80)));
+      showReloadingMessage();
+      loadChannel(currentChannel);
+      return;
+    }
+    logEvent('ERROR', 'Playback crashed (native): ' +
+        (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
+        ' — ' + (error.message || ''));
+    if (typeof console !== 'undefined') console.error('Shaka runtime crash:', error, error.stack);
+    showError('This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel or enable Proxy.');
+    return;
+  }
+
+  // 403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment: retry
+  // up to 3 times with 2s gap to get fresh ?m= tokens.
+  if (error.code === 1001 && currentChannel) {
+    const status = error.data && error.data[1];
     if (status === 403) {
       lastResortAttempts++;
       logEvent('WARN', '403 on segment — retry ' + lastResortAttempts + '/3');
@@ -421,7 +606,7 @@ function handlePlayerError(error) {
         reconnectAttempts = Math.max(reconnectAttempts, 1);
         showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
         setTimeout(() => {
-          logEvent('INFO', '403 retry ' + lastResortAttempts + '/3 — reloading MPD');
+          logEvent('INFO', '403 retry ' + lastResortAttempts + '/3 — reloading channel');
           loadChannel(currentChannel);
         }, 2000);
         return;
@@ -445,8 +630,8 @@ function handlePlayerError(error) {
   showError(getErrorMessage(error));
 
   // Auto-advance to next channel after 3 failed 403 retries
-  if (error.code === 1002 && channelAdvanceCallback) {
-    const status = error.data && error.data[0];
+  if (error.code === 1001 && channelAdvanceCallback) {
+    const status = error.data && error.data[1];
     if (status === 403 && lastResortAttempts > 3) {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
@@ -462,22 +647,20 @@ function handlePlayerError(error) {
 
 function isRecoverable(error) {
   if (!error) return false;
-  // Network request errors (timeout / offline) — always retry
-  if (error.code === 1000 || error.code === 1001) return true;
-  // HTTP_ERROR on segment fetch — retry server failures, timeouts, and 0 (no response)
-  if (error.code === 1002) {
-    const status = error.data && error.data[0];
+  // Shaka error codes below match shaka-player 5.x (see lib/util/error.js):
+  //   1000 UNSUPPORTED_SCHEME (never transient)
+  //   1001 BAD_HTTP_STATUS   (status is error.data[1])
+  //   1002 HTTP_ERROR        (request failed for a non-server reason)
+  //   1003 TIMEOUT           (no response at all)
+  if (error.code === 1000) return false;
+  // BAD_HTTP_STATUS — retry server failures and "no status", not client errors
+  if (error.code === 1001) {
+    const status = error.data && error.data[1];
     if (!status) return true;
-    return status >= 500 || status === 429;
+    return status >= 500 || status === 429 || status === 408;
   }
-  // Manifest HTTP error — only retry transient server failures, same as HTTP_ERROR
-  if (error.code === 1004) {
-    const status = error.data && error.data[0];
-    if (!status) return true;
-    return status >= 500 || status === 429;
-  }
-  // Manifest request timeout — always retry (no response at all)
-  if (error.code === 1005) return true;
+  // HTTP_ERROR / TIMEOUT — always transient, retry
+  if (error.code === 1002 || error.code === 1003) return true;
   // MediaSource operation errors — recover by reloading (destroys corrupted MediaSource)
   if (error.code === 3014 || error.code === 3015 || error.code === 3016) return true;
   return false;
@@ -504,6 +687,14 @@ function showReconnectMessage(attempt) {
   const el = document.getElementById('error');
   if (el) {
     el.textContent = 'Connection lost. Trying again... (' + attempt + ')';
+    el.classList.remove('hidden');
+  }
+}
+
+function showCustomMessage(message) {
+  const el = document.getElementById('error');
+  if (el) {
+    el.textContent = message;
     el.classList.remove('hidden');
   }
 }
@@ -664,43 +855,42 @@ function getErrorMessage(error) {
 
   // Simple, non-technical messages users can understand and report back
   const messages = {
-    1000: 'Could not connect to the channel. Please check your internet connection and try again.',
-    1001: 'The channel took too long to respond. It may be slow or turned off right now.',
+    1000: 'This channel link uses a type your TV cannot open.',
+    1001: 'The channel server rejected the request. It may be blocking this app right now.',
+    1002: 'Could not connect to the channel stream. The server may be down or blocking the app right now.',
+    1003: 'The channel took too long to respond. It may be slow or turned off right now.',
+    1004: 'This channel link is not valid.',
+    1005: 'This channel link is not valid.',
     7000: 'Channel loading was interrupted.',
-    2000: 'This channel could not play on your TV. It may use a format your TV does not support.',
-    2001: 'This channel could not play. The video type is not supported on your TV.',
-    2002: 'This channel cannot play on your TV. The video format is not supported.',
-    2003: 'Could not recognize this channel format. Try turning on Proxy in the menu.',
-    2004: 'This channel denied access. You may need permission to watch it.',
-    2005: 'This channel is protected and requires a special key to play.',
-    2006: 'This channel is protected but the key could not be obtained.',
+    2000: 'This channel contains text data the app could not read.',
+    2001: 'This channel contains text data the app could not read.',
+    2002: 'This channel contains text data the app could not read.',
+    2003: 'This channel contains text with an unknown encoding.',
+    2004: 'This channel contains text data that could not be decoded.',
+    2005: 'This channel contains data that could not be read.',
+    2006: 'This channel contains captions the app could not read.',
     6000: 'This channel uses a protection type that is not recognized.',
     6001: 'This channel is protected and your TV cannot play protected channels.',
     6002: 'Could not set up playback for this channel. Please restart the app and try again.',
     6007: 'This channel is protected but the key could not be obtained.',
     6020: 'This channel is protected and your TV does not support this type of protection.',
-    3000: 'Something went wrong while trying to play this channel.',
-    3001: 'This channel format is not supported. It may be an outdated or uncommon format.',
-    3002: 'This channel was not found. The link may have changed or expired.',
-    3003: 'Could not load this channel. The source may be offline.',
-    4000: 'Something went wrong while changing the playing position.',
+    3000: 'This channel could not play on your TV.',
+    3001: 'This channel uses stream values your TV could not process.',
+    3002: 'This channel could not play on your TV.',
+    3003: 'This channel could not play on your TV.',
+    4000: 'This channel could not be identified. Try enabling Proxy in the menu, or try a different channel.',
   };
 
-  if (code === 1002) {
-    const status = error.data && error.data[0];
+  // BAD_HTTP_STATUS (1001): the real HTTP status is in error.data[1].
+  if (code === 1001) {
+    const status = error.data && error.data[1];
     if (status === 403) return 'This channel is not allowed to play. You may need a subscription or different access.';
     if (status === 401) return 'This channel requires a login or key to play.';
     if (status === 404) return 'This channel was not found. The link may have changed.';
     if (typeof status === 'number' && status >= 500) return 'The channel server is having problems. Please try again later.';
     if (typeof status === 'number' && status) return 'Channel returned an error (code ' + status + '). Please try again.';
     if (status) return 'Could not load this channel. Please try again.';
-    return 'Lost connection to the channel. Please check your internet and try again.';
-  }
-  if (code === 1004) {
-    return 'Could not load the channel list from the server.';
-  }
-  if (code === 1005) {
-    return 'The channel server took too long to respond.';
+    return 'The channel server rejected the request. It may be blocking this app right now.';
   }
 
   if (messages[code]) {
