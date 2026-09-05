@@ -33,6 +33,12 @@ let advancePending = false;
 let loadingTimeout = null;
 let stalledTimer = null;
 
+// Staged loading UX: while the initial manifest load is pending, the center
+// spinner owns the screen and buffering events are held back. Once load()
+// resolves, the first frame is up — only then does the buffering pill take
+// over until playback starts. One indicator at a time, in order.
+let initialLoadPending = false;
+
 // BUG-013: URLs that crashed with a native TypeError inside Shaka (e.g. HLS
 // streams with EXT-X-PROGRAM-DATE-TIME tags — upstream bug #5014, never
 // fixed upstream). These channels are retried once with HLS program-date-time
@@ -126,6 +132,7 @@ export async function initPlayer(videoEl) {
 
   player.addEventListener('buffering', (event) => {
     isBuffering = event.buffering;
+    if (initialLoadPending) return;
     showLoading(event.buffering);
     if (bufferingCallback) bufferingCallback(event.buffering);
   });
@@ -157,7 +164,7 @@ export async function initPlayer(videoEl) {
 }
 
 function notifyBufferingProgress() {
-  if (isBuffering && bufferingCallback) {
+  if (isBuffering && !initialLoadPending && bufferingCallback) {
     bufferingCallback(true, getBufferingPercent());
   }
 }
@@ -417,6 +424,8 @@ export async function loadChannel(channel) {
 
     // Timeout: if player.load hangs for 15s, show feedback and destroy
     // the player so the pending load() promise rejects.
+    // Staged UX: spinner owns the screen until load() resolves.
+    initialLoadPending = true;
     loadingTimeout = setTimeout(() => {
       logEvent('WARN', 'Load timed out after 15s — stream may be unsupported');
       showError('This channel is not responding. It may be turned off right now.');
@@ -444,7 +453,10 @@ export async function loadChannel(channel) {
 
     if (myToken !== loadToken) return false;
 
+    // Load done — first frame is up. Hand buffering state to the pill UI.
+    initialLoadPending = false;
     showLoading(false);
+    if (isBuffering && bufferingCallback) bufferingCallback(true, getBufferingPercent());
     reconnectAttempts = 0;
     consecutiveErrors = 0;
     videoErrorCount = 0;
@@ -456,6 +468,7 @@ export async function loadChannel(channel) {
     loadingTimeout = null;
     if (myToken !== loadToken) return false;
 
+    initialLoadPending = false;
     showLoading(false);
     videoErrorCount = 0;
 

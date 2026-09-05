@@ -383,7 +383,7 @@ function startPlayer() {
   }
 
   let videoEl = document.getElementById('video');
-  addCleanupListener(videoEl, 'playing', () => hideProgress());
+  addCleanupListener(videoEl, 'playing', () => { hideProgress(); ui.hideBuffering(); });
   addCleanupListener(videoEl, 'click', () => player.togglePlay());
 
   addCleanupListener(videoEl, 'play', () => {
