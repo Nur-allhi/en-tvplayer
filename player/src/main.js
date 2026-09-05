@@ -10,6 +10,7 @@ let currentIndex = 0;
 let channels;
 let selectedGroup = null;
 let bufferingInterval = null;
+let bufferingActive = false;
 let cleanupListeners = [];
 let pendingPreview = null;
 
@@ -401,7 +402,6 @@ function startPlayer() {
     }
   });
 
-  let bufferingActive = false;
   player.onBuffering((buffering, percent) => {
     bufferingActive = buffering;
     if (buffering) {
@@ -542,9 +542,16 @@ function showSettingsPage() {
 async function handleChannelSelect(channel) {
   ui.hideProxyToast();
   ui.setBufferingChannel(channel && channel.name);
+  ui.showChannelToast();
   currentIndex = channels.indexOf(channel);
   const ok = await player.loadChannel(channel);
-  if (!ok) hideProgress();
+  if (!ok) {
+    hideProgress();
+    ui.hideBuffering();
+  } else if (!bufferingActive) {
+    // Fast channel: loaded with nothing left to buffer — drop the name toast.
+    ui.hideBuffering();
+  }
   ui.setSelectedResolution('auto');
   const p = player.getPlayer();
   if (p) {

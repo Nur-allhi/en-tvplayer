@@ -840,6 +840,13 @@ export function setBufferingChannel(name) {
   if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
 }
 
+// Phase 1 of channel select: name toast immediately, buffering pill only
+// after load() resolves (shown by showBuffering).
+export function showChannelToast() {
+  const nameToast = document.getElementById('channel-toast');
+  if (nameToast) nameToast.classList.remove('hidden');
+}
+
 export function showBuffering(percent) {
   const el = document.getElementById('buffering-indicator');
   const nameToast = document.getElementById('channel-toast');
