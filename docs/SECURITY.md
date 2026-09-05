@@ -27,7 +27,10 @@
 | Proxy overrides | localStorage | Per-channel toggle |
 | DRM keys | localStorage | User's own data |
 
-**No data leaves the device. No telemetry. No cloud.**
+**No data leaves the device by default. Telemetry is strictly opt-in**
+(Settings → Playback → "Check for updates", asked once on first launch,
+default off) — see `docs/TELEMETRY.md` for exactly what is sent. No cloud
+dependency is required for playback.
 
 ---
 

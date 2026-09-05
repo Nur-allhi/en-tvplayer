@@ -11,6 +11,7 @@ const settingsDefaults = {
   channelsFetched: null,
   autoQuality: true,
   autoRefreshPlaylist: true,
+  updateCheck: false,
 };
 
 export function getSettings() {

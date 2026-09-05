@@ -32,6 +32,7 @@ en-tvplayer/
 │   │   ├── ui.js        Channel list + sidebar
 │   │   ├── settings.js  Settings page
 │   │   ├── remote.js    Remote control handler
+│   │   ├── update.js    Update checker + opt-in ping
 │   │   ├── config.js    localStorage settings
 │   │   └── utils.js     Shared utilities
 │   ├── public/          Static assets
@@ -92,6 +93,12 @@ en-tvplayer/
 ### Step 1: Update Version
 - Update `package.json` → `"version": "X.Y.Z"`
 - Update `player/package.json` → `"version": "X.Y.Z"`
+- Update `version.json` → `"version": "X.Y.Z"` (drives the in-app update checker via jsDelivr)
+- Refresh `docs/STATS.md` download counts (see file for the `gh api` command)
+
+### Step 1b: Certificate backup (do once, verify each release)
+- `tizen/author-key.pem` is gitignored and irreplaceable — back it up encrypted off-machine.
+- Future WGTs MUST be signed with the same key or the TV treats them as a new app (settings lost).
 
 ### Step 2: Build
 ```bash

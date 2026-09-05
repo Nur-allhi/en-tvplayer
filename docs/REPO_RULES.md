@@ -81,6 +81,9 @@ When you release a new version, you MUST:
 ### Checklist for Every Release
 
 - [ ] Version updated in `package.json` and `player/package.json`
+- [ ] `version.json` updated (in-app update checker)
+- [ ] `docs/STATS.md` download counts refreshed
+- [ ] Author key (`tizen/author-key.pem`) backed up off-machine
 - [ ] WGT built successfully
 - [ ] GitHub release created with direct .wgt file
 - [ ] Community JSON file updated (if asset filename changed)

@@ -3,6 +3,7 @@ import * as player from './player.js';
 import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
+import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
 import { processStreamUrl, parseM3u, fetchPlaylist as fetchFromPlaylistUrl } from './utils.js';
 
 let currentIndex = 0;
@@ -144,9 +145,14 @@ function showWhatsNew() {
   if (!modal || !body) return;
 
   if (verEl) verEl.textContent = 'v' + APP_VERSION;
-
   const iconMap = { added: ['\u2713', 'added'], fixed: ['\u26A0', 'fixed'], changed: ['\u2192', 'changed'] };
   let html = '';
+  if (pendingUpdate) {
+    html += '<div class="wn-section">';
+    html += '<div class="wn-section-title">Update available: v' + pendingUpdate.latest + '</div>';
+    html += '<div class="wn-item"><span class="wn-icon added">\u2192</span><span>Reinstall via Apps2Samsung to update.</span></div>';
+    html += '</div>';
+  }
   for (const entry of CHANGELOG) {
     if (entry.version === '1.0.0') break;
     html += '<div class="wn-section">';
@@ -422,6 +428,33 @@ function startPlayer() {
   });
 
   ui.selectChannel(0, true);
+  scheduleUpdateCheck();
+}
+
+let pendingUpdate = null;
+
+function runUpdateCheck() {
+  sendUsagePing();
+  checkForUpdate().then((info) => {
+    if (info) {
+      pendingUpdate = info;
+      ui.setUpdateBadge(true);
+    }
+  });
+}
+
+// Gentle, non-blocking: ask once, otherwise check silently in background.
+function scheduleUpdateCheck() {
+  setTimeout(() => {
+    if (!consentAsked()) {
+      ui.showConfirmDialog('Check for app updates on launch? Anonymous version check only — no personal data.', (ok) => {
+        setConsented(ok === true);
+        if (ok === true) runUpdateCheck();
+      });
+    } else if (hasConsented()) {
+      runUpdateCheck();
+    }
+  }, 1500);
 }
 
 function showFirstLaunch() {

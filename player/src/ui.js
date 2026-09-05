@@ -860,6 +860,12 @@ export function hideProxyToast() {
   if (el) el.classList.add('hidden');
 }
 
+/* Update badge on the Settings menu button (gentle, non-blocking) */
+export function setUpdateBadge(visible) {
+  const btn = document.getElementById('settings-btn');
+  if (btn) btn.classList.toggle('has-update', !!visible);
+}
+
 /* Confirm Dialog */
 let dialogOpen = false;
 let dialogConfirmCallback = null;

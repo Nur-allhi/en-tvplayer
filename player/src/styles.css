@@ -481,6 +481,18 @@ html, body {
   color: #fff;
 }
 
+/* Update badge dot (shown when a newer release is available) */
+.right-sidebar-btn.has-update::after {
+  content: '';
+  display: inline-block;
+  width: calc(10px * var(--tv-scale));
+  height: calc(10px * var(--tv-scale));
+  border-radius: 50%;
+  background: #ED421F;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
 /* Channel OSD (brief overlay when switching channels from remote) */
 .channel-osd {
   position: absolute;
