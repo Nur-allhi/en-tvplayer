@@ -246,6 +246,18 @@
 
 ---
 
+## BUG-018: Fresh install with no playlist — backing out of Settings lands on a dead player page
+
+- **Status:** fixed (pending release)
+- **Severity:** high
+- **Found:** 2026-09-05 (user reported)
+- **Location:** `player/src/main.js` (`startPlayer()`, `showFirstLaunch()`, `handleRemoteAction()`)
+- **Description:** On a fresh install the app opens Settings directly. If the user leaves Settings without adding a playlist, the player page shows but nothing works — the right-sidebar Settings button is dead, so the user can never get back to add a playlist.
+- **Root Cause:** `startPlayer()` (which wires every UI listener via `ui.init()` and the sidebar buttons) early-returned to `showFirstLaunch()` when the channel list was empty — so it never ran. The Settings Back path just called `showPlayer()` (unhide only), leaving a page with zero wiring.
+- **Fix:** `startPlayer()` now always initializes the full shell, even with zero channels — it shows a "No channels / Open Settings to add a playlist" empty state instead of looping back to first launch. Both Settings exit paths (on-screen back and remote Back) route the no-playlist case through `startPlayer()`, so sidebars and Settings stay reachable.
+
+---
+
 | Bug | Fixed | Commit |
 |-----|-------|--------|
 | BUG-008 | 2026-08-28 | fix/first-fetch-failure |

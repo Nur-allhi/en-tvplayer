@@ -304,10 +304,10 @@ function addCleanupListener(element, event, handler) {
 }
 
 function startPlayer() {
-  if (!channels || channels.length === 0) {
-    showFirstLaunch();
-    return;
-  }
+  // BUG-018: must also initialize the shell with zero channels. Otherwise a
+  // fresh install that backs out of Settings lands on a dead player page
+  // (no UI wiring, Settings unreachable).
+  channels = channels || [];
 
   cleanupEventListeners();
   sortChannels(channels);
@@ -433,8 +433,19 @@ function startPlayer() {
     player.reloadChannel();
   });
 
+  if (channels.length === 0) {
+    showEmptyState();
+    return;
+  }
   ui.selectChannel(0, true);
-  scheduleUpdateCheck();
+}
+
+function showEmptyState() {
+  showPlayer();
+  const nameEl = document.getElementById('channel-name');
+  if (nameEl) nameEl.textContent = 'No channels';
+  const infoEl = document.getElementById('channel-info');
+  if (infoEl) infoEl.textContent = 'Open Settings to add a playlist';
 }
 
 let pendingUpdate = null;
@@ -480,9 +491,13 @@ function showFirstLaunch() {
       }
     },
     onClose: () => {
+      // BUG-018: backing out with no playlist must land on a working shell,
+      // not a dead page — startPlayer() handles the empty case.
+      settings.hide();
       if (channels && channels.length > 0) {
-        settings.hide();
         showPlayer();
+      } else {
+        startPlayer();
       }
     },
   });
@@ -680,7 +695,13 @@ function handleRemoteAction(action, value) {
         break;
       case 'back':
         settings.hide();
-        showPlayer();
+        // BUG-018: with no playlist yet, initialize the empty shell so the
+        // sidebars and Settings stay reachable.
+        if (channels && channels.length > 0) {
+          showPlayer();
+        } else {
+          startPlayer();
+        }
         ui.stopInactivityTimer();
         break;
     }
