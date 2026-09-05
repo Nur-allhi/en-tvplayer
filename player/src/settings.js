@@ -1,5 +1,6 @@
 import { getSettings, saveSettings, getActivePlaylist, APP_VERSION } from './config.js';
 import { processStreamUrl, parseM3u, fetchPlaylist, escapeHtml } from './utils.js';
+import { setConsented } from './update.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
 
@@ -366,6 +367,7 @@ function buildFocusOrder() {
   } else if (activeSection === 'playback') {
     focusOrder.push(document.getElementById('toggle-autoq'));
     focusOrder.push(document.getElementById('toggle-auto-refresh'));
+    focusOrder.push(document.getElementById('toggle-update-check'));
   }
 }
 
@@ -579,6 +581,9 @@ function render() {
         } else if (this.id === 'toggle-auto-refresh') {
           const enabled = this.classList.contains('on');
           saveSettings({ autoRefreshPlaylist: enabled });
+        } else if (this.id === 'toggle-update-check') {
+          const enabled = this.classList.contains('on');
+          setConsented(enabled);
         }
       });
     });
@@ -682,6 +687,7 @@ function renderPlaybackCard() {
   const s = getSettings();
   const autoQ = s.autoQuality !== false;
   const autoRefresh = s.autoRefreshPlaylist !== false;
+  const updateCheck = s.updateCheck === true;
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -693,6 +699,10 @@ function renderPlaybackCard() {
   html += '<div class="toggle-row">';
   html += '<div><div class="toggle-label">Auto refresh playlist</div><div class="toggle-desc">Download and update playlist from source on app launch</div></div>';
   html += '<div class="toggle' + (autoRefresh ? ' on' : '') + '" id="toggle-auto-refresh"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Check for updates</div><div class="toggle-desc">Notify when a new version is available (anonymous)</div></div>';
+  html += '<div class="toggle' + (updateCheck ? ' on' : '') + '" id="toggle-update-check"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   return html;
