@@ -2,6 +2,14 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.10.0] - 2026-09-05
+
+### Added
+- Opt-in update checker — first-launch consent (default off), background check for new releases, gentle notice via Settings badge and What's New banner. Toggle in Settings → Playback.
+- Download stats (`docs/STATS.md`) and Telegram contact (@nureallhiii) in README.
+
+---
+
 ## [1.9.0] - 2026-09-05
 
 ### Fixed

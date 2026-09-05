@@ -78,6 +78,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '1.10.0',
+    sections: [
+      { type: 'added', items: ['Optional update checker — opt in once, get notified of new versions', 'Contact and download stats refreshed'] },
+    ],
+  },
+  {
     version: '1.9.0',
     sections: [
       { type: 'fixed', items: ['Tokenized live playlists now play without dropping after the first frame', 'Access-denied channels retry with a fresh link before giving up', 'Clearer messages when a live stream breaks up'] },
