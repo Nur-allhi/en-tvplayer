@@ -31,6 +31,9 @@ function getDisplayChannels() {
 
 const BOOT_TAGLINE = 'Smart IPTV Player for Samsung Tizen';
 let bootTypewriterTimer = null;
+let bootShownAt = 0;
+const BOOT_MIN_MS = 1500; // logo stays at least this long on every launch
+const BOOT_ZOOM_MS = 700; // fly-into-the-logo exit
 
 function showBootSplash(statusText) {
   const el = document.getElementById('boot-splash');
@@ -44,7 +47,10 @@ function showBootSplash(statusText) {
   // Reset animation state
   if (typeEl) { typeEl.textContent = ''; typeEl.classList.remove('done'); }
   if (loadingEl) { loadingEl.style.animation = 'none'; loadingEl.offsetHeight; loadingEl.style.animation = ''; }
-  el.classList.remove('hidden', 'fade-out');
+  const logo = document.getElementById('boot-logo');
+  if (logo) logo.classList.remove('zoom-in');
+  el.classList.remove('hidden', 'fade-out', 'zooming');
+  bootShownAt = Date.now();
   // Start typewriter after logo animation
   clearTimeout(bootTypewriterTimer);
   startTypewriter(typeEl, BOOT_TAGLINE, 40, 800);
@@ -67,12 +73,22 @@ function startTypewriter(el, text, charDelay, startDelay) {
 function hideBootSplash() {
   clearTimeout(bootTypewriterTimer);
   const el = document.getElementById('boot-splash');
-  if (!el) return;
-  el.classList.add('fade-out');
+  if (!el || el.classList.contains('hidden')) return;
+  // Hold the logo for a beat, then fly into it before fading the overlay.
+  const wait = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
   setTimeout(() => {
-    el.classList.add('hidden');
-    el.classList.remove('fade-out');
-  }, 500);
+    el.classList.add('zooming');
+    const logo = document.getElementById('boot-logo');
+    if (logo) logo.classList.add('zoom-in');
+    setTimeout(() => {
+      el.classList.add('fade-out');
+      setTimeout(() => {
+        el.classList.add('hidden');
+        el.classList.remove('fade-out', 'zooming');
+        if (logo) logo.classList.remove('zoom-in');
+      }, 500);
+    }, BOOT_ZOOM_MS);
+  }, wait);
 }
 
 const LAST_SEEN_KEY = 'en_last_seen_version';
@@ -259,9 +275,12 @@ async function init() {
       }
     }
   } else if (s.channels && s.channels.length > 0) {
-    // Auto-refresh OFF: load from localStorage only, no network fetch.
+    // Auto-refresh OFF: load from localStorage only, no network fetch —
+    // still flash the logo intro so every launch feels the same.
     channels = s.channels;
     startPlayer();
+    showBootSplash('Loading...');
+    hideBootSplashAndMaybeWhatsNew();
   } else if (activePlaylist && activePlaylist.url) {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');

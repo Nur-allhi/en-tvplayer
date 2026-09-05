@@ -690,6 +690,24 @@ html, body {
   100% { opacity: 1; transform: scale(1); }
 }
 
+/* Exit: fly into the logo — it rushes toward the viewer and dissolves */
+.boot-logo.zoom-in {
+  animation: bootLogoZoom 0.7s ease-in forwards;
+}
+
+@keyframes bootLogoZoom {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(3.4); }
+}
+
+/* While zooming, sink the tagline and spinner so the logo owns the screen */
+.boot-splash.zooming .boot-loading,
+.boot-splash.zooming .boot-typewriter {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 .boot-logo-icon {
   flex-shrink: 0;
 }
