@@ -258,6 +258,18 @@
 
 ---
 
+## BUG-019: Resolution badge lies (shows FHD while playing HD or less)
+
+- **Status:** fixed (pending release)
+- **Severity:** medium
+- **Found:** 2026-09-05 (user reported)
+- **Location:** `player/src/player.js` (`initPlayer()`), `player/src/config.js` (`abr`)
+- **Description:** The top-right badge sometimes shows FHD while the channel actually plays in HD or lower.
+- **Root Cause:** Two parts. (1) The badge only listened to Shaka's `variantchanged` event (manual switches) — ABR switches fire `adaptation`, which we ignored, so the badge froze on the initial optimistic pick. (2) That initial pick was optimistic because `defaultBandwidthEstimate` was 1.5 Mbps.
+- **Fix:** Listen to `adaptation` and report the real active track, so the badge always matches what's on screen. Lowered `defaultBandwidthEstimate` to 0.5 Mbps so Auto mode opens on the lowest rung (fast first frame, less loading) and ABR ramps up to HD/FHD as the measured bandwidth allows. Fixed-resolution choice is unaffected (ABR off).
+
+---
+
 | Bug | Fixed | Commit |
 |-----|-------|--------|
 | BUG-008 | 2026-08-28 | fix/first-fetch-failure |

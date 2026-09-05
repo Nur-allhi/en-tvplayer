@@ -144,6 +144,15 @@ export async function initPlayer(videoEl) {
     }
   });
 
+  // BUG-019: ABR switches fire 'adaptation', not 'variantchanged' — without
+  // this the badge freezes on the initial (optimistic) pick and lies.
+  player.addEventListener('adaptation', () => {
+    const active = getActiveTrack();
+    if (trackCallback && active) {
+      trackCallback({ height: active.height, bandwidth: active.bandwidth });
+    }
+  });
+
   videoEl.removeEventListener('progress', notifyBufferingProgress);
   videoEl.removeEventListener('timeupdate', notifyBufferingProgress);
   videoEl.removeEventListener('play', onPlayEvent);

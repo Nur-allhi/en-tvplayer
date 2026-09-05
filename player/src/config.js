@@ -92,7 +92,9 @@ export default {
       switchInterval: 3,
       bandwidthUpgradeTarget: 0.6,
       bandwidthDowngradeTarget: 0.85,
-      defaultBandwidthEstimate: 1500000,
+      // BUG-019: start pessimistic so Auto mode opens on the lowest rung for
+      // fast first frame, then ABR ramps up to what the line sustains.
+      defaultBandwidthEstimate: 500000,
     },
     manifest: {
       retryParameters: {
