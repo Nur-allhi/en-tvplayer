@@ -327,6 +327,26 @@ html, body {
 }
 .buffering-indicator > * + * { margin-left: 12px; }
 
+/* Buffering card text: channel name, percent, rotating reassurance hint */
+.buffering-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+.buffering-channel {
+  font-weight: 700;
+  color: #fff;
+  max-width: calc(420px * var(--tv-scale));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.buffering-hint {
+  color: #8b949e;
+  font-size: calc(14px * var(--tv-scale));
+}
+
 .spinner.small {
   width: calc(24px * var(--tv-scale));
   height: calc(24px * var(--tv-scale));

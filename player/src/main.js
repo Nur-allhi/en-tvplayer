@@ -541,6 +541,7 @@ function showSettingsPage() {
 
 async function handleChannelSelect(channel) {
   ui.hideProxyToast();
+  ui.setBufferingChannel(channel && channel.name);
   currentIndex = channels.indexOf(channel);
   const ok = await player.loadChannel(channel);
   if (!ok) hideProgress();

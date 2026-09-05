@@ -49,10 +49,13 @@
           <div id="resolution-badge" class="resolution-badge hidden">Auto</div>
           <div id="error" class="error hidden"></div>
 
-          <!-- Buffering percentage -->
+          <!-- Buffering card: channel name + live percent + reassurance hint -->
           <div id="buffering-indicator" class="buffering-indicator hidden">
             <div class="spinner small"></div>
-            <span>Buffering <span id="buffering-percent">0%</span></span>
+            <div class="buffering-text">
+              <span id="buffering-channel" class="buffering-channel">Loading</span>
+              <span>Buffering <span id="buffering-percent">0%</span><span id="buffering-hint" class="buffering-hint"></span></span>
+            </div>
           </div>
 
           <!-- Play/Pause status overlay -->

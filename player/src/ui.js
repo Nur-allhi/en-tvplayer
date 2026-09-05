@@ -824,12 +824,42 @@ function scrollToFocused() {
   }
 }
 
-/* Buffering percentage indicator */
+/* Buffering card: channel name + percent + time-aware reassurance hints.
+   A stuck number makes users zap away — the hint proves work is ongoing. */
+let bufferingChannelName = '';
+let bufferingStart = 0;
+let bufferingHintTimer = null;
+const BUFFERING_HINTS = [
+  [4000, ' — slow server, holding on…'],
+  [9000, ' — taking longer than usual, you can wait or try another channel'],
+];
+
+export function setBufferingChannel(name) {
+  bufferingChannelName = name || '';
+}
+
 export function showBuffering(percent) {
   const el = document.getElementById('buffering-indicator');
   if (!el) return;
   el.classList.remove('hidden');
+  const nameEl = document.getElementById('buffering-channel');
+  if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
   setBufferingPercent(percent);
+  bufferingStart = Date.now();
+  updateBufferingHint();
+  clearInterval(bufferingHintTimer);
+  bufferingHintTimer = setInterval(updateBufferingHint, 1000);
+}
+
+function updateBufferingHint() {
+  const el = document.getElementById('buffering-hint');
+  if (!el) return;
+  const elapsed = Date.now() - bufferingStart;
+  let hint = '';
+  for (const [after, text] of BUFFERING_HINTS) {
+    if (elapsed >= after) hint = text;
+  }
+  el.textContent = hint;
 }
 
 export function updateBuffering(percent) {
@@ -842,6 +872,10 @@ export function updateBuffering(percent) {
 export function hideBuffering() {
   const el = document.getElementById('buffering-indicator');
   if (el) el.classList.add('hidden');
+  clearInterval(bufferingHintTimer);
+  bufferingHintTimer = null;
+  const hint = document.getElementById('buffering-hint');
+  if (hint) hint.textContent = '';
 }
 
 function setBufferingPercent(percent) {
