@@ -430,7 +430,9 @@ export async function loadChannel(channel) {
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
     // Without this hint, Shaka may fail to identify the format and show a black screen.
     // A probed format (BUG-014) takes priority over URL-pattern detection.
-    const mimeType = sniffedMimeUrls.get(url) || detectMimeType(url);
+    // Look the probe up by clean channel URL: `url` may carry a `?_t` cache
+    // buster (BUG-017) while the probe is stored under the original URL.
+    const mimeType = sniffedMimeUrls.get(channel.url) || detectMimeType(url);
     if (mimeType) {
       logEvent('INFO', 'Detected MIME type: ' + mimeType + ' for ' + url.slice(0, 80));
       await player.load(url, undefined, mimeType);
@@ -507,6 +509,18 @@ export async function loadChannel(channel) {
         showError(getErrorMessage(error) + ' — channel may be turned off');
       }
       return false;
+    }
+
+    // BUG-017: tokenized servers reject loads with 403/401 when the token
+    // went stale between playlist fetch and segment fetch. Every loadChannel()
+    // refetches the master playlist (fresh token), so retry twice first.
+    if (error && error.code === 1001 && currentChannel && reconnectAttempts < 2) {
+      const status = error.data && error.data[1];
+      if (status === 403 || status === 401) {
+        logEvent('WARN', 'Access denied at load (' + status + ') — retrying with fresh token');
+        scheduleReconnect();
+        return false;
+      }
     }
 
     if (currentChannel && currentChannel.useProxy === false && proxySuggestionCallback) {
@@ -663,6 +677,11 @@ function isRecoverable(error) {
   if (error.code === 1002 || error.code === 1003) return true;
   // MediaSource operation errors — recover by reloading (destroys corrupted MediaSource)
   if (error.code === 3014 || error.code === 3015 || error.code === 3016) return true;
+  // BUG-017: live/tokenized servers (e.g. kliv) serve stale segments that fail
+  // to transmux (3018), and Shaka then disables the only variant which
+  // surfaces as 4032 CONTENT_UNSUPPORTED_BY_BROWSER. A fresh load refetches
+  // the master playlist (new token) and clears the disabled state.
+  if (error.code === 3018 || error.code === 4032) return true;
   return false;
 }
 
@@ -878,7 +897,9 @@ function getErrorMessage(error) {
     3001: 'This channel uses stream values your TV could not process.',
     3002: 'This channel could not play on your TV.',
     3003: 'This channel could not play on your TV.',
+    3018: 'The live stream broke up. Trying again — if it persists, try another channel.',
     4000: 'This channel could not be identified. Try enabling Proxy in the menu, or try a different channel.',
+    4032: 'This channel stopped playing in a format your TV accepts. Trying again — if it persists, try another channel.',
   };
 
   // BAD_HTTP_STATUS (1001): the real HTTP status is in error.data[1].

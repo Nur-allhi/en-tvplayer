@@ -218,7 +218,6 @@
 ---
 
 ## BUG-016: Settings back button has no right margin — sticks to the "Settings" title
-
 - **Status:** fixed (pending release)
 - **Severity:** low (cosmetic)
 - **Found:** 2026-09-05 (user reported)
@@ -226,6 +225,24 @@
 - **Description:** In Settings, the on-screen back button (‹) touches the page title — no gap between them.
 - **Root Cause:** The header is `<button>‹</button>` followed by a **bare text node** "Settings". The existing spacing rule `.page-title > * + * { margin-left: 13px; }` only applies between *element* siblings, so no gap is created next to the text.
 - **Fix:** Added `margin-right: 13px` to `.page-title .back-btn`.
+
+---
+
+## BUG-017: Tokenized live playlist (kliv) — first frame plays, then "Connection lost" loop ending in Shaka 4032
+
+- **Status:** fixed (pending release)
+- **Severity:** high
+- **Found:** 2026-09-05 (user reported, playlist `https://kliv.in/Ropk`)
+- **Location:** `player/src/player.js` (`isRecoverable()`, `loadChannel()`, `getErrorMessage()`), `player/src/config.js`
+- **Description:** Channels load and show the first frame, then most fail with "Connection lost. Trying again..." followed by Shaka error 4032. Playlist shape: `play.php?id=XXXX` URLs (no extension) 302-redirect to `http://<IP>/.../index.m3u8?token=<rotating>`, single-variant live MPEG-TS with `EXT-X-PROGRAM-DATE-TIME`.
+- **Root Cause:** 4032 (`CONTENT_UNSUPPORTED_BY_BROWSER`) is secondary — Shaka throws it when all variants are disabled after earlier segment failures (single variant ⇒ any failure disables everything). Primaries: (1) rotating tokens — stale segment requests return HTTP 200 `not found`, failing transmux (3018); (2) 403/401 at load when the token goes stale mid-load; (3) app treated 3018/4032 and load-time 403 as terminal. Also found dead config (`streaming.forceTransmuxTS`, `manifest.hls.segmentFormat/segmentVideoCodec` don't exist in Shaka 5.x — verified in the bundled build) and a probe-cache miss (`sniffedMimeUrls` looked up by `?_t`-busted URL, stored by clean URL).
+- **Fix:**
+  - `isRecoverable()` now covers 3018/4032 — a fresh load refetches the master (new token) and clears Shaka's disabled-variant state (existing retry caps apply, so it still terminates).
+  - `loadChannel()` retries 1001/403-401 twice with a fresh token before showing an error.
+  - Added plain-English messages for 3018/4032.
+  - Removed the three invalid Shaka config keys (TS auto-transmux already works — the first frame proves it).
+  - Probe lookup now uses the clean channel URL.
+- **Open item:** Needs verification on a TV with the kliv playlist. If 4032 persists, capture the preceding error code (`data[1]` status) to identify the true primary.
 
 ---
 

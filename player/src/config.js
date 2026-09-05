@@ -78,7 +78,6 @@ export default {
       rebufferingGoal: 5,
       bufferBehind: 30,
       segmentPrefetchLimit: 3,
-      forceTransmuxTS: true,
       retryParameters: {
         maxAttempts: 8,
         baseDelay: 500,
@@ -104,8 +103,6 @@ export default {
       },
       hls: {
         ignoreManifestProgramDateTime: false,
-        segmentFormat: 'mpegts',
-        segmentVideoCodec: 'h264',
       },
     },
   },
