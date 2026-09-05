@@ -2,6 +2,18 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.8.0] - 2026-09-05
+
+### Fixed
+- BUG-011: Remote OK on Settings now saves — playlist renames persist and quality toggles no longer revert.
+- BUG-012: Enter inside Settings text fields now works on TV — Proxy URL saves, playlist name/URL forms submit and advance correctly.
+- BUG-013: Channels that crashed inside Shaka on HLS date-time sync are retried once in compatibility mode instead of showing a cryptic engine error.
+- BUG-014: Channels Shaka could not identify (extension-less/tokenized links) are now probed from their first bytes and retried with the correct format; error codes corrected to Shaka 5.x (including real 403 detection).
+- BUG-015: "Try enabling Proxy" hint now shows bottom-center under the error message.
+- BUG-016: Settings back button no longer sticks to the "Settings" title.
+
+---
+
 ## [1.7.0] - 2026-09-03
 
 ### Fixed

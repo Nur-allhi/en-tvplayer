@@ -77,6 +77,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '1.8.0',
+    sections: [
+      { type: 'fixed', items: ['Settings changes via remote now save — playlist edits and toggles stick', 'Enter inside Settings text boxes now saves on TV', 'Crashing channels retry automatically in compatibility mode', 'Unrecognized channel links are now identified and retried correctly', 'Channel error messages are now accurate (including access-denied detection)'] },
+      { type: 'changed', items: ['Proxy hint position fixed to bottom center', 'Settings back button spacing fixed'] },
+    ],
+  },
+  {
     version: '1.7.0',
     sections: [
       { type: 'fixed', items: ['Black screen on some IPTV channels — now detects stream format automatically', 'HLS streams that need date-time sync now work correctly', 'Raw TS/MP4 stream URLs now play correctly on Samsung Tizen', 'Video errors from the TV are now caught and shown to you', 'Streams that will never work now fail in 15 seconds instead of 30'] },
