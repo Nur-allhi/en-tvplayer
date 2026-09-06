@@ -1,5 +1,6 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
+import * as avplay from './avplay.js';
 
 function logEvent(level, message) {
   try {
@@ -32,6 +33,14 @@ let advancePending = false;
 
 let loadingTimeout = null;
 let stalledTimer = null;
+
+// BUG-020: native fallback state. Some streams (interlaced MBAFF H264, …)
+// transmux fine but the browser decoder paints zero frames — buffering
+// completes, screen stays black, no Shaka error. Those play natively.
+let useAvplay = false;
+let blackWatchTimer = null;
+const avplayPreferredUrls = new Set();
+const avplayFailedUrls = new Set();
 
 // Staged loading UX: while the initial manifest load is pending, the center
 // spinner owns the screen and buffering events are held back. Once load()
@@ -388,6 +397,9 @@ export async function loadChannel(channel) {
 
   const myToken = ++loadToken;
   currentChannel = channel;
+  useAvplay = false;
+  avplay.stop();
+  stopBlackWatchdog();
 
   clearTimeout(reconnectTimer);
   clearTimeout(loadingTimeout);
@@ -404,6 +416,11 @@ export async function loadChannel(channel) {
     url += sep + '_t=' + Date.now();
   }
 
+  // Channels already known to need native playback skip Shaka entirely.
+  if (avplayPreferredUrls.has(channel.url) && avplay.isAvailable()) {
+    return loadViaAvplay(channel, myToken);
+  }
+
   try {
     // Always destroy and recreate the player on every channel switch.
     // On Tizen, Shaka's unload/load can hang forever when stuck on a failed
@@ -416,6 +433,7 @@ export async function loadChannel(channel) {
       const ok = await initPlayer(el);
       if (!ok) return false;
     }
+    if (videoElement) videoElement.classList.remove('hidden');
     currentChannel = channel;
     if (myToken !== loadToken) return false;
 
@@ -470,6 +488,7 @@ export async function loadChannel(channel) {
     consecutiveErrors = 0;
     videoErrorCount = 0;
     startStallWatchdog();
+    startBlackWatchdog();
     logEvent('INFO', 'Loaded: ' + (channel.name || channel.url.slice(0, 60)));
     return true;
   } catch (error) {
@@ -579,6 +598,8 @@ export async function loadChannel(channel) {
 
 async function destroyPlayer(keepElement) {
   stopStallWatchdog();
+  stopBlackWatchdog();
+  useAvplay = false;
   clearTimeout(reconnectTimer);
   clearTimeout(loadingTimeout);
   clearTimeout(stalledTimer);
@@ -782,13 +803,120 @@ function stopStallWatchdog() {
   }
 }
 
+// BUG-020: zero rendered frames while data is present means the browser
+// decoder rejected the stream (interlaced MBAFF, …). Migrate to native.
+function startBlackWatchdog() {
+  stopBlackWatchdog();
+  if (!avplay.isAvailable()) return;
+  const tokenAtStart = loadToken;
+  blackWatchTimer = setTimeout(() => {
+    blackWatchTimer = null;
+    if (tokenAtStart !== loadToken || useAvplay || !currentChannel) return;
+    if (avplayFailedUrls.has(currentChannel.url)) return;
+    if (!videoElement || videoElement.paused) return;
+    let total = -1;
+    try {
+      const q = videoElement.getVideoPlaybackQuality();
+      if (q) total = q.totalVideoFrames || 0;
+    } catch {
+      return;
+    }
+    if (total >= 0 && total < 5 && videoElement.readyState >= 2) {
+      avplayPreferredUrls.add(currentChannel.url);
+      switchToAvplay();
+    }
+  }, 9000);
+}
+
+function stopBlackWatchdog() {
+  if (blackWatchTimer) {
+    clearTimeout(blackWatchTimer);
+    blackWatchTimer = null;
+  }
+}
+
+function avplayStreamUrl(channel) {
+  let url = channel.url;
+  if (channel.useProxy === true) url = rewriteUrlThroughProxy(channel, url);
+  return url;
+}
+
+async function loadViaAvplay(channel, myToken) {
+  showLoading(true);
+  hideError();
+  if (videoElement) videoElement.classList.add('hidden');
+  avplay.onBuffering((buffering, percent) => {
+    if (myToken !== loadToken) return;
+    showLoading(false);
+    if (typeof percent === 'number') avplayBufferPercent = percent;
+    if (bufferingCallback) bufferingCallback(buffering, percent);
+  });
+  avplay.onError((type) => {
+    if (myToken !== loadToken) return;
+    avplayFailedUrls.add(channel.url);
+    avplayPreferredUrls.delete(channel.url);
+    logEvent('ERROR', 'Native playback failed (' + type + '): ' + (channel.name || channel.url.slice(0, 60)));
+    showError('This channel could not play on your TV. Try another channel.');
+  });
+  let referer = null;
+  if (channel.customHeaders) {
+    for (const [k, v] of Object.entries(channel.customHeaders)) {
+      if (k.toLowerCase() === 'referer') referer = v;
+    }
+  }
+  const ok = await avplay.play(avplayStreamUrl(channel), {
+    userAgent: channel.userAgent || null,
+    referer,
+  });
+  if (myToken !== loadToken) return false;
+  showLoading(false);
+  if (!ok) {
+    avplayFailedUrls.add(channel.url);
+    avplayPreferredUrls.delete(channel.url);
+    showError('This channel could not play on your TV. Try another channel.');
+    return false;
+  }
+  useAvplay = true;
+  hideError();
+  reconnectAttempts = 0;
+  consecutiveErrors = 0;
+  logEvent('INFO', 'Playing natively: ' + (channel.name || channel.url.slice(0, 60)));
+  return true;
+}
+
+async function switchToAvplay() {
+  const channel = currentChannel;
+  const tokenAtSwitch = loadToken;
+  if (!channel || !avplay.isAvailable()) return;
+  stopBlackWatchdog();
+  stopStallWatchdog();
+  logEvent('WARN', 'No frames rendered — switching to native playback: ' +
+      (channel.name || channel.url.slice(0, 80)));
+  showCustomMessage('Switching to native playback...');
+  if (player) {
+    try { await player.destroy(); } catch {}
+    player = null;
+  }
+  if (tokenAtSwitch !== loadToken) return;
+  await loadViaAvplay(channel, tokenAtSwitch);
+}
+
 // Force-reload the current channel (e.g. from R key or remote)
 export function setAutoQuality(enabled) {
+  if (useAvplay) return;
   if (!player) return;
   player.configure({ abr: { enabled } });
 }
 
 export function reloadChannel() {
+  if (useAvplay && currentChannel) {
+    const ch = currentChannel;
+    consecutiveErrors = 0;
+    advancePending = false;
+    lastResortAttempts = 0;
+    loadChannel(ch);
+    return;
+  }
   if (!currentChannel) return;
   consecutiveErrors = 0;
   advancePending = false;
@@ -799,12 +927,27 @@ export function reloadChannel() {
 }
 
 export function stop() {
+  avplay.stop();
+  if (videoElement) videoElement.classList.remove('hidden');
   destroyPlayer().catch(() => {});
   showLoading(false);
   hideError();
 }
 
+let avplayPaused = false;
+let avplayBufferPercent = 0;
+
 export function togglePlay() {
+  if (useAvplay) {
+    if (avplayPaused) {
+      avplayPaused = false;
+      avplay.resume();
+    } else {
+      avplayPaused = true;
+      avplay.pause();
+    }
+    return;
+  }
   if (!videoElement) return;
 
   if (videoElement.paused) {
@@ -819,6 +962,7 @@ export function getPlayer() {
 }
 
 export function getBufferingPercent() {
+  if (useAvplay) return avplayBufferPercent;
   if (!videoElement) return 0;
   const buffered = videoElement.buffered;
   let end = 0;
@@ -833,7 +977,7 @@ export function getBufferingPercent() {
 }
 
 export function getResolutions() {
-  if (!player) return [];
+  if (useAvplay || !player) return [];
   const tracks = player.getVariantTracks();
   const heights = [...new Set(tracks.map((t) => t.height))]
     .filter(Boolean)
@@ -842,7 +986,7 @@ export function getResolutions() {
 }
 
 export function selectResolution(height) {
-  if (!player) return;
+  if (useAvplay || !player) return;
 
   if (height == null) {
     player.configure({ abr: { enabled: true } });

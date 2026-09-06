@@ -282,6 +282,15 @@ html, body {
   outline: none;
 }
 
+/* Native AVPlay surface (hidden unless a stream needs native playback) */
+.avplayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* Loading Spinner */
 .loading {
   position: absolute;

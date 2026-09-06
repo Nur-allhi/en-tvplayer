@@ -29,6 +29,7 @@ en-tvplayer/
 │   ├── src/
 │   │   ├── main.js      App entry point
 │   │   ├── player.js    Shaka Player wrapper
+│   │   ├── avplay.js    Native AVPlay fallback (undecodable streams)
 │   │   ├── ui.js        Channel list + sidebar
 │   │   ├── settings.js  Settings page
 │   │   ├── remote.js    Remote control handler

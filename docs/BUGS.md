@@ -271,6 +271,17 @@
 
 ---
 
+## BUG-020: Interlaced (576i/1080i) channels play black — no error, fine in native players
+
+- **Status:** fixed (pending release — needs TV verification)
+- **Severity:** high
+- **Found:** 2026-09-05 (user reported, playlist `https://kliv.in/oplo`, e.g. "IN | DISNEY HD", "IN: Cartoon Network")
+- **Location:** new `player/src/avplay.js`, `player/src/player.js` (backend routing + watchdog), `player/index.html`, `player/src/styles.css`
+- **Description:** Some channels load and buffer fully, then show black forever with no error — while ibocast plays them. Stream forensics (PMT + H264 SPS parsed from real segments): the failing channels are **interlaced MBAFF** (576i) H264. Tizen's MSE hardware decoder rejects interlaced frames; the native pipeline accepts them.
+- **Fix:** Zero-frame watchdog — 9s after a Shaka load, if `getVideoPlaybackQuality().totalVideoFrames < 5` with data present, the channel migrates to Samsung AVPlay (native pipeline, same as ibocast) with the same proxy/headers. Migrated URLs are remembered per session and go native directly next time. All existing controls (zap, pause, reload, stop, buffering pill) branch transparently; quality menu degrades to Auto-only on native. No-ops on desktop (no `webapis`).
+
+---
+
 | Bug | Fixed | Commit |
 |-----|-------|--------|
 | BUG-008 | 2026-08-28 | fix/first-fetch-failure |

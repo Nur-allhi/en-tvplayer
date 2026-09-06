@@ -7,6 +7,9 @@
   <title>IPTV Player</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/src/styles.css">
+  <!-- Samsung AVPlay (native fallback for streams the browser can't render).
+       $WEBAPIS resolves on Tizen only; elsewhere this 404s harmlessly. -->
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
 </head>
 <body>
   <div id="app">
@@ -41,6 +44,7 @@
 
         <!-- Video Player -->
         <div id="player-container" class="player-container">
+          <object id="avplayer" type="application/avplayer" class="avplayer hidden"></object>
           <video id="video" autoplay></video>
           <div id="loading" class="loading hidden">
             <div class="spinner"></div>
