@@ -710,19 +710,21 @@ function handlePlayerError(error) {
     return;
   }
 
-  // 403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment: retry
-  // up to 3 times with a 4s cool-down (BUG-021: hammering a rate-limiting
-  // relay gets the IP banned; back off instead).
+  // 401/403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment:
+  // retry up to 3 times with a 4s cool-down (BUG-021: hammering a
+  // rate-limiting relay gets the IP banned; back off instead). BUG-021
+  // follow-up: tokenized relays also answer 401 mid-playback when the token
+  // dies — same fresh-token recovery, not a terminal login error.
   if (error.code === 1001 && currentChannel) {
     const status = error.data && error.data[1];
-    if (status === 403) {
+    if (status === 403 || status === 401) {
       lastResortAttempts++;
-      logEvent('WARN', '403 on segment — retry ' + lastResortAttempts + '/3');
+      logEvent('WARN', status + ' on segment — retry ' + lastResortAttempts + '/3');
       if (lastResortAttempts <= 3) {
         reconnectAttempts = Math.max(reconnectAttempts, 1);
         showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
         setTimeout(() => {
-          logEvent('INFO', '403 retry ' + lastResortAttempts + '/3 — reloading channel');
+          logEvent('INFO', status + ' retry ' + lastResortAttempts + '/3 — reloading channel');
           loadChannel(currentChannel);
         }, 4000);
         return;
@@ -745,10 +747,10 @@ function handlePlayerError(error) {
   logEvent('ERROR', 'Unrecoverable error ' + error.code + ' (' + (currentChannel && currentChannel.name ? currentChannel.name : 'unknown') + ') — ' + getErrorMessage(error));
   showError(getErrorMessage(error));
 
-  // Auto-advance to next channel after 3 failed 403 retries
+  // Auto-advance to next channel after 3 failed 401/403 retries
   if (error.code === 1001 && channelAdvanceCallback) {
     const status = error.data && error.data[1];
-    if (status === 403 && lastResortAttempts > 3) {
+    if ((status === 403 || status === 401) && lastResortAttempts > 3) {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
       showError('This channel link has expired. Moving to the next channel...');
@@ -1175,7 +1177,7 @@ function getErrorMessage(error) {
   if (code === 1001) {
     const status = error.data && error.data[1];
     if (status === 403) return 'This channel is not allowed to play. You may need a subscription or different access.';
-    if (status === 401) return 'This channel requires a login or key to play.';
+    if (status === 401) return 'This channel is not allowing access right now. Its link may have expired — try again in a bit.';
     if (status === 404) return 'This channel was not found. The link may have changed.';
     if (typeof status === 'number' && status >= 500) return 'The channel server is having problems. Please try again later.';
     if (typeof status === 'number' && status) return 'Channel returned an error (code ' + status + '). Please try again.';

@@ -291,6 +291,7 @@
 - **Location:** `player/src/config.js` (retry/prefetch), `player/src/player.js` (403 retry gap)
 - **Description:** All channels appeared dead (spinner → timeout), yet servers were healthy and the same channels loaded minutes earlier/later. Live log showed the relay intermittently rejecting the TV: `plainfetch FAIL`, then `200`, then `403` on the master itself — classic per-IP rate limiting of an aggressive client, not broken code.
 - **Fix:** De-escalate — segment prefetch 3→2, streaming retries 8→5 with slower base backoff (500→800ms), 403-retry cool-down 2s→4s. Removed the diagnostic double-fetch of masters. Kept the activity-aware load watchdog.
+- **Follow-up (dies after ~1 min on 401):** tokenized relays also answer 401 mid-playback when the token dies, and that path had no recovery — just repeated "login" toasts. Playback 401 now shares the 403 fresh-token retry (3×, 4s gap) and auto-advance; the 401 message reworded for expiry.
 
 ---
 
