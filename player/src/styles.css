@@ -291,6 +291,23 @@ html, body {
   height: 100%;
 }
 
+/* TEMP-DEBUG: on-screen load trace (removed before release) */
+.debug-toast {
+  position: absolute;
+  left: calc(12px * var(--tv-scale));
+  bottom: calc(80px * var(--tv-scale));
+  max-width: 60%;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #ED421F;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: calc(13px * var(--tv-scale));
+  color: #7ee787;
+  z-index: 150;
+  white-space: pre-wrap;
+}
+
 /* Loading Spinner */
 .loading {
   position: absolute;

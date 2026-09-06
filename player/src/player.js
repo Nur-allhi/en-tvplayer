@@ -400,6 +400,7 @@ export async function loadChannel(channel) {
   useAvplay = false;
   avplay.stop();
   stopBlackWatchdog();
+  debugMsg('load #' + myToken + ' ' + (channel.name || '?').slice(0, 24));
 
   clearTimeout(reconnectTimer);
   clearTimeout(loadingTimeout);
@@ -431,6 +432,7 @@ export async function loadChannel(channel) {
 
     if (el) {
       const ok = await initPlayer(el);
+      debugMsg('init ' + (ok ? 'ok' : 'NOT SUPPORTED'));
       if (!ok) return false;
     }
     if (videoElement) videoElement.classList.remove('hidden');
@@ -454,6 +456,7 @@ export async function loadChannel(channel) {
     // Staged UX: spinner owns the screen until load() resolves.
     initialLoadPending = true;
     loadingTimeout = setTimeout(() => {
+      debugMsg('TIMEOUT 15s');
       logEvent('WARN', 'Load timed out after 15s — stream may be unsupported');
       showError('This channel is not responding. It may be turned off right now.');
       if (player) player.destroy().catch(() => {});
@@ -483,6 +486,7 @@ export async function loadChannel(channel) {
     // Load done — first frame is up. Hand buffering state to the pill UI.
     initialLoadPending = false;
     showLoading(false);
+    debugMsg('load ok');
     if (isBuffering && bufferingCallback) bufferingCallback(true, getBufferingPercent());
     reconnectAttempts = 0;
     consecutiveErrors = 0;
@@ -499,6 +503,7 @@ export async function loadChannel(channel) {
     initialLoadPending = false;
     showLoading(false);
     videoErrorCount = 0;
+    debugMsg('load err ' + (error && error.code != null ? error.code : (error && error.message) || '?'));
 
     if (error && error.code === 7000) return false;
 
@@ -605,7 +610,17 @@ async function destroyPlayer(keepElement) {
   clearTimeout(stalledTimer);
   reconnectPending = false;
   if (player) {
-    try { await player.destroy(); } catch {}
+    try {
+      // TEMP-DEBUG: destroy() hanging forever == eternal spinner. Force on.
+      await Promise.race([
+        player.destroy(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('destroy-timeout')), 5000)),
+      ]);
+      debugMsg('destroy ok');
+    } catch (e) {
+      debugMsg('destroy FORCED: ' + (e && e.message ? e.message : e));
+      logEvent('WARN', 'Player destroy hung — continuing anyway');
+    }
     player = null;
   }
   if (videoElement) {
@@ -979,6 +994,22 @@ export function togglePlay() {
   } else {
     videoElement.pause();
   }
+}
+
+// TEMP-DEBUG: on-screen load trace (removed before release). Shows the last
+// few lifecycle events so a stuck load can be located from the couch.
+const debugLines = [];
+export function debugMsg(m) {
+  try {
+    const t = new Date().toISOString().slice(14, 23);
+    debugLines.push(t + ' ' + m);
+    while (debugLines.length > 5) debugLines.shift();
+    const el = document.getElementById('debug-toast');
+    if (el) {
+      el.textContent = debugLines.join('\n');
+      el.classList.remove('hidden');
+    }
+  } catch {}
 }
 
 export function isNativeAvailable() {
