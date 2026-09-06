@@ -90,14 +90,27 @@ export async function initPlayer(videoEl) {
   shaka.polyfill.installAll();
 
   if (!shaka.Player.isBrowserSupported()) {
+    debugMsg('BROWSER NOT SUPPORTED');
     console.error('Shaka Player not supported in this browser');
     return false;
   }
+  debugMsg('shaka ' + (shaka.Player.version || '?') + ' online=' + (typeof navigator !== 'undefined' ? navigator.onLine : '?'));
 
   player = new shaka.Player();
 
   const networkingEngine = player.getNetworkingEngine();
   if (networkingEngine) {
+    // TEMP-DEBUG: trace which request stage hangs (removed before release).
+    networkingEngine.registerRequestFilter((type, request) => {
+      try {
+        debugMsg('REQ t' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?'));
+      } catch {}
+    });
+    networkingEngine.registerResponseFilter((type, response) => {
+      try {
+        debugMsg('RESP t' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?'));
+      } catch {}
+    });
     networkingEngine.registerRequestFilter((type, request) => {
       const url = request.uris && request.uris[0];
       if (currentChannel) {
@@ -465,6 +478,20 @@ export async function loadChannel(channel) {
         videoElement.load();
       }
     }, 15000);
+
+    // TEMP-DEBUG: plain fetch alongside Shaka — separates TV-network stalls
+    // from Shaka-side hangs (removed before release).
+    try {
+      const t0 = Date.now();
+      const probe = await Promise.race([
+        fetch(url).then(async (r) => ({ status: r.status, final: r.url })),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('plain-timeout')), 10000)),
+      ]);
+      debugMsg('plainfetch ' + probe.status + ' ' + (Date.now() - t0) + 'ms');
+    } catch (e) {
+      debugMsg('plainfetch FAIL ' + (e && e.message ? e.message : e));
+    }
+    if (myToken !== loadToken) return false;
 
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
     // Without this hint, Shaka may fail to identify the format and show a black screen.
@@ -1003,7 +1030,7 @@ export function debugMsg(m) {
   try {
     const t = new Date().toISOString().slice(14, 23);
     debugLines.push(t + ' ' + m);
-    while (debugLines.length > 5) debugLines.shift();
+    while (debugLines.length > 8) debugLines.shift();
     const el = document.getElementById('debug-toast');
     if (el) {
       el.textContent = debugLines.join('\n');
