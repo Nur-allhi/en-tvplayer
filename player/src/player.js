@@ -803,17 +803,33 @@ function stopStallWatchdog() {
   }
 }
 
-// BUG-020: zero rendered frames while data is present means the browser
+// BUG-020: zero presented frames while data is present means the browser
 // decoder rejected the stream (interlaced MBAFF, …). Migrate to native.
+// Ground truth is requestVideoFrameCallback (presented frames); the decoded-
+// frame counter is only a fallback (a stuck decoder can still count frames).
 function startBlackWatchdog() {
   stopBlackWatchdog();
-  if (!avplay.isAvailable()) return;
   const tokenAtStart = loadToken;
   blackWatchTimer = setTimeout(() => {
     blackWatchTimer = null;
     if (tokenAtStart !== loadToken || useAvplay || !currentChannel) return;
     if (avplayFailedUrls.has(currentChannel.url)) return;
     if (!videoElement || videoElement.paused) return;
+    if (videoElement.readyState < 2) return;
+    if (typeof videoElement.requestVideoFrameCallback === 'function') {
+      let painted = false;
+      try {
+        videoElement.requestVideoFrameCallback(() => { painted = true; });
+      } catch {
+        return;
+      }
+      setTimeout(() => {
+        if (tokenAtStart !== loadToken || useAvplay || !currentChannel) return;
+        if (videoElement && videoElement.paused) return;
+        if (!painted) onBlackScreen();
+      }, 3000);
+      return;
+    }
     let total = -1;
     try {
       const q = videoElement.getVideoPlaybackQuality();
@@ -821,11 +837,19 @@ function startBlackWatchdog() {
     } catch {
       return;
     }
-    if (total >= 0 && total < 5 && videoElement.readyState >= 2) {
-      avplayPreferredUrls.add(currentChannel.url);
-      switchToAvplay();
-    }
+    if (total >= 0 && total < 5) onBlackScreen();
   }, 9000);
+}
+
+function onBlackScreen() {
+  if (!currentChannel || avplayFailedUrls.has(currentChannel.url)) return;
+  if (!avplay.isAvailable()) {
+    logEvent('ERROR', 'Undecodable stream, no native fallback: ' + currentChannel.url.slice(0, 100));
+    showError('This channel uses a format the TV browser cannot display. Try a native player app for this channel.');
+    return;
+  }
+  avplayPreferredUrls.add(currentChannel.url);
+  switchToAvplay();
 }
 
 function stopBlackWatchdog() {
@@ -955,6 +979,10 @@ export function togglePlay() {
   } else {
     videoElement.pause();
   }
+}
+
+export function isNativeAvailable() {
+  return avplay.isAvailable();
 }
 
 export function getPlayer() {

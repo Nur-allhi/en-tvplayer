@@ -279,6 +279,7 @@
 - **Location:** new `player/src/avplay.js`, `player/src/player.js` (backend routing + watchdog), `player/index.html`, `player/src/styles.css`
 - **Description:** Some channels load and buffer fully, then show black forever with no error — while ibocast plays them. Stream forensics (PMT + H264 SPS parsed from real segments): the failing channels are **interlaced MBAFF** (576i) H264. Tizen's MSE hardware decoder rejects interlaced frames; the native pipeline accepts them.
 - **Fix:** Zero-frame watchdog — 9s after a Shaka load, if `getVideoPlaybackQuality().totalVideoFrames < 5` with data present, the channel migrates to Samsung AVPlay (native pipeline, same as ibocast) with the same proxy/headers. Migrated URLs are remembered per session and go native directly next time. All existing controls (zap, pause, reload, stop, buffering pill) branch transparently; quality menu degrades to Auto-only on native. No-ops on desktop (no `webapis`).
+- **Follow-up (watchdog never fired):** decoded-frame counting can lie (a stuck decoder may still count), and a missing `webapis` library aborted silently. Watchdog v2 uses `requestVideoFrameCallback` (presented frames = ground truth) with the counter as fallback, shows a truthful message when no native fallback exists, and the About card reports "Native playback: available/not available" for diagnostics.
 
 ---
 

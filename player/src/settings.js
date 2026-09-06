@@ -718,6 +718,7 @@ function renderAboutCard() {
   html += '<div class="hint" style="margin-top:4px;">Tizen TV App &middot; Version ' + APP_VERSION + '</div>';
   html += '<div class="hint" style="margin-top:2px;">Open-source IPTV player for Samsung Tizen TVs and desktop browsers.</div>';
   html += '<div class="hint" style="margin-top:2px;">Powered by Shaka Player with a local CORS proxy.</div>';
+  html += '<div class="hint" style="margin-top:2px;">Native playback: ' + (player.isNativeAvailable() ? 'available' : 'not available') + '</div>';
   html += '</div>';
   html += '</div></div>';
   return html;
