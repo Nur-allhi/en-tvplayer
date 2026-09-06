@@ -10,6 +10,10 @@ let errorCallback = null;
 let readyResolve = null;
 let readyTimer = null;
 let firstFrameSeen = false;
+// BUG-020 regression guard: never touch the native instance unless we
+// actually opened it — a stray stop()/close() on every channel load hung
+// all playback on some firmwares.
+let active = false;
 
 export function isAvailable() {
   try {
@@ -95,6 +99,7 @@ export function play(url, { userAgent, referer, timeoutMs = 15000 } = {}) {
         },
       });
       avplay.open(url);
+      active = true;
       avplay.setDisplayRect(0, 0, 1920, 1080);
       avplay.prepareAsync(() => {
         try {
@@ -112,13 +117,13 @@ export function play(url, { userAgent, referer, timeoutMs = 15000 } = {}) {
 
 export function pause() {
   try {
-    if (isAvailable()) window.webapis.avplay.pause();
+    if (active && isAvailable()) window.webapis.avplay.pause();
   } catch {}
 }
 
 export function resume() {
   try {
-    if (isAvailable()) window.webapis.avplay.play();
+    if (active && isAvailable()) window.webapis.avplay.play();
   } catch {}
 }
 
@@ -126,12 +131,15 @@ export function stop() {
   clearReadyTimer();
   readyResolve = null;
   firstFrameSeen = false;
-  try {
-    if (isAvailable()) {
-      window.webapis.avplay.stop();
-      window.webapis.avplay.close();
-    }
-  } catch {}
+  if (active) {
+    active = false;
+    try {
+      if (isAvailable()) {
+        window.webapis.avplay.stop();
+        window.webapis.avplay.close();
+      }
+    } catch {}
+  }
   const obj = avObject || document.getElementById('avplayer');
   if (obj) obj.classList.add('hidden');
 }
