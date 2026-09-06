@@ -34,6 +34,9 @@ let advancePending = false;
 
 let loadingTimeout = null;
 let stalledTimer = null;
+let lastShakaActivity = 0;
+let lastShakaReq = '';
+let lastShakaResp = '';
 
 // BUG-020: native fallback state. Some streams (interlaced MBAFF H264, …)
 // transmux fine but the browser decoder paints zero frames — buffering
@@ -104,12 +107,16 @@ export async function initPlayer(videoEl) {
     // TEMP-DEBUG: trace which request stage hangs (removed before release).
     networkingEngine.registerRequestFilter((type, request) => {
       try {
-        debugMsg('REQ t' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?'));
+        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?');
+        lastShakaActivity = Date.now();
+        debugMsg('REQ ' + lastShakaReq);
       } catch {}
     });
     networkingEngine.registerResponseFilter((type, response) => {
       try {
-        debugMsg('RESP t' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?'));
+        lastShakaResp = 't' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?');
+        lastShakaActivity = Date.now();
+        debugMsg('RESP ' + lastShakaResp);
       } catch {}
     });
     networkingEngine.registerRequestFilter((type, request) => {
@@ -468,17 +475,34 @@ export async function loadChannel(channel) {
     // Timeout: if player.load hangs for 15s, show feedback and destroy
     // the player so the pending load() promise rejects.
     // Staged UX: spinner owns the screen until load() resolves.
+    // Activity-aware timeout: the old single 15s shot killed slow-but-working
+    // loads (Shaka's own retry cycle alone spans ~30s). Kill only a truly
+    // stalled load: no Shaka request/response activity for 15s, hard cap 60s.
+    // TEMP-DEBUG: extra logging removed before release.
+    // Staged UX: spinner owns the screen until load() resolves.
     initialLoadPending = true;
-    loadingTimeout = setTimeout(() => {
-      debugMsg('TIMEOUT 15s');
-      logEvent('WARN', 'Load timed out after 15s — stream may be unsupported');
-      showError('This channel is not responding. It may be turned off right now.');
-      if (player) player.destroy().catch(() => {});
-      if (videoElement) {
-        videoElement.src = '';
-        videoElement.load();
+    lastShakaActivity = Date.now();
+    const loadStart = Date.now();
+    loadingTimeout = setInterval(() => {
+      if (myToken !== loadToken) {
+        clearInterval(loadingTimeout);
+        loadingTimeout = null;
+        return;
       }
-    }, 15000);
+      const idleFor = Date.now() - lastShakaActivity;
+      if (idleFor >= 15000 || Date.now() - loadStart > 60000) {
+        clearInterval(loadingTimeout);
+        loadingTimeout = null;
+        debugMsg('TIMEOUT 15s');
+        logEvent('WARN', 'Load stalled (idle ' + Math.round(idleFor / 1000) + 's, lastREQ=' + lastShakaReq + ', lastRESP=' + lastShakaResp + ')');
+        showError('This channel is not responding. It may be turned off right now.');
+        if (player) player.destroy().catch(() => {});
+        if (videoElement) {
+          videoElement.src = '';
+          videoElement.load();
+        }
+      }
+    }, 5000);
 
     // TEMP-DEBUG: plain fetch alongside Shaka — separates TV-network stalls
     // from Shaka-side hangs (removed before release).
@@ -489,8 +513,10 @@ export async function loadChannel(channel) {
         new Promise((_, rej) => setTimeout(() => rej(new Error('plain-timeout')), 10000)),
       ]);
       debugMsg('plainfetch ' + probe.status + ' ' + (Date.now() - t0) + 'ms');
+      logEvent('WARN', 'plainfetch ' + probe.status + ' ' + (Date.now() - t0) + 'ms -> ' + String(probe.final).slice(-60));
     } catch (e) {
       debugMsg('plainfetch FAIL ' + (e && e.message ? e.message : e));
+      logEvent('WARN', 'plainfetch FAIL ' + (e && e.message ? e.message : e));
     }
     if (myToken !== loadToken) return false;
 
