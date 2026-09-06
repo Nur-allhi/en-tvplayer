@@ -4,7 +4,8 @@ import * as avplay from './avplay.js';
 
 function logEvent(level, message) {
   try {
-    fetch('/log', {
+    // TEMP-DEBUG: stream logs to the dev PC on the LAN (removed before release)
+    fetch('http://192.168.0.136:8900/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ level, message }),
