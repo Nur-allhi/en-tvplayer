@@ -78,10 +78,12 @@ export default {
       bufferingGoal: 15,
       rebufferingGoal: 5,
       bufferBehind: 30,
-      segmentPrefetchLimit: 3,
+      // BUG-021: relay servers rate-limit aggressive clients (403 storms).
+      // Fewer parallel/prefetch requests and fewer retries stay under the ban.
+      segmentPrefetchLimit: 2,
       retryParameters: {
-        maxAttempts: 8,
-        baseDelay: 500,
+        maxAttempts: 5,
+        baseDelay: 800,
         backoffFactor: 2,
         fuzzFactor: 0.5,
         timeout: 10000,

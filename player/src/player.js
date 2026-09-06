@@ -504,20 +504,9 @@ export async function loadChannel(channel) {
       }
     }, 5000);
 
-    // TEMP-DEBUG: plain fetch alongside Shaka — separates TV-network stalls
-    // from Shaka-side hangs (removed before release).
-    try {
-      const t0 = Date.now();
-      const probe = await Promise.race([
-        fetch(url).then(async (r) => ({ status: r.status, final: r.url })),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('plain-timeout')), 10000)),
-      ]);
-      debugMsg('plainfetch ' + probe.status + ' ' + (Date.now() - t0) + 'ms');
-      logEvent('WARN', 'plainfetch ' + probe.status + ' ' + (Date.now() - t0) + 'ms -> ' + String(probe.final).slice(-60));
-    } catch (e) {
-      debugMsg('plainfetch FAIL ' + (e && e.message ? e.message : e));
-      logEvent('WARN', 'plainfetch FAIL ' + (e && e.message ? e.message : e));
-    }
+    // TEMP-DEBUG: plainfetch probe REMOVED (it doubled master requests and
+    // fed the very rate-limit storms it was diagnosing). Kept activity
+    // tracking via the REQ/RESP filters above.
     if (myToken !== loadToken) return false;
 
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
@@ -722,7 +711,8 @@ function handlePlayerError(error) {
   }
 
   // 403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment: retry
-  // up to 3 times with 2s gap to get fresh ?m= tokens.
+  // up to 3 times with a 4s cool-down (BUG-021: hammering a rate-limiting
+  // relay gets the IP banned; back off instead).
   if (error.code === 1001 && currentChannel) {
     const status = error.data && error.data[1];
     if (status === 403) {
@@ -734,7 +724,7 @@ function handlePlayerError(error) {
         setTimeout(() => {
           logEvent('INFO', '403 retry ' + lastResortAttempts + '/3 — reloading channel');
           loadChannel(currentChannel);
-        }, 2000);
+        }, 4000);
         return;
       }
     }

@@ -283,6 +283,17 @@
 
 ---
 
+## BUG-021: Relay rate-limit storms — 403s, flapping loads, "nothing plays"
+
+- **Status:** fixed (pending release — needs TV verification)
+- **Severity:** high
+- **Found:** 2026-09-05 (live TV log session: `plainfetch 403`, interleaved `1002` flaps and successes on the same channel minutes apart)
+- **Location:** `player/src/config.js` (retry/prefetch), `player/src/player.js` (403 retry gap)
+- **Description:** All channels appeared dead (spinner → timeout), yet servers were healthy and the same channels loaded minutes earlier/later. Live log showed the relay intermittently rejecting the TV: `plainfetch FAIL`, then `200`, then `403` on the master itself — classic per-IP rate limiting of an aggressive client, not broken code.
+- **Fix:** De-escalate — segment prefetch 3→2, streaming retries 8→5 with slower base backoff (500→800ms), 403-retry cool-down 2s→4s. Removed the diagnostic double-fetch of masters. Kept the activity-aware load watchdog.
+
+---
+
 | Bug | Fixed | Commit |
 |-----|-------|--------|
 | BUG-008 | 2026-08-28 | fix/first-fetch-failure |
