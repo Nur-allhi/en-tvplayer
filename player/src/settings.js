@@ -16,10 +16,9 @@ let addMode = false;
 let editMode = false;
 
 const NAV_ITEMS = [
-  { id: 'source', icon: '\u{1F4E1}', label: 'Channel Source' },
-  { id: 'connection', icon: '\u{1F517}', label: 'Connection' },
-  { id: 'playback', icon: '\u25B6', label: 'Playback' },
-  { id: 'about', icon: '\u2139', label: 'About' },
+  { id: 'source', icon: '📡', label: 'Channel Source' },
+  { id: 'playback', icon: '▶', label: 'Playback' },
+  { id: 'about', icon: 'ℹ', label: 'About' },
 ];
 
 export function init(settingsContainer, callbacks) {
@@ -59,38 +58,36 @@ export function navigate(dir) {
   const cur = document.querySelector('[data-focused]');
   const curIdx = focusOrder.indexOf(cur);
   const inNavZone = curIdx >= 0 && curIdx < navCount;
-  const onBackButton = curIdx === navCount;
-  const contentStart = navCount + 1; // +1 for back button
+  const contentStart = navCount; // content follows the nav directly (no back button)
+  const hasContent = total > navCount;
+
+  const activeNavIdx = () => {
+    const tabs = Array.from(document.querySelectorAll('.nav-item'));
+    const activeTab = document.querySelector('.nav-item.active');
+    const idx = tabs.indexOf(activeTab);
+    return idx >= 0 ? idx : 0;
+  };
 
   if (dir > 0) {
-    // DOWN
+    // DOWN: next item in the same column, wrapping.
     if (inNavZone) {
-      if (curIdx === navCount - 1) {
-        focusIdx = navCount;
-      } else {
-        focusIdx = curIdx + 1;
-      }
-    } else if (onBackButton) {
-      focusIdx = contentStart;
-    } else if (curIdx >= contentStart) {
+      focusIdx = (curIdx + 1) % navCount;
+    } else if (curIdx >= contentStart && hasContent) {
       focusIdx = curIdx + 1;
       if (focusIdx >= total) focusIdx = contentStart;
     } else {
       focusIdx = Math.min(total - 1, focusIdx + 1);
     }
   } else {
-    // UP
+    // UP: previous item in the same column, wrapping.
     if (inNavZone) {
-      if (curIdx === 0) {
-        focusIdx = total - 1;
+      focusIdx = (curIdx - 1 + navCount) % navCount;
+    } else if (curIdx >= contentStart && hasContent) {
+      if (curIdx === contentStart) {
+        focusIdx = activeNavIdx(); // back to this section's tab
       } else {
         focusIdx = curIdx - 1;
       }
-    } else if (onBackButton) {
-      focusIdx = navCount - 1;
-    } else if (curIdx >= contentStart) {
-      focusIdx = curIdx - 1;
-      if (focusIdx < contentStart) focusIdx = total - 1;
     } else {
       focusIdx = Math.max(0, focusIdx - 1);
     }
@@ -107,7 +104,7 @@ export function navigateNav(dir) {
   const navCount = document.querySelectorAll('.nav-item').length;
   const curIdx = focusOrder.indexOf(cur);
   const inNavZone = curIdx >= 0 && curIdx < navCount;
-  const contentStart = navCount + 1;
+  const contentStart = navCount;
 
   const btnGroup = cur.closest('.btn-group');
   if (btnGroup) {
@@ -165,11 +162,6 @@ export function selectFocused() {
     return;
   }
 
-  if (el.id === 'btn-back') {
-    if (onClose) onClose();
-    return;
-  }
-
   if (el.classList.contains('toggle')) {
     // Trigger the click handler registered in render() — it saves the setting
     // and applies it to the player. (classList.toggle alone never persisted.)
@@ -181,10 +173,8 @@ export function selectFocused() {
     // On TV the remote layer intercepts Enter/OK and routes it here, so the
     // desktop-only keydown Enter handlers never run. Make OK inside a text
     // field act like pressing Enter on a desktop form: advance to the next
-    // field, or save from the last field (proxy URL / playlist URL).
-    if (el.id === 'settings-proxy-url') {
-      handleProxySave();
-    } else if (el.id === 'pl-add-name') {
+    // field, or save from the last field (playlist URL).
+    if (el.id === 'pl-add-name') {
       moveSettingsFocus('pl-add-url');
     } else if (el.id === 'pl-add-url') {
       saveAddPlaylist();
@@ -334,7 +324,6 @@ function saveEditPlaylist() {
 function buildFocusOrder() {
   focusOrder = [];
   document.querySelectorAll('.nav-item').forEach(el => focusOrder.push(el));
-  focusOrder.push(document.getElementById('btn-back'));
 
   if (activeSection === 'source') {
     if (addMode) {
@@ -361,9 +350,6 @@ function buildFocusOrder() {
       if (addBtn) focusOrder.push(addBtn);
       focusOrder.push(document.getElementById('settings-fetch-btn'));
     }
-  } else if (activeSection === 'connection') {
-    focusOrder.push(document.getElementById('settings-proxy-url'));
-    focusOrder.push(document.getElementById('settings-proxy-save-btn'));
   } else if (activeSection === 'playback') {
     focusOrder.push(document.getElementById('toggle-autoq'));
     focusOrder.push(document.getElementById('toggle-auto-refresh'));
@@ -406,15 +392,9 @@ function render() {
   ).join('');
 
   let mainHtml = '';
-  mainHtml += '<div class="page-title">';
-  mainHtml += '<button class="back-btn" id="btn-back">\u2039</button>';
-  mainHtml += 'Settings';
-  mainHtml += '</div>';
 
   if (activeSection === 'source') {
     mainHtml += renderSourceCard(s, lastFetched);
-  } else if (activeSection === 'connection') {
-    mainHtml += renderConnectionCard(s);
   } else if (activeSection === 'playback') {
     mainHtml += renderPlaybackCard();
   } else {
@@ -449,10 +429,6 @@ function render() {
     '</div>';
 
   buildFocusOrder();
-
-  document.getElementById('btn-back').addEventListener('click', () => {
-    if (onClose) onClose();
-  });
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -565,11 +541,6 @@ function render() {
       });
     }
     document.getElementById('settings-fetch-btn').addEventListener('click', handleFetch);
-  } else if (activeSection === 'connection') {
-    document.getElementById('settings-proxy-save-btn').addEventListener('click', handleProxySave);
-    document.getElementById('settings-proxy-url').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleProxySave();
-    });
   } else if (activeSection === 'playback') {
     document.querySelectorAll('.toggle').forEach(t => {
       t.addEventListener('click', function() {
@@ -662,27 +633,6 @@ function renderSourceCard(s, lastFetched) {
   return html;
 }
 
-function renderConnectionCard(s) {
-  let html = '';
-  html += '<div class="setting-card">';
-  html += '<div class="card-header"><h3><span class="card-icon">\u{1F517}</span> Connection</h3><span class="status-dot connected"></span></div>';
-  html += '<div class="card-body">';
-  html += '<div class="status-row">';
-  html += '<span class="status-dot connected"></span>';
-  html += '<div><div class="status-info">Proxy Server</div><div class="status-label">Configure proxy for channels that need it</div></div>';
-  html += '</div>';
-  html += '<div class="input-group">';
-  html += '<label for="settings-proxy-url">Proxy URL</label>';
-  html += '<div class="input-row">';
-  html += '<input id="settings-proxy-url" class="input-field" type="text" placeholder="http://localhost:5000/proxy/" value="' + escapeHtml(s.proxyUrl || '') + '" />';
-  html += '<button id="settings-proxy-save-btn" class="btn btn-primary">Save</button>';
-  html += '</div>';
-  html += '<div id="settings-proxy-status" class="status-info hidden" style="margin-top:8px;"></div>';
-  html += '</div>';
-  html += '</div></div>';
-  return html;
-}
-
 function renderPlaybackCard() {
   const s = getSettings();
   const autoQ = s.autoQuality !== false;
@@ -717,7 +667,7 @@ function renderAboutCard() {
   html += '<label>EN IPTV Player</label>';
   html += '<div class="hint" style="margin-top:4px;">Tizen TV App &middot; Version ' + APP_VERSION + '</div>';
   html += '<div class="hint" style="margin-top:2px;">Open-source IPTV player for Samsung Tizen TVs and desktop browsers.</div>';
-  html += '<div class="hint" style="margin-top:2px;">Powered by Shaka Player with a local CORS proxy.</div>';
+  html += '<div class="hint" style="margin-top:2px;">Powered by Shaka Player.</div>';
   html += '<div class="hint" style="margin-top:2px;">Native playback: ' + (player.isNativeAvailable() ? 'available' : 'not available') + '</div>';
   html += '</div>';
   html += '</div></div>';
@@ -750,18 +700,6 @@ async function handleFetch() {
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;
   }
-}
-
-function handleProxySave() {
-  const proxyInput = document.getElementById('settings-proxy-url');
-  const statusEl = document.getElementById('settings-proxy-status');
-  if (!proxyInput || !statusEl) return;
-  const url = proxyInput.value.trim();
-  saveSettings({ proxyUrl: url });
-  statusEl.className = 'status-info';
-  statusEl.textContent = 'Proxy URL saved';
-  statusEl.classList.remove('hidden');
-  setTimeout(() => statusEl.classList.add('hidden'), 2000);
 }
 
 function timeAgo(isoString) {

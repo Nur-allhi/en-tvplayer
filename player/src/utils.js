@@ -49,7 +49,6 @@ export function parseM3u(text) {
       const sepIdx = findNameSeparator(line);
       const name = sepIdx >= 0 ? line.slice(sepIdx + 1).trim() : 'Channel ' + (index + 1);
       const attrPart = sepIdx >= 0 ? line.slice(0, sepIdx) : line;
-      const proxyMatch = attrPart.match(/\bproxy="([^"]*)"/);
       const groupMatch = attrPart.match(/\bgroup-title="([^"]*)"/);
       const chnoMatch = attrPart.match(/\btvg-chno="([^"]*)"/) || attrPart.match(/\bchannel-number="([^"]*)"/);
       let drm = null;
@@ -101,19 +100,6 @@ export function parseM3u(text) {
         }
         const parsedChno = chnoMatch ? parseInt(chnoMatch[1], 10) : NaN;
         const ch = { name, url, channelNumber: !isNaN(parsedChno) && parsedChno > 0 ? parsedChno : index + 1, drm, userAgent, customHeaders, group: groupMatch ? groupMatch[1] : null };
-        if (proxyMatch) {
-          const pv = proxyMatch[1];
-          if (pv === 'false' || pv === 'no' || pv === '0') {
-            ch.useProxy = false;
-          } else if (pv === 'true' || pv === 'yes' || pv === '1') {
-            ch.useProxy = true;
-          } else {
-            ch.useProxy = true;
-            ch.proxyUrl = pv;
-          }
-        } else {
-          ch.useProxy = false;
-        }
         result.push(ch);
         index++;
         i = urlIdx;
@@ -132,36 +118,18 @@ function fetchWithTimeout(url, ms) {
 
 export async function fetchPlaylist(url) {
   let resp;
-  let text;
-  let contentType = '';
   try {
     resp = await fetchWithTimeout(url, 10000);
-    if (!resp.ok) throw new Error('Server returned error ' + resp.status);
-    contentType = resp.headers.get('content-type') || '';
-    text = await resp.text();
   } catch (e) {
-    // Direct fetch failed — try relay endpoint as fallback
-    try {
-      const relayUrl = '/api/fetch?url=' + encodeURIComponent(url);
-      const relayResp = await fetchWithTimeout(relayUrl, 10000);
-      if (!relayResp.ok) throw new Error('Relay server returned error ' + relayResp.status);
-      contentType = relayResp.headers.get('content-type') || '';
-      text = await relayResp.text();
-    } catch (relayErr) {
-      // Both direct and relay failed — throw a meaningful combined error
-      throw new Error('Could not load playlist. Please check the URL and your internet connection.');
-    }
+    throw new Error('Could not load playlist. Please check the URL and your internet connection.');
   }
+  if (!resp.ok) throw new Error('Server returned error ' + resp.status);
+  const contentType = resp.headers.get('content-type') || '';
+  const text = await resp.text();
   if (contentType.includes('json') || text.trim().startsWith('[') || text.trim().startsWith('{')) {
     const data = JSON.parse(text);
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.channels)) {
-      const topProxy = data.proxyUrl;
-      if (topProxy) {
-        for (const ch of data.channels) {
-          if (ch.useProxy === true && !ch.proxyUrl) ch.proxyUrl = topProxy;
-        }
-      }
       return data.channels;
     }
     throw new Error('The playlist file has an unexpected format.');

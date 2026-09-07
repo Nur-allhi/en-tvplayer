@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, getProxyOverrides, getActivePlaylist, APP_VERSION } from './config.js';
+import { getSettings, saveSettings, getActivePlaylist, APP_VERSION } from './config.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
 import * as remote from './remote.js';
@@ -29,11 +29,18 @@ function getDisplayChannels() {
   return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
 }
 
-const BOOT_TAGLINE = 'Smart IPTV Player for Samsung Tizen';
+const BOOT_TITLE = 'EN IPTV';
+const BOOT_TAGLINE = 'Smart IPTV Player for Samsung TV';
+const BOOT_TITLE_DELAY = 500;
+const BOOT_TITLE_CHAR = 90;
+const BOOT_TAGLINE_GAP = 200;
+const BOOT_TAGLINE_CHAR = 40;
 let bootTypewriterTimer = null;
 let bootShownAt = 0;
+let bootTypewriterEnd = 0;
 const BOOT_MIN_MS = 1500; // logo stays at least this long on every launch
 const BOOT_ZOOM_MS = 700; // fly-into-the-logo exit
+const BOOT_IDLE_HOLD_MS = 1500; // extra hold after tagline when no playlist fetch runs
 
 function showBootSplash(statusText) {
   const el = document.getElementById('boot-splash');
@@ -45,19 +52,31 @@ function showBootSplash(statusText) {
   if (statusEl && statusText) statusEl.textContent = statusText;
   if (verEl) verEl.textContent = 'v' + APP_VERSION;
   // Reset animation state
+  const titleEl = document.getElementById('boot-logo-text');
+  if (titleEl) { titleEl.textContent = ''; titleEl.classList.add('typing'); }
   if (typeEl) { typeEl.textContent = ''; typeEl.classList.remove('done'); }
   if (loadingEl) { loadingEl.style.animation = 'none'; loadingEl.offsetHeight; loadingEl.style.animation = ''; }
   const logo = document.getElementById('boot-logo');
   if (logo) logo.classList.remove('zoom-in');
   el.classList.remove('hidden', 'fade-out', 'zooming');
   bootShownAt = Date.now();
-  // Start typewriter after logo animation
+  // Stage 1: icon is already visible — type the title, then the tagline.
   clearTimeout(bootTypewriterTimer);
-  startTypewriter(typeEl, BOOT_TAGLINE, 40, 800);
+  bootTypewriterEnd = bootShownAt + BOOT_TITLE_DELAY
+    + BOOT_TITLE.length * BOOT_TITLE_CHAR
+    + BOOT_TAGLINE_GAP + BOOT_TAGLINE.length * BOOT_TAGLINE_CHAR;
+  startTypewriter(titleEl, BOOT_TITLE, BOOT_TITLE_CHAR, BOOT_TITLE_DELAY, () => {
+    // Colorize "IPTV" once typing finishes, drop the caret.
+    if (titleEl) {
+      titleEl.innerHTML = 'EN <span>IPTV</span>';
+      titleEl.classList.remove('typing');
+    }
+    startTypewriter(typeEl, BOOT_TAGLINE, BOOT_TAGLINE_CHAR, BOOT_TAGLINE_GAP);
+  });
 }
 
-function startTypewriter(el, text, charDelay, startDelay) {
-  if (!el) return;
+function startTypewriter(el, text, charDelay, startDelay, onDone) {
+  if (!el) { if (onDone) onDone(); return; }
   let i = 0;
   bootTypewriterTimer = setTimeout(function tick() {
     if (i < text.length) {
@@ -66,17 +85,22 @@ function startTypewriter(el, text, charDelay, startDelay) {
       bootTypewriterTimer = setTimeout(tick, charDelay);
     } else {
       el.classList.add('done');
+      if (onDone) onDone();
     }
   }, startDelay);
 }
 
-function hideBootSplash() {
-  clearTimeout(bootTypewriterTimer);
+function hideBootSplash(holdAfterTypeMs = 0) {
   const el = document.getElementById('boot-splash');
   if (!el || el.classList.contains('hidden')) return;
-  // Hold the logo for a beat, then fly into it before fading the overlay.
-  const wait = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
+  // Hold the logo for a beat AND until the tagline finishes typing
+  // (plus an optional extra hold for the idle/no-fetch path),
+  // then fly into it before fading the overlay.
+  const waitMin = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
+  const waitType = Math.max(0, bootTypewriterEnd - Date.now()) + holdAfterTypeMs;
+  const wait = Math.max(waitMin, waitType);
   setTimeout(() => {
+    clearTimeout(bootTypewriterTimer);
     el.classList.add('zooming');
     const logo = document.getElementById('boot-logo');
     if (logo) logo.classList.add('zoom-in');
@@ -210,8 +234,8 @@ function showWhatsNew() {
   document.addEventListener('keydown', onKey);
 }
 
-function hideBootSplashAndMaybeWhatsNew() {
-  hideBootSplash();
+function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0) {
+  hideBootSplash(holdAfterTypeMs);
   if (checkWhatsNew()) {
     setTimeout(showWhatsNew, 600);
   }
@@ -270,7 +294,6 @@ async function init() {
       showBootSplash('Downloading playlist...');
       try {
         const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
-        applyProxyOverrides(newChannels);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
@@ -283,17 +306,16 @@ async function init() {
     }
   } else if (s.channels && s.channels.length > 0) {
     // Auto-refresh OFF: load from localStorage only, no network fetch —
-    // still flash the logo intro so every launch feels the same.
+    // hold the splash 1.5s past the tagline so it doesn't flash by.
     channels = s.channels;
     startPlayer();
     showBootSplash('Loading...');
-    hideBootSplashAndMaybeWhatsNew();
+    hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS);
   } else if (activePlaylist && activePlaylist.url) {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
     try {
       const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
-      applyProxyOverrides(newChannels);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
@@ -342,7 +364,6 @@ function startPlayer() {
   settings.init(document.getElementById('settings-page'), {
     onPlaylistFetched: (newChannels) => {
       sortChannels(newChannels);
-      applyProxyOverrides(newChannels);
       channels = newChannels;
       ui.refreshChannelList(channels);
       settings.hide();
@@ -395,13 +416,6 @@ function startPlayer() {
     });
   }
 
-  let toggleProxyBtn = document.getElementById('toggle-proxy-btn');
-  if (toggleProxyBtn) {
-    addCleanupListener(toggleProxyBtn, 'click', () => {
-      ui.toggleCurrentChannelProxy();
-    });
-  }
-
   let settingsBtn = document.getElementById('settings-btn');
   if (settingsBtn) {
     addCleanupListener(settingsBtn, 'click', () => {
@@ -410,7 +424,11 @@ function startPlayer() {
   }
 
   let videoEl = document.getElementById('video');
-  addCleanupListener(videoEl, 'playing', () => { hideProgress(); ui.hideBuffering(); });
+  addCleanupListener(videoEl, 'playing', () => {
+    videoEl.style.visibility = '';
+    hideProgress();
+    ui.hideBuffering();
+  });
   addCleanupListener(videoEl, 'click', () => player.togglePlay());
 
   addCleanupListener(videoEl, 'play', () => {
@@ -449,14 +467,6 @@ function startPlayer() {
   player.onChannelAdvance(() => {
     const next = (currentIndex + 1) % channels.length;
     ui.selectChannel(next);
-  });
-
-  player.onProxySuggestion(() => {
-    ui.showProxyToast();
-  });
-
-  ui.setProxyToggleCallback(() => {
-    player.reloadChannel();
   });
 
   if (channels.length === 0) {
@@ -507,7 +517,6 @@ function showFirstLaunch() {
     onPlaylistFetched: (newChannels) => {
       try {
         sortChannels(newChannels);
-        applyProxyOverrides(newChannels);
         channels = newChannels;
         settings.hide();
         showPlayer();
@@ -538,6 +547,8 @@ function showPlayer() {
   const nowPlaying = document.getElementById('now-playing');
   if (playerContainer) playerContainer.classList.remove('hidden');
   if (nowPlaying) nowPlaying.classList.remove('hidden');
+  const videoEl = document.getElementById('video');
+  if (videoEl) videoEl.style.visibility = '';
   ui.showSidebarWithContent();
 }
 
@@ -566,9 +577,23 @@ function showSettingsPage() {
 }
 
 async function handleChannelSelect(channel) {
-  ui.hideProxyToast();
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
+  // Drop the video plane at once: on Tizen it renders above the web layer,
+  // so without this the old/black frame covers the loading veil.
+  const tuneVideo = document.getElementById('video');
+  if (tuneVideo) tuneVideo.style.visibility = 'hidden';
+  // Let the veil paint before the teardown/load below blocks the main thread.
+  // On TV the first paint can otherwise only happen after load resolves,
+  // so users see black instead of the spinner + name.
+  await new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    try {
+      requestAnimationFrame(() => setTimeout(finish, 30));
+    } catch { finish(); }
+    setTimeout(finish, 350); // safety: never stall tuning
+  });
   currentIndex = channels.indexOf(channel);
   const ok = await player.loadChannel(channel);
   if (!ok) {
@@ -649,7 +674,6 @@ async function refreshChannelsInBackground() {
   if (!active || !active.url) return;
   try {
     const newChannels = await fetchFromPlaylistUrl(active.url);
-    applyProxyOverrides(newChannels);
     saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
     sortChannels(newChannels);
     channels = newChannels;
@@ -850,7 +874,6 @@ function handleRemoteAction(action, value) {
       const prevChannel = displayChannels[prev];
       currentIndex = channels.indexOf(prevChannel);
       ui.selectChannel(currentIndex, true);
-      ui.showChannelPreview(prevChannel, 'up');
       break;
     }
     case 'down':
@@ -863,7 +886,6 @@ function handleRemoteAction(action, value) {
       const nextChannel = displayChannels[next];
       currentIndex = channels.indexOf(nextChannel);
       ui.selectChannel(currentIndex, true);
-      ui.showChannelPreview(nextChannel, 'down');
       break;
     }
     case 'left':
@@ -906,7 +928,7 @@ function handleRemoteAction(action, value) {
       }
       break;
     case 'yellow':
-      ui.toggleCurrentChannelProxy();
+      // Reserved for future use
       break;
     case 'blue':
       showSettingsPage();
@@ -934,24 +956,11 @@ function sortChannels(ch) {
   });
 }
 
-function applyProxyOverrides(channels) {
-  const overrides = getProxyOverrides();
-  for (const ch of channels) {
-    if (ch.url in overrides) {
-      ch.useProxy = overrides[ch.url];
-      if (ch.useProxy && !ch.proxyUrl) {
-        ch.proxyUrl = window.location.origin + '/proxy/';
-      }
-    }
-  }
-}
-
 export async function refreshChannels() {
   const active = getActivePlaylist();
   if (active && active.url) {
     try {
       const newChannels = await fetchFromPlaylistUrl(active.url);
-      applyProxyOverrides(newChannels);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       sortChannels(newChannels);
       channels = newChannels;

@@ -17,12 +17,10 @@
     <div id="sidebar" class="sidebar closed">
       <div class="sidebar-header">
         <span class="logo">
-          <svg class="logo-icon" viewBox="0 0 24 24" width="28" height="28" fill="none">
-            <rect x="2" y="4" width="20" height="16" rx="2" stroke="#ED421F" stroke-width="1.8"/>
-            <polygon points="10,8 10,16 17,12" fill="#ED421F"/>
-          </svg>
-          IPTV
+          <img src="/logo.svg" class="logo-icon" width="28" height="28" alt="EN IPTV logo">
+          <span class="logo-text">EN <span>IPTV</span></span>
         </span>
+        <span id="sidebar-title" class="sidebar-title">Groups</span>
       </div>
       <div id="channel-list" class="channel-list"></div>
       <div id="group-list" class="group-list hidden"></div>
@@ -39,8 +37,6 @@
 
         <!-- Channel OSD (brief overlay when switching channels) -->
         <div id="channel-osd" class="channel-osd hidden"></div>
-        <!-- Channel preview toast (before switching) -->
-        <div id="channel-preview" class="channel-preview hidden"></div>
 
         <!-- Video Player -->
         <div id="player-container" class="player-container">
@@ -48,15 +44,11 @@
           <video id="video" autoplay></video>
           <div id="loading" class="loading hidden">
             <div class="spinner"></div>
-            <span>Loading...</span>
+            <span id="loading-name" class="loading-name">Loading</span>
           </div>
           <div id="resolution-badge" class="resolution-badge hidden">Auto</div>
           <div id="error" class="error hidden"></div>
 
-          <!-- Channel name toast (above the buffering pill, full name) -->
-          <div id="channel-toast" class="channel-toast hidden">
-            <span id="channel-toast-name">Loading</span>
-          </div>
           <!-- Buffering pill -->
           <div id="buffering-indicator" class="buffering-indicator hidden">
             <div class="spinner small"></div>
@@ -72,11 +64,6 @@
           <div id="progress-toast" class="progress-toast hidden">
             <div class="progress-spinner"></div>
             <span id="progress-text">Loading</span>
-          </div>
-
-          <!-- Proxy suggestion toast -->
-          <div id="proxy-toast" class="proxy-toast hidden">
-            <span id="proxy-toast-text">Stream not loading — try enabling Proxy in the right menu</span>
           </div>
         </div>
 
@@ -100,7 +87,6 @@
           <div class="section-label">Actions</div>
           <button id="refresh-stream-btn" class="right-sidebar-btn" type="button">&#8635; Reload Stream</button>
           <button id="refresh-channels-btn" class="right-sidebar-btn" type="button">&#8634; Refresh Channels</button>
-          <button id="toggle-proxy-btn" class="right-sidebar-btn" type="button">Proxy: OFF</button>
           <button id="settings-btn" class="right-sidebar-btn" type="button">&#9881; Settings</button>
         </div>
       </div>
@@ -109,20 +95,15 @@
       <div id="boot-splash" class="boot-splash hidden">
         <div class="boot-splash-content">
           <div class="boot-logo" id="boot-logo">
-            <svg class="boot-logo-icon" id="boot-logo-icon" viewBox="0 0 24 24" width="56" height="56" fill="none">
-              <rect x="2" y="4" width="20" height="16" rx="2" stroke="#ED421F" stroke-width="1.8"/>
-              <polygon points="10,8 10,16 17,12" fill="#ED421F"/>
-            </svg>
-            <div class="boot-text-group">
-              <span class="boot-logo-text" id="boot-logo-text">EN <span>IPTV</span></span>
-              <span id="boot-version" class="boot-version"></span>
-              <span id="boot-typewriter" class="boot-typewriter"></span>
-            </div>
+            <img src="/logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="56" height="56" alt="EN IPTV logo">
+            <span class="boot-logo-text typing" id="boot-logo-text"></span>
           </div>
+          <span id="boot-typewriter" class="boot-typewriter"></span>
           <div class="boot-loading" id="boot-loading">
             <div class="boot-spinner"></div>
             <span id="boot-status" class="boot-status">Updating playlist...</span>
           </div>
+          <span id="boot-version" class="boot-version"></span>
         </div>
       </div>
 

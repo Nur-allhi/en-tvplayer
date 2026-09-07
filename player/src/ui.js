@@ -1,4 +1,3 @@
-import { setProxyOverride } from './config.js';
 import { escapeHtml } from './utils.js';
 
 let channels = [];
@@ -10,7 +9,6 @@ const VIRTUAL_SIZE = 30;
 let sidebarOpen = false;
 let isFullscreen = false;
 let onChannelSelect = null;
-let onProxyToggle = null;
 
 /* Right sidebar state */
 let rightSidebarOpen = false;
@@ -42,6 +40,7 @@ export function init(channelList, callback) {
     selectedGroup = null;
     renderChannelList();
   }
+  updateSidebarTitle();
   updateFocus();
 
   // In fullscreen, reveal the sidebar when the mouse enters the left edge
@@ -130,6 +129,20 @@ export function getCurrentIndex() {
   return currentIndex;
 }
 
+export function updateSidebarTitle() {
+  const el = document.getElementById('sidebar-title');
+  if (!el) return;
+  if (sidebarMode === 'groups') {
+    el.textContent = 'Groups';
+  } else if (selectedGroup === 'all') {
+    el.textContent = 'All Channels';
+  } else if (selectedGroup) {
+    el.textContent = selectedGroup;
+  } else {
+    el.textContent = 'Channels';
+  }
+}
+
 export function renderGroupList() {
   const container = document.getElementById('group-list');
   if (!container) return;
@@ -155,7 +168,7 @@ export function updateGroupFocus() {
     item.classList.toggle('focused', idx === groupFocusedIndex);
   });
   if (items[groupFocusedIndex]) {
-    items[groupFocusedIndex].scrollIntoView({ block: 'nearest' });
+    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 }
 
@@ -185,6 +198,7 @@ export function showGroupChannels(groupName) {
   if (groupList) groupList.classList.add('hidden');
   if (channelList) channelList.classList.remove('hidden');
   renderChannelList();
+  updateSidebarTitle();
   updateFocus();
 }
 
@@ -195,6 +209,7 @@ export function showGroupList() {
   if (channelList) channelList.classList.add('hidden');
   if (groupList) groupList.classList.remove('hidden');
   renderGroupList();
+  updateSidebarTitle();
 }
 
 export function renderChannelList() {
@@ -230,8 +245,7 @@ export function renderChannelList() {
 
     item.innerHTML =
       '<span class="channel-number">' + (displayIndex + 1) + '</span>' +
-      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(channel.name) + '</span></span>' +
-      (channel.useProxy ? '<span class="channel-proxy">Use Proxied</span>' : '');
+      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(channel.name) + '</span></span>';
 
     item.addEventListener('click', () => {
       selectChannel(originalIndex);
@@ -275,7 +289,6 @@ export function selectChannel(index, skipFullscreen) {
     const ext = channels[index].url.split('.').pop().split('?')[0];
     infoEl.textContent = ext.toUpperCase();
   }
-  updateProxyButtonText();
 }
 
 export function navigateUp() {
@@ -350,6 +363,7 @@ export function toggleSidebar() {
       focusedIndex = currentIndex >= 0 ? currentIndex : 0;
       renderChannelList();
     }
+    updateSidebarTitle();
   }
   applySidebar();
 }
@@ -516,7 +530,6 @@ export function toggleRightSidebar() {
   rightSidebarOpen = !rightSidebarOpen;
   applyRightSidebar();
   if (rightSidebarOpen) {
-    updateProxyButtonText();
     buildRightItems();
     rightFocus = 0;
     updateRightFocus();
@@ -526,30 +539,6 @@ export function toggleRightSidebar() {
 
 export function isRightSidebarOpen() {
   return rightSidebarOpen;
-}
-
-export function setProxyToggleCallback(cb) {
-  onProxyToggle = cb;
-}
-
-export function toggleCurrentChannelProxy() {
-  const ch = getCurrentChannel();
-  if (!ch) return;
-  ch.useProxy = !ch.useProxy;
-  if (ch.useProxy && !ch.proxyUrl) {
-    ch.proxyUrl = window.location.origin + '/proxy/';
-  }
-  setProxyOverride(ch.url, ch.useProxy);
-  renderChannelList();
-  updateProxyButtonText();
-  if (onProxyToggle) onProxyToggle(ch);
-}
-
-export function updateProxyButtonText() {
-  const btn = document.getElementById('toggle-proxy-btn');
-  if (!btn) return;
-  const ch = getCurrentChannel();
-  btn.textContent = ch && ch.useProxy ? 'Proxy: ON' : 'Proxy: OFF';
 }
 
 export function setResolutionCallback(cb) {
@@ -601,7 +590,7 @@ function buildRightItems() {
     });
   }
   // Button IDs
-  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'toggle-proxy-btn', 'settings-btn'];
+  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'settings-btn'];
   btnIds.forEach((id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -659,45 +648,13 @@ function updateRightFocus() {
     }
   });
   if (rightItems[rightFocus] && rightItems[rightFocus].element) {
-    rightItems[rightFocus].element.scrollIntoView({ block: 'nearest' });
+    rightItems[rightFocus].element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 }
 
 /* Channel OSD */
 let osdTimer = null;
 
-let previewTimer = null;
-
-export function showChannelPreview(channel, direction) {
-  if (!channel) return;
-  const el = document.getElementById('channel-preview');
-  if (!el) return;
-  clearTimeout(previewTimer);
-  el.classList.remove('fade');
-  el.classList.remove('hidden');
-  const dir = direction === 'up' ? '↑' : '↓';
-  el.innerHTML = '<span class="preview-direction">' + dir + '</span>'
-    + '<span class="preview-number">' + (channel.channelNumber || '') + '</span>'
-    + '<span class="preview-name">' + escapeHtml(channel.name) + '</span>';
-  // Auto-hide after 0.5s
-  previewTimer = setTimeout(() => {
-    el.classList.add('fade');
-    setTimeout(() => {
-      el.classList.add('hidden');
-    }, 300);
-  }, 500);
-}
-
-export function hideChannelPreview() {
-  clearTimeout(previewTimer);
-  const el = document.getElementById('channel-preview');
-  if (el) {
-    el.classList.add('fade');
-    setTimeout(() => {
-      el.classList.add('hidden');
-    }, 300);
-  }
-}
 export function showChannelOsd(channel) {
   if (!channel) return;
   const el = document.getElementById('channel-osd');
@@ -747,6 +704,7 @@ export function refreshChannelList(newChannels) {
     const channelList = document.getElementById('channel-list');
     if (channelList) channelList.classList.remove('hidden');
     renderChannelList();
+    updateSidebarTitle();
   }
   updateFocus();
   updateActiveChannel();
@@ -820,7 +778,7 @@ function updateFocus() {
 function scrollToFocused() {
   const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
   if (el) {
-    el.scrollIntoView({ block: 'nearest' });
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 }
 
@@ -836,23 +794,23 @@ const BUFFERING_HINTS = [
 
 export function setBufferingChannel(name) {
   bufferingChannelName = name || '';
-  const nameEl = document.getElementById('channel-toast-name');
+  const nameEl = document.getElementById('loading-name');
   if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
 }
 
-// Phase 1 of channel select: name toast immediately, buffering pill only
-// after load() resolves (shown by showBuffering).
+// Phase 1 of channel select: full veil with spinner + centered name, so the
+// user never sees a blank screen. The name stays put through buffering.
 export function showChannelToast() {
-  const nameToast = document.getElementById('channel-toast');
-  if (nameToast) nameToast.classList.remove('hidden');
+  const veil = document.getElementById('loading');
+  if (veil) veil.classList.remove('hidden');
+  const spinner = veil ? veil.querySelector('.spinner') : null;
+  if (spinner) spinner.classList.remove('hidden');
 }
 
 export function showBuffering(percent) {
   const el = document.getElementById('buffering-indicator');
-  const nameToast = document.getElementById('channel-toast');
   if (!el) return;
   el.classList.remove('hidden');
-  if (nameToast) nameToast.classList.remove('hidden');
   setBufferingPercent(percent);
   bufferingStart = Date.now();
   updateBufferingHint();
@@ -881,8 +839,8 @@ export function updateBuffering(percent) {
 export function hideBuffering() {
   const el = document.getElementById('buffering-indicator');
   if (el) el.classList.add('hidden');
-  const nameToast = document.getElementById('channel-toast');
-  if (nameToast) nameToast.classList.add('hidden');
+  const veil = document.getElementById('loading');
+  if (veil) veil.classList.add('hidden');
   clearInterval(bufferingHintTimer);
   bufferingHintTimer = null;
   const hint = document.getElementById('buffering-hint');
@@ -892,17 +850,6 @@ export function hideBuffering() {
 function setBufferingPercent(percent) {
   const p = document.getElementById('buffering-percent');
   if (p) p.textContent = (typeof percent === 'number' ? percent : 0) + '%';
-}
-
-/* Proxy suggestion toast */
-export function showProxyToast() {
-  const el = document.getElementById('proxy-toast');
-  if (el) el.classList.remove('hidden');
-}
-
-export function hideProxyToast() {
-  const el = document.getElementById('proxy-toast');
-  if (el) el.classList.add('hidden');
 }
 
 /* Update badge on the Settings menu button (gentle, non-blocking) */

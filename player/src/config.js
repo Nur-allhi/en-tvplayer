@@ -1,12 +1,10 @@
 const SETTINGS_KEY = 'en_settings';
-const PROXY_OVERRIDES_KEY = 'en_proxy_overrides';
 
 export const APP_VERSION = __APP_VERSION__;
 
 const settingsDefaults = {
   playlists: [],
   activePlaylistIndex: -1,
-  proxyUrl: 'http://localhost:5000/proxy/',
   channels: [],
   channelsFetched: null,
   autoQuality: true,
@@ -51,28 +49,7 @@ export function saveSettings(partial) {
   return merged;
 }
 
-export function getProxyOverrides() {
-  try {
-    const raw = localStorage.getItem(PROXY_OVERRIDES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function setProxyOverride(url, enabled) {
-  const overrides = getProxyOverrides();
-  overrides[url] = enabled;
-  try {
-    localStorage.setItem(PROXY_OVERRIDES_KEY, JSON.stringify(overrides));
-  } catch (e) {
-    console.warn('Failed to save proxy override:', e);
-  }
-  return overrides;
-}
-
 export default {
-  useProxy: true,
   player: {
     streaming: {
       bufferingGoal: 15,

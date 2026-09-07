@@ -2,13 +2,12 @@ import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
 import * as avplay from './avplay.js';
 
+// App event log (console only; the dev log endpoint was removed with the proxy).
 function logEvent(level, message) {
   try {
-    fetch('/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level, message }),
-    }).catch(() => {});
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug('[app][' + level + ']', message);
+    }
   } catch (e) {}
 }
 
@@ -17,7 +16,6 @@ let videoElement = null;
 let bufferingCallback = null;
 let trackCallback = null;
 let channelAdvanceCallback = null;
-let proxySuggestionCallback = null;
 let isBuffering = false;
 let currentChannel = null;
 let loadToken = 0;
@@ -115,7 +113,6 @@ export async function initPlayer(videoEl) {
       } catch {}
     });
     networkingEngine.registerRequestFilter((type, request) => {
-      const url = request.uris && request.uris[0];
       if (currentChannel) {
         if (currentChannel.userAgent) {
           request.headers['User-Agent'] = currentChannel.userAgent;
@@ -130,10 +127,6 @@ export async function initPlayer(videoEl) {
           }
         }
       }
-      if (!currentChannel || currentChannel.useProxy !== true) {
-        return;
-      }
-      request.uris[0] = rewriteUrlThroughProxy(currentChannel, url);
     });
   }
 
@@ -227,14 +220,14 @@ function onVideoError() {
     1: 'Video playback was aborted',
     2: 'A network error occurred while loading the video',
     3: 'The video could not be decoded — unsupported codec or corrupt stream',
-    4: 'Video source not supported on this device — try a different quality or proxy',
+    4: 'Video source not supported on this device — try a different quality',
   };
   const msg = mediaErrorMessages[err.code] || ('Video error (code ' + err.code + ')');
   logEvent('ERROR', 'Video element error: ' + msg + ' (code=' + err.code + ', mediaErr=' + (err.message || '') + ')');
   if (videoErrorCount >= 2 && currentChannel) {
     // 2+ native errors in a row — this stream format is likely unsupported
     logEvent('ERROR', 'Channel appears unsupported on this device: ' + (currentChannel.name || currentChannel.url.slice(0, 60)));
-    showError('This channel could not play. Try turning on Proxy in the menu, or pick a different channel.');
+    showError('This channel could not play. Pick a different channel.');
     videoErrorCount = 0;
   }
 }
@@ -268,10 +261,6 @@ export function onTrackChange(callback) {
 
 export function onChannelAdvance(callback) {
   channelAdvanceCallback = callback;
-}
-
-export function onProxySuggestion(callback) {
-  proxySuggestionCallback = callback;
 }
 
 export function getActiveTrack() {
@@ -308,21 +297,6 @@ function isNativeLoadCrash(error) {
   return /Cannot read propert/.test(msg) && /reading /.test(msg);
 }
 
-// Routes a stream URL through the channel's proxy the same way Shaka's
-// request filter does, so probing and playback hit the same endpoint.
-function rewriteUrlThroughProxy(channel, url) {
-  if (!channel || channel.useProxy !== true) return url;
-  const rawProxy = channel.proxyUrl;
-  if (!rawProxy) return url;
-  let proxyUrl = rawProxy;
-  if (window.location.protocol === 'https:' && proxyUrl.startsWith('http://')) {
-    proxyUrl = window.location.origin + '/proxy/';
-  }
-  if (!url || !url.startsWith('http')) return url;
-  if (url.startsWith(proxyUrl)) return url;
-  return proxyUrl.replace(/\/+$/, '') + '/' + url;
-}
-
 // BUG-014: Shaka reports error 4000 when it cannot guess a stream's format
 // from the URL (no extension) or the server's Content-Type. Probe the first
 // bytes of the stream ourselves and return the format Shaka should use.
@@ -330,7 +304,7 @@ function rewriteUrlThroughProxy(channel, url) {
 async function probeChannelFormat(channel) {
   if (!channel) return null;
   try {
-    let targetUrl = rewriteUrlThroughProxy(channel, channel.url);
+    const targetUrl = channel.url;
     if (!targetUrl) return null;
 
     const controller = new AbortController();
@@ -406,8 +380,13 @@ export async function loadChannel(channel) {
   if (!channel) return false;
 
   if (channel.drm && !isEmeSupported()) {
-    logEvent('ERROR', 'DRM not available — EME (Encrypted Media Extensions) is not supported in this browser/context');
-    showError('This channel is protected and cannot play here. Try a different channel.');
+    // EME is secure-context-gated: localhost works, http://<lan-ip> does not.
+    const insecure = typeof window !== 'undefined' && window.isSecureContext === false;
+    logEvent('ERROR', 'DRM not available — EME is not supported in this browser/context' +
+      (insecure ? ' (insecure context — open the player via http://localhost:5173, not a LAN IP)' : ''));
+    showError(insecure
+      ? 'Protected channels need a secure page. Open via localhost instead of LAN IP.'
+      : 'This channel is protected and cannot play here. Try a different channel.');
     return false;
   }
 
@@ -496,7 +475,7 @@ export async function loadChannel(channel) {
     }, 5000);
 
     // Note: do not add a side fetch of the master here — it doubles requests
-    // and feeds relay rate-limit storms.
+    // and feeds server rate-limit storms.
     if (myToken !== loadToken) return false;
 
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
@@ -568,7 +547,7 @@ export async function loadChannel(channel) {
         if (tokenAtCatch !== loadToken) return; // user switched channels meanwhile
         if (!mime) {
           logEvent('WARN', 'Could not identify channel format: ' + crashedChannel.url.slice(0, 100));
-          showError('This channel could not be identified. Try enabling Proxy in the menu, or try a different channel.');
+          showError('This channel could not be identified. Try a different channel.');
           return;
         }
         sniffedMimeUrls.set(crashedChannel.url, mime);
@@ -600,10 +579,6 @@ export async function loadChannel(channel) {
       }
     }
 
-    if (currentChannel && currentChannel.useProxy === false && proxySuggestionCallback) {
-      proxySuggestionCallback(currentChannel);
-    }
-
     if (isNativeLoadCrash(error) && currentChannel && !pdtFallbackUrls.has(currentChannel.url)) {
       // Retry once with HLS program-date-time sync disabled (BUG-013): some
       // HLS streams crash inside Shaka's PDT handling, which v1.7.0 enabled.
@@ -622,7 +597,7 @@ export async function loadChannel(channel) {
           (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
           ' — ' + (error.message || ''));
       if (typeof console !== 'undefined') console.error('Channel load crashed inside Shaka:', error, error.stack);
-      showError('This channel could not start — it uses a stream format this player could not handle. Try another channel or enable Proxy.');
+      showError('This channel could not start — it uses a stream format this player could not handle. Try another channel.');
       return false;
     }
 
@@ -663,6 +638,24 @@ async function destroyPlayer(keepElement) {
   }
 }
 
+function isTransientBlip(error) {
+  if (!error || typeof error.code !== 'number') return false;
+  if (error.code === 1002 || error.code === 1003) return true;
+  if (error.code === 1001) {
+    const status = error.data && error.data[1];
+    if (!status) return true;
+    return status >= 500 || status === 429 || status === 408;
+  }
+  return false;
+}
+
+function isRenderingFrames() {
+  try {
+    return !!videoElement && !videoElement.paused && !videoElement.ended &&
+      videoElement.readyState >= 3 && videoElement.currentTime > 0;
+  } catch { return false; }
+}
+
 function handlePlayerError(error) {
   if (!error) return;
 
@@ -673,6 +666,16 @@ function handlePlayerError(error) {
 
   // Suppress errors while auto-advance is pending
   if (advancePending) return;
+
+  // Transient upstream blip (5xx/429/408, HTTP_ERROR, TIMEOUT) while frames
+  // are actually rendering: Shaka retries the failed update internally, so
+  // tearing down the player here turns every hiccup into a visible restart
+  // loop. Reset the slate and let playback continue; a genuine outage stalls
+  // the video and the stall watchdog handles that path.
+  if (isTransientBlip(error) && isRenderingFrames()) {
+    consecutiveErrors = 0;
+    return;
+  }
 
   consecutiveErrors++;
 
@@ -692,14 +695,14 @@ function handlePlayerError(error) {
         (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
         ' — ' + (error.message || ''));
     if (typeof console !== 'undefined') console.error('Shaka runtime crash:', error, error.stack);
-    showError('This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel or enable Proxy.');
+    showError('This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel.');
     return;
   }
 
   // 401/403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment:
   // retry up to 3 times with a 4s cool-down (BUG-021: hammering a
-  // rate-limiting relay gets the IP banned; back off instead). BUG-021
-  // follow-up: tokenized relays also answer 401 mid-playback when the token
+  // rate-limiting server gets the IP banned; back off instead). BUG-021
+  // follow-up: tokenized servers also answer 401 mid-playback when the token
   // dies — same fresh-token recovery, not a terminal login error.
   if (error.code === 1001 && currentChannel) {
     const status = error.data && error.data[1];
@@ -907,9 +910,7 @@ function stopBlackWatchdog() {
 }
 
 function avplayStreamUrl(channel) {
-  let url = channel.url;
-  if (channel.useProxy === true) url = rewriteUrlThroughProxy(channel, url);
-  return url;
+  return channel.url;
 }
 
 async function loadViaAvplay(channel, myToken) {
@@ -1079,11 +1080,19 @@ export function getVideoElement() {
   return videoElement;
 }
 
+// Loading veil (spinner + channel name, centered): showLoading(false) drops
+// only the spinner — the name stays put through the buffering phase until
+// the first frame (hideLoading) or an error clears the stage.
 function showLoading(show) {
   const el = document.getElementById('loading');
-  if (el) {
-    el.classList.toggle('hidden', !show);
-  }
+  if (el) el.classList.toggle('hidden', !show);
+  const spinner = el ? el.querySelector('.spinner') : null;
+  if (spinner) spinner.classList.toggle('hidden', !show);
+}
+
+function hideLoading() {
+  const el = document.getElementById('loading');
+  if (el) el.classList.add('hidden');
 }
 
 function showPlayState(paused) {
@@ -1094,6 +1103,7 @@ function showPlayState(paused) {
 }
 
 function showError(message) {
+  hideLoading();
   const el = document.getElementById('error');
   if (el) {
     el.textContent = message;
@@ -1139,7 +1149,7 @@ function getErrorMessage(error) {
     3002: 'This channel could not play on your TV.',
     3003: 'This channel could not play on your TV.',
     3018: 'The live stream broke up. Trying again — if it persists, try another channel.',
-    4000: 'This channel could not be identified. Try enabling Proxy in the menu, or try a different channel.',
+    4000: 'This channel could not be identified. Try a different channel.',
     4032: 'This channel stopped playing in a format your TV accepts. Trying again — if it persists, try another channel.',
   };
 
