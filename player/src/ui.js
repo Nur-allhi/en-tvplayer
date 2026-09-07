@@ -253,8 +253,33 @@ export function renderChannelList() {
 
     container.appendChild(item);
   }
+  // Windowed rendering would reset the scroll to the top on every rebuild.
+  // Spacers stand in for the off-screen rows so the list keeps its full
+  // height, then the scroll is restored exactly — window shifts are invisible.
+  const stride = channelRowStride(container);
+  if (stride > 0) {
+    const top = document.createElement('div');
+    top.style.height = (virtualStart * stride) + 'px';
+    container.prepend(top);
+    const bottom = document.createElement('div');
+    bottom.style.height = (Math.max(0, total - virtualEnd) * stride) + 'px';
+    container.appendChild(bottom);
+    const target = virtualStart * stride +
+      ((focusedIndex - virtualStart) * stride) - ((container.clientHeight - stride) / 2);
+    container.scrollTop = Math.max(0, target);
+  }
   container.dataset.virtualStart = virtualStart;
   container.dataset.virtualEnd = virtualEnd;
+  updateActiveChannel();
+}
+
+// Uniform row pitch (row + its vertical margins), measured live so scaling
+// and fonts can't drift the virtual scroll math.
+function channelRowStride(container) {
+  const row = container ? container.querySelector('.channel-item') : null;
+  if (!row || !row.offsetHeight) return 0;
+  const cs = getComputedStyle(row);
+  return row.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
 }
 
 export function selectChannel(index, skipFullscreen) {

@@ -163,19 +163,20 @@ html, body {
   display: flex;
   align-items: center;
   padding: calc(18px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   cursor: pointer;
-  border-bottom: 1px solid #1a1a1a;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .channel-item:hover,
 .channel-item.focused {
   background: #242424;
-  box-shadow: inset 4px 0 0 #ED421F, 0 0 12px rgba(237, 66, 31, 0.35);
+  box-shadow: inset 4px 0 0 #ED421F;
 }
 
 .channel-item.focused {
-  box-shadow: inset 4px 0 0 #ED421F, 0 0 12px rgba(237, 66, 31, 0.35), inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
+  box-shadow: inset 4px 0 0 #ED421F, inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
 }
 
 .channel-item.focused .channel-name {
@@ -190,8 +191,13 @@ html, body {
 }
 
 .channel-item.active {
-  background: rgba(237, 66, 31, 0.15);
+  background: rgba(237, 66, 31, 0.22);
   box-shadow: inset 4px 0 0 #ED421F;
+}
+
+.channel-item.active .channel-name {
+  color: #fff;
+  font-weight: 700;
 }
 
 .channel-item.active .channel-number {
@@ -199,7 +205,7 @@ html, body {
 }
 
 .channel-item.active.focused {
-  box-shadow: inset 4px 0 0 #ED421F, 0 0 14px rgba(237, 66, 31, 0.5);
+  box-shadow: inset 4px 0 0 #ED421F, inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
 }
 
 .channel-number {
@@ -236,17 +242,18 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: calc(18px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   cursor: pointer;
-  border-bottom: 1px solid #1a1a1a;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 .group-item:hover,
 .group-item.focused {
   background: #242424;
-  box-shadow: inset 4px 0 0 #ED421F, 0 0 12px rgba(237, 66, 31, 0.35);
+  box-shadow: inset 4px 0 0 #ED421F;
 }
 .group-item.focused {
-  box-shadow: inset 4px 0 0 #ED421F, 0 0 12px rgba(237, 66, 31, 0.35), inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
+  box-shadow: inset 4px 0 0 #ED421F, inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
 }
 .group-item.focused .group-name { color: #fff; font-weight: 600; }
 .group-item.active { background: rgba(237, 66, 31, 0.15); box-shadow: inset 4px 0 0 #ED421F; }
@@ -300,11 +307,44 @@ html, body {
   pointer-events: none;
 }
 
+/* Small always-on watermark, top-left over the picture */
+.player-watermark {
+  position: absolute;
+  top: calc(16px * var(--tv-scale));
+  left: calc(20px * var(--tv-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--tv-scale));
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.watermark-icon {
+  width: calc(22px * var(--tv-scale));
+  height: calc(22px * var(--tv-scale));
+  border-radius: calc(5px * var(--tv-scale));
+}
+
+.watermark-text {
+  font-size: calc(18px * var(--tv-scale));
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.watermark-text span {
+  color: #ED421F;
+}
+
 #video {
   width: 100%;
   height: 100%;
   background: #000;
   outline: none;
+  position: relative;
+  z-index: 1;
 }
 
 /* Native AVPlay surface (hidden unless a stream needs native playback) */
@@ -501,9 +541,10 @@ html, body {
 
 .resolution-item-right {
   padding: calc(14px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   font-size: calc(20px * var(--tv-scale));
   cursor: pointer;
-  border-bottom: 1px solid #1a1a1a;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -524,14 +565,15 @@ html, body {
 
 .right-sidebar-btn {
   display: block;
-  width: 100%;
+  width: calc(100% - calc(24px * var(--tv-scale)));
   padding: calc(16px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   font-size: calc(20px * var(--tv-scale));
   text-align: left;
   background: none;
   color: #c9d1d9;
   border: none;
-  border-bottom: 1px solid #1a1a1a;
   cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
@@ -885,20 +927,14 @@ html, body {
 .nav-logo > * + * { margin-left: 12px; }
 
 .nav-logo .icon {
-  width: 35px;
-  height: 35px;
-  background: #ED421F;
-  border-radius: calc(6px * var(--tv-scale));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(13px * var(--tv-scale));
-  font-weight: 700;
-  color: #fff;
+  width: calc(48px * var(--tv-scale));
+  height: calc(48px * var(--tv-scale));
+  border-radius: calc(8px * var(--tv-scale));
+  flex-shrink: 0;
 }
 
 .nav-logo .text {
-  font-size: calc(21px * var(--tv-scale));
+  font-size: calc(28px * var(--tv-scale));
   font-weight: 590;
   letter-spacing: -0.01em;
 }
@@ -922,13 +958,16 @@ html, body {
   display: flex;
   align-items: center;
   padding: calc(15px * var(--tv-scale)) calc(29px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   font-size: calc(21px * var(--tv-scale));
   font-weight: 450;
   color: #8b949e;
   cursor: pointer;
   transition: all 0.15s;
   border-left: 4px solid transparent;
-  min-height: calc(54px * var(--tv-scale));
+  height: calc(60px * var(--tv-scale));
+  overflow: hidden;
 }
 .nav-item > * + * { margin-left: 13px; }
 
@@ -1164,14 +1203,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 0;
-  border-bottom: 1px solid #1a1a1a;
+  padding: calc(15px * var(--tv-scale)) calc(19px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
 }
 .toggle-row > * + * { margin-left: 15px; }
-
-.toggle-row:last-child {
-  border-bottom: none;
-}
 
 .toggle-row .toggle-label {
   font-size: calc(19px * var(--tv-scale));
@@ -1183,6 +1219,14 @@ html, body {
   font-size: calc(15px * var(--tv-scale));
   color: #555;
   margin-top: 2px;
+}
+
+.toggle-row .toggle-value {
+  font-size: calc(19px * var(--tv-scale));
+  font-weight: 600;
+  color: #8b949e;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .toggle {
@@ -1233,7 +1277,7 @@ html, body {
   color: #c9d1d9;
   background: #0d1117;
   border: calc(2px * var(--tv-scale)) solid #333;
-  border-radius: calc(8px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   cursor: pointer;
   text-align: center;
   transition: all 0.15s;
@@ -1336,9 +1380,10 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: calc(16px * var(--tv-scale)) calc(20px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
   background: #0d1117;
   border: calc(2px * var(--tv-scale)) solid #333;
-  border-radius: calc(8px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
   max-width: 100%;
   box-sizing: border-box;
 }

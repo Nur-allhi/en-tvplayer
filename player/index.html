@@ -17,8 +17,7 @@
     <div id="sidebar" class="sidebar closed">
       <div class="sidebar-header">
         <span class="logo">
-          <img src="/logo.svg" class="logo-icon" width="28" height="28" alt="EN IPTV logo">
-          <span class="logo-text">EN <span>IPTV</span></span>
+          <img src="logo.svg" class="logo-icon" width="28" height="28" alt="EN IPTV logo">
         </span>
         <span id="sidebar-title" class="sidebar-title">Groups</span>
       </div>
@@ -42,6 +41,10 @@
         <div id="player-container" class="player-container">
           <object id="avplayer" type="application/avplayer" class="avplayer hidden"></object>
           <video id="video" autoplay></video>
+          <div id="player-watermark" class="player-watermark">
+            <img src="logo.svg" class="watermark-icon" width="22" height="22" alt="">
+            <span class="watermark-text">EN <span>IPTV</span></span>
+          </div>
           <div id="loading" class="loading hidden">
             <div class="spinner"></div>
             <span id="loading-name" class="loading-name">Loading</span>
@@ -95,7 +98,7 @@
       <div id="boot-splash" class="boot-splash hidden">
         <div class="boot-splash-content">
           <div class="boot-logo" id="boot-logo">
-            <img src="/logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="56" height="56" alt="EN IPTV logo">
+            <img src="logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="56" height="56" alt="EN IPTV logo">
             <span class="boot-logo-text typing" id="boot-logo-text"></span>
           </div>
           <span id="boot-typewriter" class="boot-typewriter"></span>

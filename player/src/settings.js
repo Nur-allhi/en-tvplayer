@@ -412,7 +412,7 @@ function render() {
       '<nav class="settings-nav">' +
         '<div class="nav-header">' +
           '<div class="nav-logo">' +
-            '<div class="icon">EN</div>' +
+            '<img class="icon" src="logo.svg" alt="EN IPTV logo">' +
             '<div class="text">EN <span>IPTV</span></div>' +
           '</div>' +
           '<div class="nav-sub">Settings</div>' +
@@ -663,13 +663,10 @@ function renderAboutCard() {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
   html += '<div class="card-body">';
-  html += '<div class="input-group">';
-  html += '<label>EN IPTV Player</label>';
-  html += '<div class="hint" style="margin-top:4px;">Tizen TV App &middot; Version ' + APP_VERSION + '</div>';
-  html += '<div class="hint" style="margin-top:2px;">Open-source IPTV player for Samsung Tizen TVs and desktop browsers.</div>';
-  html += '<div class="hint" style="margin-top:2px;">Powered by Shaka Player.</div>';
-  html += '<div class="hint" style="margin-top:2px;">Native playback: ' + (player.isNativeAvailable() ? 'available' : 'not available') + '</div>';
-  html += '</div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' + APP_VERSION + '</div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' + (player.isNativeAvailable() ? 'Available' : 'Not available') + '</div></div>';
   html += '</div></div>';
   return html;
 }
