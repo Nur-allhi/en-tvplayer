@@ -4,8 +4,7 @@ import * as avplay from './avplay.js';
 
 function logEvent(level, message) {
   try {
-    // TEMP-DEBUG: stream logs to the dev PC on the LAN (removed before release)
-    fetch('http://192.168.0.136:8900/log', {
+    fetch('/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ level, message }),
@@ -94,29 +93,25 @@ export async function initPlayer(videoEl) {
   shaka.polyfill.installAll();
 
   if (!shaka.Player.isBrowserSupported()) {
-    debugMsg('BROWSER NOT SUPPORTED');
     console.error('Shaka Player not supported in this browser');
     return false;
   }
-  debugMsg('shaka ' + (shaka.Player.version || '?') + ' online=' + (typeof navigator !== 'undefined' ? navigator.onLine : '?'));
 
   player = new shaka.Player();
 
   const networkingEngine = player.getNetworkingEngine();
   if (networkingEngine) {
-    // TEMP-DEBUG: trace which request stage hangs (removed before release).
+    // Track Shaka request activity for the load watchdog below.
     networkingEngine.registerRequestFilter((type, request) => {
       try {
         lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?');
         lastShakaActivity = Date.now();
-        debugMsg('REQ ' + lastShakaReq);
       } catch {}
     });
     networkingEngine.registerResponseFilter((type, response) => {
       try {
         lastShakaResp = 't' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?');
         lastShakaActivity = Date.now();
-        debugMsg('RESP ' + lastShakaResp);
       } catch {}
     });
     networkingEngine.registerRequestFilter((type, request) => {
@@ -421,7 +416,6 @@ export async function loadChannel(channel) {
   useAvplay = false;
   avplay.stop();
   stopBlackWatchdog();
-  debugMsg('load #' + myToken + ' ' + (channel.name || '?').slice(0, 24));
 
   clearTimeout(reconnectTimer);
   clearTimeout(loadingTimeout);
@@ -453,7 +447,6 @@ export async function loadChannel(channel) {
 
     if (el) {
       const ok = await initPlayer(el);
-      debugMsg('init ' + (ok ? 'ok' : 'NOT SUPPORTED'));
       if (!ok) return false;
     }
     if (videoElement) videoElement.classList.remove('hidden');
@@ -478,7 +471,6 @@ export async function loadChannel(channel) {
     // Activity-aware timeout: the old single 15s shot killed slow-but-working
     // loads (Shaka's own retry cycle alone spans ~30s). Kill only a truly
     // stalled load: no Shaka request/response activity for 15s, hard cap 60s.
-    // TEMP-DEBUG: extra logging removed before release.
     // Staged UX: spinner owns the screen until load() resolves.
     initialLoadPending = true;
     lastShakaActivity = Date.now();
@@ -493,7 +485,6 @@ export async function loadChannel(channel) {
       if (idleFor >= 15000 || Date.now() - loadStart > 60000) {
         clearInterval(loadingTimeout);
         loadingTimeout = null;
-        debugMsg('TIMEOUT 15s');
         logEvent('WARN', 'Load stalled (idle ' + Math.round(idleFor / 1000) + 's, lastREQ=' + lastShakaReq + ', lastRESP=' + lastShakaResp + ')');
         showError('This channel is not responding. It may be turned off right now.');
         if (player) player.destroy().catch(() => {});
@@ -504,9 +495,8 @@ export async function loadChannel(channel) {
       }
     }, 5000);
 
-    // TEMP-DEBUG: plainfetch probe REMOVED (it doubled master requests and
-    // fed the very rate-limit storms it was diagnosing). Kept activity
-    // tracking via the REQ/RESP filters above.
+    // Note: do not add a side fetch of the master here — it doubles requests
+    // and feeds relay rate-limit storms.
     if (myToken !== loadToken) return false;
 
     // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
@@ -529,7 +519,6 @@ export async function loadChannel(channel) {
     // Load done — first frame is up. Hand buffering state to the pill UI.
     initialLoadPending = false;
     showLoading(false);
-    debugMsg('load ok');
     if (isBuffering && bufferingCallback) bufferingCallback(true, getBufferingPercent());
     reconnectAttempts = 0;
     consecutiveErrors = 0;
@@ -546,7 +535,6 @@ export async function loadChannel(channel) {
     initialLoadPending = false;
     showLoading(false);
     videoErrorCount = 0;
-    debugMsg('load err ' + (error && error.code != null ? error.code : (error && error.message) || '?'));
 
     if (error && error.code === 7000) return false;
 
@@ -654,14 +642,12 @@ async function destroyPlayer(keepElement) {
   reconnectPending = false;
   if (player) {
     try {
-      // TEMP-DEBUG: destroy() hanging forever == eternal spinner. Force on.
+      // destroy() hanging forever == eternal spinner, so force on after 5s.
       await Promise.race([
         player.destroy(),
         new Promise((_, rej) => setTimeout(() => rej(new Error('destroy-timeout')), 5000)),
       ]);
-      debugMsg('destroy ok');
     } catch (e) {
-      debugMsg('destroy FORCED: ' + (e && e.message ? e.message : e));
       logEvent('WARN', 'Player destroy hung — continuing anyway');
     }
     player = null;
@@ -1040,22 +1026,6 @@ export function togglePlay() {
   } else {
     videoElement.pause();
   }
-}
-
-// TEMP-DEBUG: on-screen load trace (removed before release). Shows the last
-// few lifecycle events so a stuck load can be located from the couch.
-const debugLines = [];
-export function debugMsg(m) {
-  try {
-    const t = new Date().toISOString().slice(14, 23);
-    debugLines.push(t + ' ' + m);
-    while (debugLines.length > 8) debugLines.shift();
-    const el = document.getElementById('debug-toast');
-    if (el) {
-      el.textContent = debugLines.join('\n');
-      el.classList.remove('hidden');
-    }
-  } catch {}
 }
 
 export function isNativeAvailable() {
