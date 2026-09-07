@@ -2,6 +2,21 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [1.10.1] - 2026-09-07
+
+### Fixed
+- BUG-018: Fresh install with no playlist — backing out of Settings landed on a dead page. The player shell now initializes with zero channels and a "No channels" empty state, so sidebars and Settings stay reachable.
+- BUG-019: Resolution badge lied (froze on the optimistic first pick). It now follows live ABR switches; Auto mode opens low for a fast first frame and climbs correctly (inverted upgrade/downgrade targets fixed).
+- BUG-020: Interlaced (576i/1080i) channels played black with no error. Zero-frame watchdog migrates those to native AVPlay with the same proxy/headers.
+- BUG-021: Relay rate-limit storms (403/401, "nothing plays"). Polite retries with cool-downs, fresh-token recovery for mid-playback 401, auto-advance on dead links, activity-aware load timeout.
+
+### Changed
+- Channel loading is staged: spinner, then first frame, then buffering percent — one indicator at a time.
+- Buffering shows a stacked channel-name toast plus an enlarged pill with time-aware hints.
+- Boot intro: logo holds, then flies toward the viewer before revealing the player.
+
+---
+
 ## [1.10.0] - 2026-09-05
 
 ### Added

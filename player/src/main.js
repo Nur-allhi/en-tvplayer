@@ -95,6 +95,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '1.10.1',
+    sections: [
+      { type: 'fixed', items: ['Empty fresh install no longer strands you on a dead page', 'Resolution badge always shows the true quality', 'Interlaced channels play via native fallback', 'Flaky relays recover instead of dying (fresh-token retries)'] },
+      { type: 'changed', items: ['Staged loading: spinner, first frame, then buffering', 'Channel + buffering toasts with wait hints', 'Boot logo flies toward you on launch'] },
+    ],
+  },
+  {
     version: '1.10.0',
     sections: [
       { type: 'added', items: ['Optional update checker — opt in once, get notified of new versions', 'Contact and download stats refreshed'] },
