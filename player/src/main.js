@@ -277,6 +277,10 @@ async function init() {
 
   registerTizenKeys();
 
+  // Update checker (from feature/update-check): opt-in prompt + background
+  // version check. Was defined but never invoked — wire it at boot.
+  scheduleUpdateCheck();
+
   document.addEventListener('tizenhwkey', (e) => {
     if (e.keyName === 'back') {
       e.preventDefault();
