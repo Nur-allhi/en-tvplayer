@@ -634,12 +634,20 @@ function formatBandwidth(bps) {
   return ' \u2022 ' + mbps + ' Mbps';
 }
 
+function channelTypeTag(channel) {
+  if (!channel || !channel.url) return '';
+  const ext = channel.url.split('?')[0].split('.').pop().trim().toUpperCase();
+  if (!ext || ext.length > 5 || ext.includes('/')) return '';
+  return ' \u2022 ' + ext;
+}
+
 function updateResolutionBadge(height, bandwidth) {
   const el = document.getElementById('resolution-badge');
   if (!el) return;
   const label = getResolutionLabel(height);
   const bw = bandwidth || player.getActiveBandwidth();
-  el.textContent = label + formatBandwidth(bw);
+  const type = channelTypeTag(channels[currentIndex]);
+  el.textContent = label + formatBandwidth(bw) + type;
   el.classList.remove('hidden');
 }
 

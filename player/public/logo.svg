@@ -20,27 +20,30 @@
   <rect x="1.5" y="1.5" width="509" height="509" rx="94.5" ry="94.5" fill="none" stroke="#E6E8EC" stroke-width="3"/>
 
   <!-- TV monitor outline — deeper accent for AA contrast on light -->
-  <rect x="104" y="120" width="304" height="212" rx="28" ry="28" fill="none" stroke="#C8351A" stroke-width="14" stroke-linejoin="round"/>
+  <rect x="104" y="108" width="304" height="212" rx="28" ry="28" fill="none" stroke="#C8351A" stroke-width="14" stroke-linejoin="round"/>
 
   <!-- TV screen fill — soft accent tint -->
-  <rect x="125" y="141" width="262" height="170" rx="16" ry="16" fill="rgba(237,66,31,0.07)"/>
+  <rect x="125" y="129" width="262" height="170" rx="16" ry="16" fill="rgba(237,66,31,0.07)"/>
 
   <!-- TV stand -->
-  <path d="M208 332 L256 396 L304 332" fill="none" stroke="#C8351A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M208 320 L256 384 L304 320" fill="none" stroke="#C8351A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- TV base -->
-  <rect x="216" y="390" width="80" height="8" rx="4" ry="4" fill="#C8351A"/>
+  <rect x="216" y="378" width="80" height="8" rx="4" ry="4" fill="#C8351A"/>
 
   <!-- Play button triangle inside screen -->
-  <polygon points="238,188 310,226 238,264" fill="#ED421F"/>
+  <polygon points="238,176 310,214 238,252" fill="#ED421F"/>
 
   <!-- Signal bars top-left -->
-  <rect x="136" y="140" width="6" height="24" rx="2" fill="#ED421F" opacity="0.30"/>
-  <rect x="148" y="140" width="6" height="18" rx="2" fill="#ED421F" opacity="0.45"/>
-  <rect x="160" y="140" width="6" height="12" rx="2" fill="#ED421F" opacity="0.22"/>
+  <rect x="136" y="128" width="6" height="24" rx="2" fill="#ED421F" opacity="0.30"/>
+  <rect x="148" y="128" width="6" height="18" rx="2" fill="#ED421F" opacity="0.45"/>
+  <rect x="160" y="128" width="6" height="12" rx="2" fill="#ED421F" opacity="0.22"/>
 
   <!-- Live dot top-right of screen -->
-  <circle cx="355" cy="152" r="6" fill="#ED421F">
+  <circle cx="355" cy="140" r="6" fill="#ED421F">
     <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
   </circle>
+
+  <!-- App name under the mark -->
+  <text x="256" y="448" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="4"><tspan fill="#141A23">EN </tspan><tspan fill="#ED421F">IPTV</tspan></text>
 </svg>

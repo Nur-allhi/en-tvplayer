@@ -105,11 +105,12 @@ html, body {
 .sidebar-header {
   display: flex;
   align-items: center;
-  gap: calc(14px * var(--tv-scale));
   padding: calc(20px * var(--tv-scale)) calc(28px * var(--tv-scale));
   background: #1a1a1a;
   border-bottom: 1px solid #222;
 }
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.sidebar-header > * + * { margin-left: calc(14px * var(--tv-scale)); }
 
 .sidebar-title {
   flex: 1;
@@ -307,17 +308,26 @@ html, body {
   pointer-events: none;
 }
 
-/* Small always-on watermark, top-left over the picture */
+/* Small watermark, top-left over the picture. Parked off-screen left while
+   the sidebar is open; slides in once the sidebar hides. */
 .player-watermark {
   position: absolute;
   top: calc(16px * var(--tv-scale));
   left: calc(20px * var(--tv-scale));
   display: flex;
   align-items: center;
-  gap: calc(8px * var(--tv-scale));
-  opacity: 0.3;
+  opacity: 0;
+  transform: translateX(-150%);
+  transition: transform 0.35s ease, opacity 0.35s ease;
   pointer-events: none;
   z-index: 5;
+}
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.player-watermark > * + * { margin-left: calc(8px * var(--tv-scale)); }
+
+.player-watermark.docked {
+  transform: translateX(0);
+  opacity: 0.3;
 }
 
 .watermark-icon {
@@ -745,11 +755,12 @@ html, body {
 .boot-logo {
   display: flex;
   align-items: center;
-  gap: calc(16px * var(--tv-scale));
   opacity: 0;
   animation: bootLogoIn 0.6s ease-out forwards;
   animation-delay: 0.2s;
 }
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.boot-logo > * + * { margin-left: calc(16px * var(--tv-scale)); }
 
 @keyframes bootLogoIn {
   0% { opacity: 0; transform: scale(0.6); }
@@ -845,12 +856,13 @@ html, body {
 .boot-loading {
   display: flex;
   align-items: center;
-  gap: calc(12px * var(--tv-scale));
   margin-top: calc(32px * var(--tv-scale));
   opacity: 0;
   animation: bootLoadingIn 0.4s ease-out forwards;
   animation-delay: 2.9s;
 }
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.boot-loading > * + * { margin-left: calc(12px * var(--tv-scale)); }
 
 @keyframes bootLoadingIn {
   0% { opacity: 0; transform: translateY(8px); }
@@ -1587,12 +1599,13 @@ html, body {
 .wn-item {
   display: flex;
   align-items: flex-start;
-  gap: calc(10px * var(--tv-scale));
   padding: calc(6px * var(--tv-scale)) 0;
   font-size: calc(17px * var(--tv-scale));
   color: #c9d1d9;
   line-height: 1.45;
 }
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.wn-item > * + * { margin-left: calc(10px * var(--tv-scale)); }
 
 .wn-icon {
   flex-shrink: 0;

@@ -533,6 +533,10 @@ function applySidebar() {
   if (sidebar) {
     sidebar.classList.toggle('closed', !sidebarOpen);
   }
+  const watermark = document.getElementById('player-watermark');
+  if (watermark) {
+    watermark.classList.toggle('docked', !sidebarOpen);
+  }
 }
 
 /* Right sidebar */
