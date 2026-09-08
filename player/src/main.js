@@ -119,6 +119,14 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '2.0.0',
+    sections: [
+      { type: 'added', items: ['Slide-in watermark once the sidebar hides', 'Stream type in the quality badge (e.g. M3U8, MPD)', 'Rounded rows and white focus rings everywhere'] },
+      { type: 'changed', items: ['New tune sequence: spinner + name, then bottom status pill', 'Deep lists scroll without jumping', 'Streamlined Settings, staged splash'] },
+      { type: 'fixed', items: ['Playing row stays marked on reopen', 'Upstream blips no longer restart playback'] },
+    ],
+  },
+  {
     version: '1.10.1',
     sections: [
       { type: 'fixed', items: ['Empty fresh install no longer strands you on a dead page', 'Resolution badge always shows the true quality', 'Interlaced channels play via native fallback', 'Flaky relays recover instead of dying (fresh-token retries)'] },

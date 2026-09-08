@@ -2,6 +2,31 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [2.0.0] - 2026-09-08
+
+### Added
+- Slide-in player watermark (logo + EN IPTV) that docks once the sidebar hides.
+- Stream type in the resolution badge (e.g. FHD • 6.2 Mbps • M3U8).
+- Brand watermark backdrop — no blank screen on tune, errors, or empty states.
+
+### Changed
+- Tune sequence reworked: loading veil with spinner + centered channel name, name holds through buffering, status and errors share the bottom pill.
+- Unified rounded card rows, white radius-following focus rings, and smooth focus scrolling across channel list, right menu, and Settings.
+- Settings streamlined: Connection section removed, page title removed, About restructured into rows.
+- Splash staged: icon, typed EN IPTV title, tagline, spinner; holds past the tagline when idle.
+
+### Removed
+- Proxy system removed (app, Settings, dev server) — the TV plays streams direct.
+
+### Fixed
+- Playing row stays marked across sidebar reopen, group changes, and refresh.
+- Deep channel lists no longer jump to top (virtual scroll spacers).
+- Transient upstream blips no longer restart healthy playback.
+- Missing proxy destination no longer bypasses silently (legacy, pre-removal).
+- Tizen fixes: flex-gap spacing, paint-before-teardown veil, video-plane layering, LAN-IP DRM guidance.
+
+---
+
 ## [1.10.1] - 2026-09-07
 
 ### Fixed
