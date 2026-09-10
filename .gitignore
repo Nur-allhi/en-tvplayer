@@ -33,3 +33,6 @@ Thumbs.db
 
 # Agent files (personal, not for repo)
 .session_log.md
+
+# Playwright MCP scratch files
+.playwright-mcp/

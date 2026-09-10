@@ -2,6 +2,17 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [2.1.0] - 2026-09-10
+
+### Added
+- Kodi-style `#KODIPROP:inputstream.adaptive.stream_headers` support — per-channel custom headers (User-Agent, Referer, Authorization, X-*) sent with every stream request.
+- Multi-key ClearKey DRM via `#KODIPROP:inputstream.adaptive.license_key` dict (`{KID:KEY}` unquoted and `{"KID":"KEY"}` JSON); single `KID:KEY` still works.
+
+### Fixed
+- Update checker never ran (defined but never invoked at boot) — now asks once and checks in background when opted in.
+
+---
+
 ## [2.0.0] - 2026-09-08
 
 ### Added

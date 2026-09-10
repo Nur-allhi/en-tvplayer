@@ -119,6 +119,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '2.1.0',
+    sections: [
+      { type: 'added', items: ['Custom stream headers via #KODIPROP (User-Agent, Referer, Authorization)', 'Multi-key DRM decryption for protected channels'] },
+      { type: 'fixed', items: ['Update checker now actually runs — opt in once, get notified of new versions'] },
+    ],
+  },
+  {
     version: '2.0.0',
     sections: [
       { type: 'added', items: ['Slide-in watermark once the sidebar hides', 'Stream type in the quality badge (e.g. M3U8, MPD)', 'Rounded rows and white focus rings everywhere'] },
