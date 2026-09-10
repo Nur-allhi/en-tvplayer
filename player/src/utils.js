@@ -39,6 +39,85 @@ function findNameSeparator(line) {
   return -1;
 }
 
+// T-033: parse Kodi `stream_headers` value (`Key=Val&...`, values may be
+// URL-encoded). Returns { headers, userAgent }.
+export function parseStreamHeaders(raw) {
+  const headers = {};
+  let userAgent = null;
+  if (!raw) return { headers, userAgent };
+  for (const part of String(raw).split('&')) {
+    if (!part) continue;
+    const eqIdx = part.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = part.slice(0, eqIdx).trim();
+    let value = part.slice(eqIdx + 1).trim();
+    if (!key) continue;
+    try {
+      value = decodeURIComponent(value.replace(/\+/g, ' '));
+    } catch {}
+    headers[key] = value;
+    if (key.toLowerCase() === 'user-agent' && !userAgent) userAgent = value;
+  }
+  return { headers, userAgent };
+}
+
+function normalizeHex(s) {
+  return String(s || '').replace(/-/g, '').toLowerCase();
+}
+
+function isHex(s) {
+  return /^[a-f0-9]+$/.test(s) && s.length >= 16;
+}
+
+// T-034: parse Kodi `license_key` ClearKey value. Supports single `KID:KEY`,
+// unquoted dict `{KID1:KEY1,KID2:KEY2}` and JSON dict `{"KID1":"KEY1",...}`.
+// Returns { keyId, key, clearKeys } or null.
+export function parseLicenseKeyValue(raw) {
+  if (!raw) return null;
+  const value = String(raw).trim();
+  if (!value || value.startsWith('http')) return null; // license-server URL form — out of scope
+  if (value.startsWith('{')) {
+    let obj = null;
+    try {
+      obj = JSON.parse(value);
+    } catch {
+      obj = null;
+      const inner = value.replace(/^\{/, '').replace(/\}$/, '');
+      obj = {};
+      for (const pair of inner.split(',')) {
+        if (!pair.trim()) continue;
+        const colonIdx = pair.indexOf(':');
+        if (colonIdx === -1) continue;
+        const k = pair.slice(0, colonIdx).trim().replace(/^"|"$/g, '');
+        const v = pair.slice(colonIdx + 1).trim().replace(/^"|"$/g, '');
+        if (k && v) obj[k] = v;
+      }
+    }
+    if (obj && typeof obj === 'object') {
+      const clearKeys = {};
+      for (const [k, v] of Object.entries(obj)) {
+        const kid = normalizeHex(k.trim().replace(/^"|"$/g, ''));
+        const key = normalizeHex(String(v).trim().replace(/^"|"$/g, ''));
+        if (isHex(kid) && isHex(key)) clearKeys[kid] = key;
+      }
+      const kids = Object.keys(clearKeys);
+      if (kids.length > 0) {
+        return { keyId: kids[0], key: clearKeys[kids[0]], clearKeys };
+      }
+    }
+    return null;
+  }
+  const single = value.match(/([a-fA-F0-9-]{16,}):([a-fA-F0-9-]{16,})/);
+  if (single) {
+    const kid = normalizeHex(single[1]);
+    const key = normalizeHex(single[2]);
+    if (isHex(kid) && isHex(key)) {
+      return { keyId: kid, key, clearKeys: { [kid]: key } };
+    }
+  }
+  return null;
+}
+
 export function parseM3u(text) {
   const lines = text.split('\n');
   const result = [];
@@ -58,11 +137,18 @@ export function parseM3u(text) {
       while (urlIdx < lines.length) {
         const next = lines[urlIdx].trim();
         if (next.startsWith('#KODIPROP:')) {
-          if (next.includes('license_key=')) {
-            const keyMatch = next.match(/license_key=([a-fA-F0-9]+):([a-fA-F0-9]+)/);
-            if (keyMatch) {
-              drm = { keyId: keyMatch[1], key: keyMatch[2] };
+          const lower = next.toLowerCase();
+          if (lower.includes('stream_headers=')) {
+            const raw = next.slice(next.indexOf('stream_headers=') + 'stream_headers='.length);
+            const { headers, userAgent: ua } = parseStreamHeaders(raw);
+            if (Object.keys(headers).length > 0) {
+              customHeaders = { ...(customHeaders || {}), ...headers };
             }
+            if (ua && !userAgent) userAgent = ua;
+          } else if (lower.includes('license_key=')) {
+            const raw = next.slice(next.indexOf('license_key=') + 'license_key='.length);
+            const parsed = parseLicenseKeyValue(raw);
+            if (parsed) drm = parsed;
           }
           urlIdx++;
         } else if (next.startsWith('#EXTSYS')) {
@@ -91,8 +177,11 @@ export function parseM3u(text) {
       const rawUrl = lines[urlIdx] ? lines[urlIdx].trim() : '';
       if (rawUrl && !rawUrl.startsWith('#')) {
         if (!drm) {
-          const urlDrm = rawUrl.match(/[?&]drmLicense=([a-fA-F0-9]+):([a-fA-F0-9]+)/);
-          if (urlDrm) drm = { keyId: urlDrm[1].toLowerCase(), key: urlDrm[2].toLowerCase() };
+          const urlDrm = rawUrl.match(/[?&]drmLicense=([a-fA-F0-9-]+):([a-fA-F0-9-]+)/);
+          if (urlDrm) {
+            const parsed = parseLicenseKeyValue(urlDrm[1] + ':' + urlDrm[2]);
+            if (parsed) drm = parsed;
+          }
         }
         const { url, extraHeaders } = processStreamUrl(rawUrl);
         if (extraHeaders) {

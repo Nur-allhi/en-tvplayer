@@ -118,12 +118,14 @@ export async function initPlayer(videoEl) {
           request.headers['User-Agent'] = currentChannel.userAgent;
         }
         if (currentChannel.customHeaders) {
+          // T-033: forward ALL per-channel headers (KODIPROP stream_headers,
+          // EXTHTTP, pipe suffix) to the Shaka engine, not just UA/Referer.
           for (const [k, v] of Object.entries(currentChannel.customHeaders)) {
             const lower = k.toLowerCase();
-            if (['user-agent', 'referer', 'origin'].includes(lower)) {
-              const canon = lower === 'user-agent' ? 'User-Agent' : lower === 'referer' ? 'Referer' : 'Origin';
-              request.headers[canon] = v;
-            }
+            if (lower === 'user-agent') request.headers['User-Agent'] = v;
+            else if (lower === 'referer') request.headers['Referer'] = v;
+            else if (lower === 'origin') request.headers['Origin'] = v;
+            else request.headers[k] = v;
           }
         }
       }
@@ -433,13 +435,10 @@ export async function loadChannel(channel) {
     if (myToken !== loadToken) return false;
 
     if (channel.drm) {
-      player.configure({
-        drm: {
-          clearKeys: {
-            [channel.drm.keyId]: channel.drm.key,
-          },
-        },
-      });
+      // T-034: prefer the multi-key map; fall back to the legacy single pair.
+      const clearKeys = channel.drm.clearKeys ||
+        (channel.drm.keyId ? { [channel.drm.keyId]: channel.drm.key } : {});
+      player.configure({ drm: { clearKeys } });
     } else {
       player.configure({ drm: { clearKeys: {} } });
     }

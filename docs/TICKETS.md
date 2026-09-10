@@ -111,4 +111,20 @@
 
 ---
 
+## Milestone v2.1.0 — "Kodi Compat"
+
+### T-033: Custom stream headers via #KODIPROP
+- **Skills:** `senior-frontend`
+- **Spec:** Parse `#KODIPROP:inputstream.adaptive.stream_headers=Key=Val&...` in `parseM3u()` (`player/src/utils.js`). URL-decode values, merge into `customHeaders` (plus `userAgent` for `User-Agent=`). Forward ALL headers in Shaka request filter (`player/src/player.js`), not just UA/Referer/Origin.
+- **Acceptance:** Example playlist with `User-Agent=Mozilla/5.0&Referer=https://example.com` + `Authorization=Bearer x` lands on `channel.customHeaders` and is sent on Shaka manifest/segment requests; existing `#EXTHTTP`/`#EXTVLCOPT`/pipe headers keep working.
+- **LOC:** ≤ 60
+
+### T-034: Multi-key ClearKey DRM via #KODIPROP
+- **Skills:** `senior-frontend`
+- **Spec:** Parse `#KODIPROP:inputstream.adaptive.license_key=` dict forms `{KID1:KEY1,KID2:KEY2}` (unquoted) and `{"KID1":"KEY1",...}` (JSON) in `parseM3u()`. Normalize lowercase hex. Shape: `drm = { keyId, key, clearKeys }`. Wire `clearKeys` map into `player.configure({ drm })` in `loadChannel()`.
+- **Acceptance:** Both dict formats + legacy single `KID:KEY` produce correct `clearKeys` for Shaka; single-key playlists unchanged.
+- **LOC:** ≤ 60
+
+---
+
 **Sequencing:** T-001 → T-002 → T-003 → T-004 → v1.1.1 release → T-010 → T-011 → T-012 → v1.2.0 → T-020..T-024 → v1.3.0
