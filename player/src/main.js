@@ -91,7 +91,7 @@ function startTypewriter(el, text, charDelay, startDelay, onDone) {
   }, startDelay);
 }
 
-function hideBootSplash(holdAfterTypeMs = 0) {
+function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
   const el = document.getElementById('boot-splash');
   if (!el || el.classList.contains('hidden')) return;
   // Hold the logo for a beat AND until the tagline finishes typing
@@ -100,20 +100,21 @@ function hideBootSplash(holdAfterTypeMs = 0) {
   const waitMin = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
   const waitType = Math.max(0, bootTypewriterEnd - Date.now()) + holdAfterTypeMs;
   const wait = Math.max(waitMin, waitType) + BOOT_READ_MS;
-  setTimeout(() => {
-    clearTimeout(bootTypewriterTimer);
-    el.classList.add('zooming');
-    const logo = document.getElementById('boot-logo');
-    if (logo) logo.classList.add('zoom-in');
     setTimeout(() => {
-      el.classList.add('fade-out');
+      clearTimeout(bootTypewriterTimer);
+      el.classList.add('zooming');
+      const logo = document.getElementById('boot-logo');
+      if (logo) logo.classList.add('zoom-in');
       setTimeout(() => {
-        el.classList.add('hidden');
-        el.classList.remove('fade-out', 'zooming');
-        if (logo) logo.classList.remove('zoom-in');
-      }, 500);
-    }, BOOT_ZOOM_MS);
-  }, wait);
+        el.classList.add('fade-out');
+        setTimeout(() => {
+          el.classList.add('hidden');
+          el.classList.remove('fade-out', 'zooming');
+          if (logo) logo.classList.remove('zoom-in');
+          if (typeof onDone === 'function') onDone();
+        }, 500);
+      }, BOOT_ZOOM_MS);
+    }, wait);
 }
 
 const LAST_SEEN_KEY = 'en_last_seen_version';
@@ -257,8 +258,8 @@ function showWhatsNew() {
   document.addEventListener('keydown', onKey);
 }
 
-function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0) {
-  hideBootSplash(holdAfterTypeMs);
+function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0, onDone = null) {
+  hideBootSplash(holdAfterTypeMs, onDone);
   if (checkWhatsNew()) {
     setTimeout(showWhatsNew, 600);
   }
@@ -328,7 +329,7 @@ async function init() {
       } catch (e) {
         console.warn('Failed to fetch playlist:', e.message);
         hideBootSplashAndMaybeWhatsNew();
-        showFirstLaunch();
+        showFirstRun();
       }
     }
   } else if (s.channels && s.channels.length > 0) {
@@ -350,10 +351,10 @@ async function init() {
     } catch (e) {
       console.warn('Failed to fetch playlist:', e.message);
       hideBootSplashAndMaybeWhatsNew();
-      showFirstLaunch();
+      showFirstRun();
     }
   } else {
-    showFirstLaunch();
+    showFirstRun();
   }
 
 
@@ -548,35 +549,19 @@ function scheduleUpdateCheck() {
   }, 1500);
 }
 
-function showFirstLaunch() {
-  hidePlayer();
-
-  settings.init(document.getElementById('settings-page'), {
-    onPlaylistFetched: (newChannels) => {
-      try {
-        sortChannels(newChannels);
-        channels = newChannels;
-        settings.hide();
-        showPlayer();
-        startPlayer();
-      } catch (e) {
-        console.error('Failed to start player after fetch:', e);
-      }
-    },
-    onClose: () => {
-      // BUG-018: backing out with no playlist must land on a working shell,
-      // not a dead page — startPlayer() handles the empty case.
-      settings.hide();
-      if (channels && channels.length > 0) {
-        showPlayer();
-      } else {
-        startPlayer();
-      }
-    },
+function showFirstRun() {
+  // First launch (or fetch failure with nothing cached): land on the player
+  // shell with its empty state — never strand the user on Settings. The
+  // menu opens showing the Settings button, and a hint names the Blue key.
+  channels = channels || [];
+  startPlayer();
+  ui.toggleRightSidebar();
+  showBootSplash('Loading...');
+  hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {
+    setTimeout(() => {
+      if (!isWhatsNewOpen()) ui.showFirstRunHint();
+    }, 1200);
   });
-
-  document.body.style.overflow = 'hidden';
-  settings.show();
 }
 
 function showPlayer() {
@@ -588,15 +573,6 @@ function showPlayer() {
   const videoEl = document.getElementById('video');
   if (videoEl) videoEl.style.visibility = '';
   ui.showSidebarWithContent();
-}
-
-function hidePlayer() {
-  const playerContainer = document.getElementById('player-container');
-  const nowPlaying = document.getElementById('now-playing');
-  const sidebar = document.getElementById('sidebar');
-  if (playerContainer) playerContainer.classList.add('hidden');
-  if (nowPlaying) nowPlaying.classList.add('hidden');
-  if (sidebar) sidebar.classList.add('closed');
 }
 
 function showSettingsPage() {

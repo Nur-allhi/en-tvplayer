@@ -754,6 +754,22 @@ export function showChannelOsd(channel) {
   }, 2000);
 }
 
+/* First-run hint: same OSD home, longer stay, plain guidance text */
+export function showFirstRunHint() {
+  const el = document.getElementById('channel-osd');
+  if (!el) return;
+  clearTimeout(osdTimer);
+  el.classList.remove('fade');
+  el.classList.remove('hidden');
+  el.textContent = 'No playlist yet — press BLUE for Settings';
+  osdTimer = setTimeout(() => {
+    el.classList.add('fade');
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 300);
+  }, 5000);
+}
+
 export function getChannels() {
   return channels;
 }
