@@ -119,6 +119,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '2.1.1',
+    sections: [
+      { type: 'added', items: ['Display toggles in Settings → Playback: App logo and Quality badge can be shown or hidden'] },
+    ],
+  },
+  {
     version: '2.1.0',
     sections: [
       { type: 'added', items: ['Custom stream headers via #KODIPROP (User-Agent, Referer, Authorization)', 'Multi-key DRM decryption for protected channels'] },
