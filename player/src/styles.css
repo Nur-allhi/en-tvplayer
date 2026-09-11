@@ -1390,13 +1390,20 @@ html, body {
 /* === Playlist list (for Channel Source card) === */
 .settings-page .playlist-list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   margin-bottom: calc(23px * var(--tv-scale));
   min-width: 0;
 }
 .playlist-list > * + * { margin-top: calc(12px * var(--tv-scale)); }
+.settings-page .playlist-list > * + * {
+  margin-top: 0;
+  margin-left: calc(12px * var(--tv-scale));
+}
 
 .settings-page .playlist-entry {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: calc(16px * var(--tv-scale)) calc(20px * var(--tv-scale));
