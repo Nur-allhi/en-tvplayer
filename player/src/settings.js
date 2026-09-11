@@ -300,6 +300,20 @@ export function selectFocused() {
     return;
   }
 
+  // OK on a playlist card selects that source AND loads it into the app
+  // (same path as the Active button). Mouse click stays select-only.
+  if (el.classList.contains('playlist-entry') && el.id && /^playlist-entry-\d+$/.test(el.id)) {
+    const idx = parseInt(el.id.split('-')[2], 10);
+    const s = getSettings();
+    if (idx >= 0 && idx < s.playlists.length && !(editMode && editIndex === idx)) {
+      saveSettings({ activePlaylistIndex: idx });
+      render();
+      applyFocus();
+      handleFetch();
+    }
+    return;
+  }
+
   if (el.classList.contains('btn') || el.classList.contains('playlist-entry')) {
     el.click();
     return;
@@ -668,8 +682,8 @@ function renderSourceCard(s, lastFetched) {
         html += '<span class="playlist-url">' + escapeHtml(p.url || '') + '</span>';
         html += '<span class="playlist-meta">Added ' + formatDate(p.addedAt) + ' \u2022 Last played ' + (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') + '</span>';
         html += '<div class="btn-group">';
-        html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">Edit</button>';
-        html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">Delete</button>';
+        html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">✏ Edit</button>';
+        html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">🗑 Delete</button>';
         html += '</div>';
         html += '</div>';
       }
