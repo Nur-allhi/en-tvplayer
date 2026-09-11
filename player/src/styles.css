@@ -1102,6 +1102,7 @@ html, body {
 
 .input-field {
   flex: 1;
+  width: 100%;
   padding: calc(15px * var(--tv-scale)) calc(19px * var(--tv-scale));
   font-size: calc(21px * var(--tv-scale));
   background: #0d1117;
@@ -1477,6 +1478,15 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   word-break: break-all;
+  max-width: 100%;
+}
+
+.settings-page .playlist-meta {
+  font-size: calc(14px * var(--tv-scale));
+  color: #777;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   max-width: 100%;
 }
 

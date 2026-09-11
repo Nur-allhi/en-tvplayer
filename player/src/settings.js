@@ -21,6 +21,14 @@ const NAV_ITEMS = [
   { id: 'about', icon: 'ℹ', label: 'About' },
 ];
 
+// Max saved playlists (was 8 — capped at 3 to keep the source card compact).
+const MAX_PLAYLISTS = 3;
+
+// Tizen TVs don't open the IME on programmatic focus — the keyboard only
+// appears on an explicit user gesture, so the first OK re-focuses the field
+// (blur + focus) to pop the keyboard. Desktop keeps the old advance-on-Enter.
+const isTizenTV = typeof window !== 'undefined' && !!(window.tizen && window.tizen.tvinputdevice);
+
 export function init(settingsContainer, callbacks) {
   container = settingsContainer;
   onPlaylistFetched = callbacks.onPlaylistFetched;
@@ -170,6 +178,15 @@ export function selectFocused() {
   }
 
   if (el.tagName === 'INPUT') {
+    // On Tizen the first OK hands focus to the IME so the TV keyboard
+    // opens; the second OK advances/saves. Desktop keeps advance-on-Enter.
+    if (isTizenTV && !el.dataset.ime) {
+      el.dataset.ime = '1';
+      try { el.blur(); } catch {}
+      el.focus();
+      return;
+    }
+    delete el.dataset.ime;
     // On TV the remote layer intercepts Enter/OK and routes it here, so the
     // desktop-only keydown Enter handlers never run. Make OK inside a text
     // field act like pressing Enter on a desktop form: advance to the next
@@ -286,8 +303,10 @@ function saveAddPlaylist() {
   const name = nameEl ? nameEl.value.trim() : '';
   const url = urlEl ? urlEl.value.trim() : '';
   if (!url) return;
-  const playlists = getSettings().playlists;
-  playlists.push({ name: name || 'Unnamed', url });
+  const settings = getSettings();
+  if (settings.playlists.length >= MAX_PLAYLISTS) return;
+  const playlists = settings.playlists;
+  playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
   saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
   addMode = false;
   render();
@@ -307,7 +326,7 @@ function saveEditPlaylist() {
   const url = urlEl ? urlEl.value.trim() : '';
   if (!url || editIndex < 0) return;
   const playlists = getSettings().playlists;
-  playlists[editIndex] = { name: name || 'Unnamed', url };
+  playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
   saveSettings({ playlists });
   editMode = false;
   editIndex = -1;
@@ -365,6 +384,9 @@ function clearFocus() {
 
 function applyFocus() {
   clearFocus();
+  // Stale IME-engage flags die on every focus move — the next OK re-opens
+  // the keyboard instead of acting on a field the user already left.
+  document.querySelectorAll('input[data-ime]').forEach((i) => i.removeAttribute('data-ime'));
   buildFocusOrder();
   if (focusIdx >= 0 && focusIdx < focusOrder.length) {
     const el = focusOrder[focusIdx];
@@ -499,7 +521,7 @@ function render() {
         const url = urlEl ? urlEl.value.trim() : '';
         if (url) {
           const playlists = getSettings().playlists;
-          playlists.push({ name: name || 'Unnamed', url });
+          playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
           saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
           addMode = false;
           render();
@@ -524,7 +546,7 @@ function render() {
         const url = urlEl ? urlEl.value.trim() : '';
         if (url && editIndex >= 0) {
           const playlists = getSettings().playlists;
-          playlists[editIndex] = { name: name || 'Unnamed', url };
+          playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
           saveSettings({ playlists });
           editMode = false;
           editIndex = -1;
@@ -578,7 +600,7 @@ function renderSourceCard(s, lastFetched) {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u{1F4E1}</span> Channel Source</h3></div>';
   html += '<div class="card-body">';
-  html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/8). Select one, then click Fetch.</p>';
+  html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/' + MAX_PLAYLISTS + '). Select one, then press Active.</p>';
   if (addMode) {
     html += '<div class="input-group">';
     html += '<label for="pl-add-name">Playlist Name</label>';
@@ -622,6 +644,7 @@ function renderSourceCard(s, lastFetched) {
         }
         html += '</div>';
         html += '<span class="playlist-url">' + escapeHtml(p.url || '') + '</span>';
+        html += '<span class="playlist-meta">Added ' + formatDate(p.addedAt) + ' \u2022 Last played ' + (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') + '</span>';
         html += '<div class="btn-group">';
         html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">Edit</button>';
         html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">Delete</button>';
@@ -631,10 +654,10 @@ function renderSourceCard(s, lastFetched) {
     }
     html += '</div>';
     html += '<div class="btn-group">';
-    if (s.playlists.length < 8) {
+    if (s.playlists.length < MAX_PLAYLISTS) {
       html += '<button id="pl-add-btn" class="btn btn-secondary">+ Add Playlist</button>';
     }
-    html += '<button id="settings-fetch-btn" class="btn btn-primary">Fetch Active</button>';
+    html += '<button id="settings-fetch-btn" class="btn btn-primary">Active</button>';
     html += '</div>';
     html += '<div id="settings-fetch-status" class="status-info hidden" style="margin-top:24px;"></div>';
     html += '<p class="hint" style="margin-top:32px;">Last fetched: ' + lastFetched + '</p>';
@@ -717,6 +740,13 @@ async function handleFetch() {
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;
   }
+}
+
+function formatDate(isoString) {
+  if (!isoString) return 'Never';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return 'Never';
+  return d.toLocaleDateString();
 }
 
 function timeAgo(isoString) {

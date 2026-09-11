@@ -26,6 +26,19 @@ export function getSettings() {
       delete s.playlistUrl;
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
     }
+    // Backfill per-playlist dates for entries saved before date tracking.
+    if (Array.isArray(s.playlists) && s.playlists.length > 0) {
+      let dirty = false;
+      const fallback = s.channelsFetched || null;
+      for (const p of s.playlists) {
+        if (!p || typeof p !== 'object') continue;
+        if (!p.addedAt) { p.addedAt = fallback || new Date().toISOString(); dirty = true; }
+        if (!('lastPlayedAt' in p)) { p.lastPlayedAt = null; dirty = true; }
+      }
+      if (dirty) {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
+      }
+    }
     return s;
   } catch {
     return { ...settingsDefaults, playlists: [] };

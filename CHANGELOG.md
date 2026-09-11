@@ -2,6 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Channel Source: max 3 saved playlists, compact cards with added date and last-played time, full-width inputs with TV keyboard support, fetch button relabeled Active.
+
+---
+
 ## [2.1.1] - 2026-09-11
 
 ### Added

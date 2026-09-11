@@ -626,6 +626,15 @@ async function handleChannelSelect(channel) {
     setTimeout(finish, 350); // safety: never stall tuning
   });
   currentIndex = channels.indexOf(channel);
+  // Stamp the active playlist so Channel Source cards can show "last played".
+  try {
+    const s = getSettings();
+    const idx = s.activePlaylistIndex;
+    if (s.playlists[idx]) {
+      s.playlists[idx].lastPlayedAt = new Date().toISOString();
+      saveSettings({ playlists: s.playlists });
+    }
+  } catch {}
   const ok = await player.loadChannel(channel);
   if (!ok) {
     hideProgress();
