@@ -1075,6 +1075,38 @@ export function selectResolution(height) {
   }
 }
 
+// Multi-audio channels (languages, commentary, …): Shaka exposes the
+// audio adaptations compatible with the current video track. Selecting one
+// keeps video ABR running — only the audio switches.
+export function getAudioTracks() {
+  if (useAvplay || !player) return [];
+  try {
+    return player.getAudioTracks().map((t) => ({
+      id: t.id,
+      language: t.language || '',
+      label: t.label || '',
+      active: !!t.active,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function getActiveAudioId() {
+  const active = getAudioTracks().find((t) => t.active);
+  return active ? active.id : null;
+}
+
+export function selectAudioTrackById(id) {
+  if (useAvplay || !player || id == null) return;
+  try {
+    const track = player.getAudioTracks().find((t) => t.id === id);
+    if (track) player.selectAudioTrack(track);
+  } catch (e) {
+    console.warn('Audio select failed:', e);
+  }
+}
+
 export function getVideoElement() {
   return videoElement;
 }

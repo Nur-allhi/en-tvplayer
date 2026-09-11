@@ -642,6 +642,74 @@ export function setSelectedResolution(value) {
   renderRightResolutionList();
 }
 
+/* Multi-audio tracks (languages, commentary, …). Same row treatment as
+   quality; the whole section hides when a channel offers < 2 tracks. */
+let rightAudios = [];
+let rightSelectedAudioId = null;
+let rightAudioCallback = null;
+
+export function setAudioCallback(cb) {
+  rightAudioCallback = cb;
+}
+
+export function setAudioTracks(tracks) {
+  rightAudios = tracks || [];
+  if (rightSelectedAudioId == null || !rightAudios.some((t) => t.id === rightSelectedAudioId)) {
+    const active = rightAudios.find((t) => t.active);
+    rightSelectedAudioId = active ? active.id : (rightAudios[0] ? rightAudios[0].id : null);
+  }
+  renderAudioList();
+  if (rightSidebarOpen) {
+    buildRightItems();
+    updateRightFocus();
+  }
+}
+
+export function setSelectedAudio(id) {
+  rightSelectedAudioId = id;
+  renderAudioList();
+}
+
+function audioTrackLabel(track, index) {
+  if (track.label) return track.label;
+  if (track.language) return track.language;
+  return 'Track ' + (index + 1);
+}
+
+function renderAudioList() {
+  const section = document.getElementById('audio-section-right');
+  const list = document.getElementById('audio-list-right');
+  if (!list) return;
+  const show = rightAudios.length > 1;
+  if (section) section.classList.toggle('hidden', !show);
+  list.classList.toggle('hidden', !show);
+  list.innerHTML = '';
+  rightAudios.forEach((track, index) => {
+    const item = document.createElement('div');
+    item.className = 'resolution-item-right audio-item-right';
+    if (track.id === rightSelectedAudioId) {
+      item.classList.add('active');
+    }
+    item.textContent = audioTrackLabel(track, index);
+    item.addEventListener('click', () => {
+      const at = rightItems.findIndex((it) => it.element === item);
+      rightFocus = at >= 0 ? at : rightFocus;
+      doRightSelect();
+    });
+    list.appendChild(item);
+  });
+}
+
+function selectAudioById(id) {
+  rightSelectedAudioId = id;
+  renderAudioList();
+  if (rightAudioCallback) {
+    rightAudioCallback(id);
+  }
+  rightSidebarOpen = false;
+  applyRightSidebar();
+}
+
 function renderRightResolutionList() {
   const list = document.getElementById('resolution-list-right');
   if (!list) return;
@@ -667,9 +735,17 @@ function buildRightItems() {
   // Resolution items (indices 0 .. N-1)
   const list = document.getElementById('resolution-list-right');
   if (list) {
-    const resItems = list.querySelectorAll('.resolution-item-right');
+    const resItems = list.querySelectorAll('.resolution-item-right:not(.audio-item-right)');
     resItems.forEach((item) => {
       rightItems.push({ type: 'resolution', element: item });
+    });
+  }
+  // Audio items follow quality (skipped while the section hides)
+  const audioList = document.getElementById('audio-list-right');
+  if (audioList && !audioList.classList.contains('hidden')) {
+    const audioItems = audioList.querySelectorAll('.audio-item-right');
+    audioItems.forEach((item, index) => {
+      rightItems.push({ type: 'audio', element: item, audioId: rightAudios[index] ? rightAudios[index].id : null });
     });
   }
   // Button IDs
@@ -698,7 +774,7 @@ export function rightSidebarSelect() {
   if (!rightSidebarOpen || rightItems.length === 0) return;
   const item = rightItems[rightFocus];
   if (!item) return;
-  if (item.type === 'resolution') {
+  if (item.type === 'resolution' || item.type === 'audio') {
     doRightSelect();
   } else if (item.type === 'button') {
     const el = document.getElementById(item.id);
@@ -707,7 +783,17 @@ export function rightSidebarSelect() {
 }
 
 function doRightSelect() {
-  const items = document.querySelectorAll('.resolution-item-right');
+  const item = rightItems[rightFocus];
+  if (!item) return;
+  if (item.type === 'audio') {
+    selectAudioById(item.audioId);
+    return;
+  }
+  if (item.type !== 'resolution') {
+    // Focus is on a button, not a quality item - do nothing
+    return;
+  }
+  const items = document.querySelectorAll('#resolution-list-right .resolution-item-right');
   const idx = rightFocus;
   if (idx < 0 || idx >= items.length) {
     // Focus is on a button, not a resolution item - do nothing

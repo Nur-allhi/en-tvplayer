@@ -431,6 +431,11 @@ function startPlayer() {
     updateResolutionBadge(height || player.getActiveHeight());
   });
 
+  ui.setAudioCallback((id) => {
+    player.selectAudioTrackById(id);
+    ui.setSelectedAudio(id);
+  });
+
   let playPauseButton = document.getElementById('playpause-button');
   if (playPauseButton) {
     addCleanupListener(playPauseButton, 'click', (e) => {
@@ -502,7 +507,10 @@ function startPlayer() {
     }
   }, 500);
 
-  player.onTrackChange(({ height, bandwidth }) => updateResolutionBadge(height, bandwidth));
+  player.onTrackChange(({ height, bandwidth }) => {
+    updateResolutionBadge(height, bandwidth);
+    ui.setSelectedAudio(player.getActiveAudioId());
+  });
 
   player.onChannelAdvance(() => {
     const next = (currentIndex + 1) % channels.length;
@@ -598,6 +606,7 @@ function showSettingsPage() {
 async function handleChannelSelect(channel) {
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
+  ui.setAudioTracks([]);
   // Drop the video plane at once: on Tizen it renders above the web layer,
   // so without this the old/black frame covers the loading veil.
   const tuneVideo = document.getElementById('video');
@@ -636,6 +645,7 @@ async function handleChannelSelect(channel) {
   const p = player.getPlayer();
   if (p) {
     ui.setResolutions(player.getResolutions());
+    ui.setAudioTracks(player.getAudioTracks());
     const height = player.getActiveHeight();
     if (height) updateResolutionBadge(height);
   }

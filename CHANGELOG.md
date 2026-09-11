@@ -2,6 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Audio track selection in the right sidebar for multi-audio channels.
+
+---
+
 ## [2.2.0] - 2026-09-11
 
 ### Added
