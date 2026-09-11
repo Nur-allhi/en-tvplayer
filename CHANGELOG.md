@@ -2,17 +2,14 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
-## [Unreleased]
-
-### Changed
-- Channel Source: max 3 saved playlists, compact cards with added date and last-played time, full-width inputs with TV keyboard support, fetch button relabeled Active.
-
----
-
-## [2.1.1] - 2026-09-11
+## [2.2.0] - 2026-09-11
 
 ### Added
+- Channel Source revamp: max 3 saved playlists, compact side-by-side cards with added date and last-played time, full-width inputs with TV keyboard support, OK on a card loads it immediately, Left/Right card traversal, fetch button relabeled Active.
 - Display toggles in Settings → Playback: App logo (top-left) and Quality badge (top-right) can be shown or hidden.
+
+### Fixed
+- Settings side-nav icon/title spacing, header moved to top, bigger white Settings title, card buttons pinned bottom-center.
 
 ---
 
