@@ -533,13 +533,27 @@ html, body {
   justify-content: center;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
-.play-state-icon > * + * { margin-left: 18px; }
+/* Pause glyph whose bars are filled with the app logo: each bar shows its
+   own slice of the artwork (plain background positioning — Tizen-safe). */
+.pause-mask {
+  display: flex;
+}
+.pause-mask > * + * { margin-left: calc(16px * var(--tv-scale)); }
 
-.play-state-icon span {
-  width: 22px;
-  height: calc(56px * var(--tv-scale));
-  background: #fff;
-  border-radius: 4px;
+.pause-mask span {
+  width: calc(24px * var(--tv-scale));
+  height: calc(64px * var(--tv-scale));
+  background: url('/logo.svg') no-repeat;
+  background-size: calc(64px * var(--tv-scale)) calc(64px * var(--tv-scale));
+  border-radius: calc(4px * var(--tv-scale));
+}
+
+.pause-mask span:first-child {
+  background-position: left center;
+}
+
+.pause-mask span:last-child {
+  background-position: right center;
 }
 
 /* Right sidebar (overlay — always absolute) */
