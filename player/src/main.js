@@ -93,7 +93,8 @@ function startTypewriter(el, text, charDelay, startDelay, onDone) {
 
 function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
   const el = document.getElementById('boot-splash');
-  if (!el || el.classList.contains('hidden')) return;
+  const finish = () => { if (typeof onDone === 'function') onDone(); };
+  if (!el || el.classList.contains('hidden')) { finish(); return; }
   // Hold the logo for a beat AND until the tagline finishes typing
   // (plus an optional extra hold for the idle/no-fetch path),
   // then fly into it before fading the overlay.
@@ -111,7 +112,7 @@ function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
           el.classList.add('hidden');
           el.classList.remove('fade-out', 'zooming');
           if (logo) logo.classList.remove('zoom-in');
-          if (typeof onDone === 'function') onDone();
+          finish();
         }, 500);
       }, BOOT_ZOOM_MS);
     }, wait);
@@ -259,10 +260,14 @@ function showWhatsNew() {
 }
 
 function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0, onDone = null) {
-  hideBootSplash(holdAfterTypeMs, onDone);
-  if (checkWhatsNew()) {
-    setTimeout(showWhatsNew, 600);
-  }
+  // The modal waits for the splash to be fully gone — a fixed timer raced
+  // the zoom/fade exit and popped it over the splash mid-load.
+  hideBootSplash(holdAfterTypeMs, () => {
+    if (typeof onDone === 'function') onDone();
+    if (checkWhatsNew()) {
+      setTimeout(showWhatsNew, 300);
+    }
+  });
 }
 
 function isWhatsNewOpen() {
