@@ -10,6 +10,8 @@ const settingsDefaults = {
   autoQuality: true,
   autoRefreshPlaylist: true,
   updateCheck: false,
+  showWatermark: true,
+  showResolutionBadge: true,
 };
 
 export function getSettings() {

@@ -354,6 +354,8 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('toggle-autoq'));
     focusOrder.push(document.getElementById('toggle-auto-refresh'));
     focusOrder.push(document.getElementById('toggle-update-check'));
+    focusOrder.push(document.getElementById('toggle-watermark'));
+    focusOrder.push(document.getElementById('toggle-badge'));
   }
 }
 
@@ -555,6 +557,14 @@ function render() {
         } else if (this.id === 'toggle-update-check') {
           const enabled = this.classList.contains('on');
           setConsented(enabled);
+        } else if (this.id === 'toggle-watermark') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ showWatermark: enabled });
+          ui.setOverlayVisibility({ watermark: enabled });
+        } else if (this.id === 'toggle-badge') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ showResolutionBadge: enabled });
+          ui.setOverlayVisibility({ badge: enabled });
         }
       });
     });
@@ -638,6 +648,8 @@ function renderPlaybackCard() {
   const autoQ = s.autoQuality !== false;
   const autoRefresh = s.autoRefreshPlaylist !== false;
   const updateCheck = s.updateCheck === true;
+  const watermark = s.showWatermark !== false;
+  const badge = s.showResolutionBadge !== false;
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -653,6 +665,14 @@ function renderPlaybackCard() {
   html += '<div class="toggle-row">';
   html += '<div><div class="toggle-label">Check for updates</div><div class="toggle-desc">Notify when a new version is available (anonymous)</div></div>';
   html += '<div class="toggle' + (updateCheck ? ' on' : '') + '" id="toggle-update-check"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">App logo</div><div class="toggle-desc">Show logo and name in the top-left corner</div></div>';
+  html += '<div class="toggle' + (watermark ? ' on' : '') + '" id="toggle-watermark"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Quality badge</div><div class="toggle-desc">Show quality and stream type in the top-right corner</div></div>';
+  html += '<div class="toggle' + (badge ? ' on' : '') + '" id="toggle-badge"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   return html;

@@ -533,10 +533,40 @@ function applySidebar() {
   if (sidebar) {
     sidebar.classList.toggle('closed', !sidebarOpen);
   }
+  applyWatermark();
+}
+
+/* Top-left logo + top-right quality badge visibility */
+let showWatermark = true;
+let showBadge = true;
+
+export function setOverlayVisibility({ watermark, badge } = {}) {
+  if (typeof watermark === 'boolean') showWatermark = watermark;
+  if (typeof badge === 'boolean') showBadge = badge;
+  applyWatermark();
+  applyBadge();
+}
+
+function applyWatermark() {
   const watermark = document.getElementById('player-watermark');
-  if (watermark) {
-    watermark.classList.toggle('docked', !sidebarOpen);
+  if (!watermark) return;
+  if (!showWatermark) {
+    watermark.classList.add('hidden');
+    watermark.classList.remove('docked');
+    return;
   }
+  watermark.classList.remove('hidden');
+  watermark.classList.toggle('docked', !sidebarOpen);
+}
+
+function applyBadge() {
+  const el = document.getElementById('resolution-badge');
+  if (!el) return;
+  if (!showBadge) el.classList.add('hidden');
+}
+
+export function isBadgeVisible() {
+  return showBadge;
 }
 
 /* Right sidebar */

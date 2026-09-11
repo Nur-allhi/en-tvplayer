@@ -398,6 +398,12 @@ function startPlayer() {
 
   ui.init(channels, handleChannelSelect);
 
+  const overlaySettings = getSettings();
+  ui.setOverlayVisibility({
+    watermark: overlaySettings.showWatermark !== false,
+    badge: overlaySettings.showResolutionBadge !== false,
+  });
+
   ui.setAutoCloseCallback(() => {
     if (settings.isVisible()) {
       settings.hide();
@@ -663,6 +669,10 @@ function channelTypeTag(channel) {
 function updateResolutionBadge(height, bandwidth) {
   const el = document.getElementById('resolution-badge');
   if (!el) return;
+  if (getSettings().showResolutionBadge === false) {
+    el.classList.add('hidden');
+    return;
+  }
   const label = getResolutionLabel(height);
   const bw = bandwidth || player.getActiveBandwidth();
   const type = channelTypeTag(channels[currentIndex]);

@@ -2,6 +2,13 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Display toggles in Settings → Playback: App logo (top-left) and Quality badge (top-right) can be shown or hidden.
+
+---
+
 ## [2.1.0] - 2026-09-10
 
 ### Added
