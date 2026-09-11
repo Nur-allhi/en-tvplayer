@@ -41,6 +41,7 @@ let bootTypewriterEnd = 0;
 const BOOT_MIN_MS = 1500; // logo stays at least this long on every launch
 const BOOT_ZOOM_MS = 700; // fly-into-the-logo exit
 const BOOT_IDLE_HOLD_MS = 1500; // extra hold after tagline when no playlist fetch runs
+const BOOT_READ_MS = 1800; // linger once all text is up so it can be read
 
 function showBootSplash(statusText) {
   const el = document.getElementById('boot-splash');
@@ -98,7 +99,7 @@ function hideBootSplash(holdAfterTypeMs = 0) {
   // then fly into it before fading the overlay.
   const waitMin = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
   const waitType = Math.max(0, bootTypewriterEnd - Date.now()) + holdAfterTypeMs;
-  const wait = Math.max(waitMin, waitType);
+  const wait = Math.max(waitMin, waitType) + BOOT_READ_MS;
   setTimeout(() => {
     clearTimeout(bootTypewriterTimer);
     el.classList.add('zooming');

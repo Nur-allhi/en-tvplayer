@@ -798,16 +798,18 @@ html, body {
   align-items: center;
 }
 
-/* Logo container — icon + text side by side, centered */
+/* Logo container — icon stacked over the name, centered (same pattern as
+   the centered player brand mark) */
 .boot-logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
   opacity: 0;
   animation: bootLogoIn 0.6s ease-out forwards;
   animation-delay: 0.2s;
 }
 /* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
-.boot-logo > * + * { margin-left: calc(16px * var(--tv-scale)); }
+.boot-logo > * + * { margin-left: 0; margin-top: calc(16px * var(--tv-scale)); }
 
 @keyframes bootLogoIn {
   0% { opacity: 0; transform: scale(0.6); }
@@ -838,13 +840,14 @@ html, body {
 }
 
 .boot-logo-text {
-  font-size: calc(40px * var(--tv-scale));
+  font-size: calc(54px * var(--tv-scale));
   font-weight: 700;
   color: #fff;
   letter-spacing: 2px;
   line-height: 1.1;
-  min-width: calc(210px * var(--tv-scale));
-  min-height: calc(44px * var(--tv-scale));
+  text-align: center;
+  min-width: calc(300px * var(--tv-scale));
+  min-height: calc(60px * var(--tv-scale));
 }
 
 .boot-logo-text span {
@@ -874,14 +877,16 @@ html, body {
   white-space: nowrap;
 }
 
-/* Tagline below the logo row, centered */
+/* Tagline below the logo row, centered on the logo + name lockup */
 .boot-typewriter {
+  display: block;
+  width: 100%;
   margin-top: calc(12px * var(--tv-scale));
   text-align: center;
-  font-size: calc(16px * var(--tv-scale));
+  font-size: calc(21px * var(--tv-scale));
   color: rgba(255,255,255,0.35);
   letter-spacing: 0.04em;
-  min-height: calc(20px * var(--tv-scale));
+  min-height: calc(26px * var(--tv-scale));
 }
 
 .boot-typewriter::after {
