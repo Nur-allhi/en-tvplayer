@@ -1254,6 +1254,13 @@ html, body {
   text-decoration: none;
 }
 
+.settings-page .about-text {
+  font-size: calc(17px * var(--tv-scale));
+  line-height: 1.5;
+  color: #c9d1d9;
+  margin-bottom: calc(16px * var(--tv-scale));
+}
+
 .toggle {
   width: calc(54px * var(--tv-scale));
   height: calc(31px * var(--tv-scale));

@@ -742,6 +742,7 @@ function renderAboutCard() {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
   html += '<div class="card-body">';
+  html += '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
   html += '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' + APP_VERSION + '</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
