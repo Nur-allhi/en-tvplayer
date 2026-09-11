@@ -118,7 +118,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: calc(24px * var(--tv-scale));
+  font-size: calc(26px * var(--tv-scale));
   font-weight: 600;
   color: #fff;
   letter-spacing: 1px;
@@ -145,9 +145,9 @@ html, body {
 
 .logo-icon {
   flex-shrink: 0;
-  width: calc(26px * var(--tv-scale));
-  height: calc(26px * var(--tv-scale));
-  border-radius: 6px;
+  width: calc(48px * var(--tv-scale));
+  height: calc(48px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
 }
 
 .channel-list {
