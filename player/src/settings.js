@@ -682,8 +682,8 @@ function renderSourceCard(s, lastFetched) {
         html += '<span class="playlist-url">' + escapeHtml(p.url || '') + '</span>';
         html += '<span class="playlist-meta">Added ' + formatDate(p.addedAt) + ' \u2022 Last played ' + (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') + '</span>';
         html += '<div class="btn-group">';
-        html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">✏ Edit</button>';
-        html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">🗑 Delete</button>';
+        html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">Edit</button>';
+        html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">Delete</button>';
         html += '</div>';
         html += '</div>';
       }
