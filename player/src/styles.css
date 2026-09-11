@@ -643,6 +643,16 @@ html, body {
   box-shadow: inset 4px 0 0 #ED421F, inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
 }
 
+/* Dropdown headers carry the section name + current pick; options indent */
+.right-sidebar-btn.dropdown-header {
+  font-weight: 600;
+  color: #fff;
+}
+
+.dropdown-options .resolution-item-right {
+  margin-left: calc(28px * var(--tv-scale));
+}
+
 /* Update badge dot (shown when a newer release is available) */
 .right-sidebar-btn.has-update::after {
   content: '';

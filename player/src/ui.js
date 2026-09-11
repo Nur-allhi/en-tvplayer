@@ -613,6 +613,10 @@ export function toggleRightSidebar() {
   rightSidebarOpen = !rightSidebarOpen;
   applyRightSidebar();
   if (rightSidebarOpen) {
+    qualityOpen = false;
+    audioOpen = false;
+    renderRightResolutionList();
+    renderAudioList();
     buildRightItems();
     rightFocus = 0;
     updateRightFocus();
@@ -684,6 +688,16 @@ function renderAudioList() {
   if (section) section.classList.toggle('hidden', !show);
   list.classList.toggle('hidden', !show);
   list.innerHTML = '';
+  if (!show) return;
+  const header = document.createElement('button');
+  header.className = 'right-sidebar-btn dropdown-header';
+  header.type = 'button';
+  header.textContent = audioHeaderLabel();
+  header.addEventListener('click', () => {
+    setAudioOpen(!audioOpen);
+  });
+  list.appendChild(header);
+  if (!audioOpen) return;
   rightAudios.forEach((track, index) => {
     const item = document.createElement('div');
     item.className = 'resolution-item-right audio-item-right';
@@ -702,6 +716,9 @@ function renderAudioList() {
 
 function selectAudioById(id) {
   rightSelectedAudioId = id;
+  qualityOpen = false;
+  audioOpen = false;
+  renderRightResolutionList();
   renderAudioList();
   if (rightAudioCallback) {
     rightAudioCallback(id);
@@ -710,42 +727,99 @@ function selectAudioById(id) {
   applyRightSidebar();
 }
 
+/* Quality + Audio dropdowns: headers always show, options expand in place.
+   Only one dropdown opens at a time; both start closed on menu open. */
+let qualityOpen = false;
+let audioOpen = false;
+
+function qualityHeaderLabel() {
+  const sel = rightSelectedResolution;
+  return 'Quality: ' + (sel === 'auto' ? 'Auto' : sel + 'p') + (qualityOpen ? ' ▲' : ' ▼');
+}
+
 function renderRightResolutionList() {
   const list = document.getElementById('resolution-list-right');
   if (!list) return;
   list.innerHTML = '';
-  rightResolutions.forEach((res, index) => {
+  const header = document.createElement('button');
+  header.className = 'right-sidebar-btn dropdown-header';
+  header.type = 'button';
+  header.textContent = qualityHeaderLabel();
+  header.addEventListener('click', () => {
+    setQualityOpen(!qualityOpen);
+  });
+  list.appendChild(header);
+  if (!qualityOpen) return;
+  rightResolutions.forEach((res) => {
     const item = document.createElement('div');
     item.className = 'resolution-item-right';
     if (res === rightSelectedResolution) {
       item.classList.add('active');
     }
-    item.dataset.index = index;
     item.textContent = res === 'auto' ? 'Auto' : res + 'p';
     item.addEventListener('click', () => {
-      rightFocus = index;
+      const at = rightItems.findIndex((it) => it.element === item);
+      rightFocus = at >= 0 ? at : rightFocus;
       doRightSelect();
     });
     list.appendChild(item);
   });
 }
 
+function setQualityOpen(open) {
+  qualityOpen = open;
+  if (open) audioOpen = false;
+  renderRightResolutionList();
+  renderAudioList();
+  buildRightItems();
+  rightFocus = 0; // quality header leads the menu
+  updateRightFocus();
+  resetInactivity();
+}
+
+function audioHeaderLabel() {
+  const current = rightAudios.find((t) => t.id === rightSelectedAudioId);
+  const name = current ? audioTrackLabel(current, rightAudios.indexOf(current)) : 'Default';
+  return 'Audio: ' + name + (audioOpen ? ' ▲' : ' ▼');
+}
+
+function setAudioOpen(open) {
+  audioOpen = open;
+  if (open) qualityOpen = false;
+  renderRightResolutionList();
+  renderAudioList();
+  buildRightItems();
+  const at = rightItems.findIndex((it) => it.type === 'audio-header');
+  rightFocus = at >= 0 ? at : rightFocus;
+  updateRightFocus();
+  resetInactivity();
+}
+
 function buildRightItems() {
   rightItems = [];
-  // Resolution items (indices 0 .. N-1)
+  // Quality dropdown: header always, options only while open
   const list = document.getElementById('resolution-list-right');
   if (list) {
-    const resItems = list.querySelectorAll('.resolution-item-right:not(.audio-item-right)');
-    resItems.forEach((item) => {
-      rightItems.push({ type: 'resolution', element: item });
+    Array.from(list.children).forEach((child) => {
+      if (child.classList.contains('dropdown-header')) {
+        rightItems.push({ type: 'quality-header', element: child });
+      } else {
+        rightItems.push({ type: 'resolution', element: child });
+      }
     });
   }
-  // Audio items follow quality (skipped while the section hides)
+  // Audio dropdown follows quality (skipped while the section hides)
   const audioList = document.getElementById('audio-list-right');
   if (audioList && !audioList.classList.contains('hidden')) {
-    const audioItems = audioList.querySelectorAll('.audio-item-right');
-    audioItems.forEach((item, index) => {
-      rightItems.push({ type: 'audio', element: item, audioId: rightAudios[index] ? rightAudios[index].id : null });
+    let audioIndex = 0;
+    Array.from(audioList.children).forEach((child) => {
+      if (child.classList.contains('dropdown-header')) {
+        rightItems.push({ type: 'audio-header', element: child });
+      } else {
+        const id = rightAudios[audioIndex] ? rightAudios[audioIndex].id : null;
+        rightItems.push({ type: 'audio', element: child, audioId: id });
+        audioIndex++;
+      }
     });
   }
   // Button IDs
@@ -774,7 +848,11 @@ export function rightSidebarSelect() {
   if (!rightSidebarOpen || rightItems.length === 0) return;
   const item = rightItems[rightFocus];
   if (!item) return;
-  if (item.type === 'resolution' || item.type === 'audio') {
+  if (item.type === 'quality-header') {
+    setQualityOpen(!qualityOpen);
+  } else if (item.type === 'audio-header') {
+    setAudioOpen(!audioOpen);
+  } else if (item.type === 'resolution' || item.type === 'audio') {
     doRightSelect();
   } else if (item.type === 'button') {
     const el = document.getElementById(item.id);
@@ -790,18 +868,19 @@ function doRightSelect() {
     return;
   }
   if (item.type !== 'resolution') {
-    // Focus is on a button, not a quality item - do nothing
+    // Focus is on a header or button, not a quality option - do nothing
     return;
   }
-  const items = document.querySelectorAll('#resolution-list-right .resolution-item-right');
-  const idx = rightFocus;
-  if (idx < 0 || idx >= items.length) {
-    // Focus is on a button, not a resolution item - do nothing
-    return;
-  }
-  const value = rightResolutions[idx];
+  const options = rightItems
+    .map((it, idx) => ({ it, idx }))
+    .filter(({ it }) => it.type === 'resolution');
+  const optIndex = options.findIndex(({ idx }) => idx === rightFocus);
+  if (optIndex < 0 || optIndex >= rightResolutions.length) return;
+  const value = rightResolutions[optIndex];
   rightSelectedResolution = value;
+  qualityOpen = false;
   renderRightResolutionList();
+  renderAudioList();
   if (rightResolutionCallback) {
     rightResolutionCallback(value === 'auto' ? null : value);
   }
