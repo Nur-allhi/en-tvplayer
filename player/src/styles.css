@@ -920,7 +920,7 @@ html, body {
 .settings-nav {
   width: calc(384px * var(--tv-scale));
   border-right: 1px solid #222;
-  padding: calc(96px * var(--tv-scale)) 0 0;
+  padding: calc(24px * var(--tv-scale)) 0 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
