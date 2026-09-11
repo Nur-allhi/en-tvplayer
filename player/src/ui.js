@@ -761,7 +761,7 @@ export function showFirstRunHint() {
   clearTimeout(osdTimer);
   el.classList.remove('fade');
   el.classList.remove('hidden');
-  el.textContent = 'No playlist yet — press BLUE for Settings';
+  el.textContent = 'No playlist yet — choose Settings from the menu';
   osdTimer = setTimeout(() => {
     el.classList.add('fade');
     setTimeout(() => {
