@@ -981,12 +981,19 @@ html, body {
   height: calc(60px * var(--tv-scale));
   overflow: hidden;
 }
-.nav-item > * + * { margin-left: 13px; }
+.nav-item > * + * { margin-left: calc(13px * var(--tv-scale)); }
 
 .nav-item .nav-icon {
   font-size: calc(19px * var(--tv-scale));
   width: calc(23px * var(--tv-scale));
   text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-item.active {

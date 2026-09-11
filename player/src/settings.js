@@ -389,7 +389,7 @@ function render() {
 
   const navHtml = NAV_ITEMS.map(item =>
     '<div class="nav-item' + (activeSection === item.id ? ' active' : '') + '" data-section="' + item.id + '">' +
-      '<span class="nav-icon">' + item.icon + '</span> ' + item.label +
+      '<span class="nav-icon">' + item.icon + '</span><span class="nav-label">' + item.label + '</span>' +
     '</div>'
   ).join('');
 
