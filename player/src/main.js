@@ -460,6 +460,7 @@ function startPlayer() {
     videoEl.style.visibility = '';
     hideProgress();
     ui.hideBuffering();
+    ui.hideEmptyLogo();
   });
   addCleanupListener(videoEl, 'click', () => player.togglePlay());
 
@@ -510,6 +511,7 @@ function startPlayer() {
 
 function showEmptyState() {
   showPlayer();
+  ui.showEmptyLogo();
   const nameEl = document.getElementById('channel-name');
   if (nameEl) nameEl.textContent = 'No channels';
   const infoEl = document.getElementById('channel-info');
@@ -640,6 +642,7 @@ async function handleChannelSelect(channel) {
   if (!ok) {
     hideProgress();
     ui.hideBuffering();
+    ui.showEmptyLogo();
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
@@ -968,6 +971,7 @@ function handleRemoteAction(action, value) {
       break;
     case 'stop':
       player.stop();
+      ui.showEmptyLogo();
       ui.toggleSidebar();
       break;
     case 'red':
