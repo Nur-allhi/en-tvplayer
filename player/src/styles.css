@@ -1258,7 +1258,13 @@ html, body {
   font-size: calc(17px * var(--tv-scale));
   line-height: 1.5;
   color: #c9d1d9;
+  background: #0d1117;
+  border: calc(2px * var(--tv-scale)) solid #333;
+  border-left: calc(4px * var(--tv-scale)) solid #ED421F;
+  border-radius: calc(8px * var(--tv-scale));
+  padding: calc(14px * var(--tv-scale)) calc(18px * var(--tv-scale));
   margin-bottom: calc(16px * var(--tv-scale));
+  max-width: 90%;
 }
 
 .toggle {
