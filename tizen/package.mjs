@@ -147,8 +147,8 @@ let html = readFileSync(htmlPath, 'utf-8');
 html = html.replace(/\/enplayer\//g, '/');
 writeFileSync(htmlPath, html);
 
-// Copy app icon
-cpSync(join(TIZEN, 'icons', 'icon_128.png'), join(TEMP, 'icon.png'));
+// Copy app icon (spec-size 512x423 launcher art — not the small test icon)
+cpSync(join(TIZEN, 'icon.png'), join(TEMP, 'icon.png'));
 
 // Create unsigned ZIP via Python helper
 const ZIP_HELPER = join(TIZEN, 'ziphelper.py');

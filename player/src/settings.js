@@ -21,6 +21,14 @@ const NAV_ITEMS = [
   { id: 'about', icon: 'ℹ', label: 'About' },
 ];
 
+// Max saved playlists (was 8 — capped at 3 to keep the source card compact).
+const MAX_PLAYLISTS = 3;
+
+// Tizen TVs don't open the IME on programmatic focus — the keyboard only
+// appears on an explicit user gesture, so the first OK re-focuses the field
+// (blur + focus) to pop the keyboard. Desktop keeps the old advance-on-Enter.
+const isTizenTV = typeof window !== 'undefined' && !!(window.tizen && window.tizen.tvinputdevice);
+
 export function init(settingsContainer, callbacks) {
   container = settingsContainer;
   onPlaylistFetched = callbacks.onPlaylistFetched;
@@ -105,6 +113,28 @@ export function navigateNav(dir) {
   const curIdx = focusOrder.indexOf(cur);
   const inNavZone = curIdx >= 0 && curIdx < navCount;
   const contentStart = navCount;
+  const total = focusOrder.length;
+
+  // Channel Source lays its playlist cards side by side, so Left/Right
+  // steps across the row (prev/next focusable) instead of jumping zones.
+  // Left from the first card is the escape hatch back to the side nav.
+  if (activeSection === 'source' && !inNavZone && curIdx >= contentStart) {
+    if (dir < 0) {
+      if (curIdx === contentStart) {
+        const tabs = Array.from(document.querySelectorAll('.nav-item'));
+        const activeTab = document.querySelector('.nav-item.active');
+        const idx = tabs.indexOf(activeTab);
+        focusIdx = idx >= 0 ? idx : 0;
+      } else {
+        focusIdx = curIdx - 1;
+      }
+      applyFocus();
+      return;
+    }
+    focusIdx = curIdx + 1 >= total ? contentStart : curIdx + 1;
+    applyFocus();
+    return;
+  }
 
   const btnGroup = cur.closest('.btn-group');
   if (btnGroup) {
@@ -170,6 +200,15 @@ export function selectFocused() {
   }
 
   if (el.tagName === 'INPUT') {
+    // On Tizen the first OK hands focus to the IME so the TV keyboard
+    // opens; the second OK advances/saves. Desktop keeps advance-on-Enter.
+    if (isTizenTV && !el.dataset.ime) {
+      el.dataset.ime = '1';
+      try { el.blur(); } catch {}
+      el.focus();
+      return;
+    }
+    delete el.dataset.ime;
     // On TV the remote layer intercepts Enter/OK and routes it here, so the
     // desktop-only keydown Enter handlers never run. Make OK inside a text
     // field act like pressing Enter on a desktop form: advance to the next
@@ -261,6 +300,20 @@ export function selectFocused() {
     return;
   }
 
+  // OK on a playlist card selects that source AND loads it into the app
+  // (same path as the Active button). Mouse click stays select-only.
+  if (el.classList.contains('playlist-entry') && el.id && /^playlist-entry-\d+$/.test(el.id)) {
+    const idx = parseInt(el.id.split('-')[2], 10);
+    const s = getSettings();
+    if (idx >= 0 && idx < s.playlists.length && !(editMode && editIndex === idx)) {
+      saveSettings({ activePlaylistIndex: idx });
+      render();
+      applyFocus();
+      handleFetch();
+    }
+    return;
+  }
+
   if (el.classList.contains('btn') || el.classList.contains('playlist-entry')) {
     el.click();
     return;
@@ -286,8 +339,10 @@ function saveAddPlaylist() {
   const name = nameEl ? nameEl.value.trim() : '';
   const url = urlEl ? urlEl.value.trim() : '';
   if (!url) return;
-  const playlists = getSettings().playlists;
-  playlists.push({ name: name || 'Unnamed', url });
+  const settings = getSettings();
+  if (settings.playlists.length >= MAX_PLAYLISTS) return;
+  const playlists = settings.playlists;
+  playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
   saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
   addMode = false;
   render();
@@ -307,7 +362,7 @@ function saveEditPlaylist() {
   const url = urlEl ? urlEl.value.trim() : '';
   if (!url || editIndex < 0) return;
   const playlists = getSettings().playlists;
-  playlists[editIndex] = { name: name || 'Unnamed', url };
+  playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
   saveSettings({ playlists });
   editMode = false;
   editIndex = -1;
@@ -354,6 +409,8 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('toggle-autoq'));
     focusOrder.push(document.getElementById('toggle-auto-refresh'));
     focusOrder.push(document.getElementById('toggle-update-check'));
+    focusOrder.push(document.getElementById('toggle-watermark'));
+    focusOrder.push(document.getElementById('toggle-badge'));
   }
 }
 
@@ -363,6 +420,9 @@ function clearFocus() {
 
 function applyFocus() {
   clearFocus();
+  // Stale IME-engage flags die on every focus move — the next OK re-opens
+  // the keyboard instead of acting on a field the user already left.
+  document.querySelectorAll('input[data-ime]').forEach((i) => i.removeAttribute('data-ime'));
   buildFocusOrder();
   if (focusIdx >= 0 && focusIdx < focusOrder.length) {
     const el = focusOrder[focusIdx];
@@ -387,7 +447,7 @@ function render() {
 
   const navHtml = NAV_ITEMS.map(item =>
     '<div class="nav-item' + (activeSection === item.id ? ' active' : '') + '" data-section="' + item.id + '">' +
-      '<span class="nav-icon">' + item.icon + '</span> ' + item.label +
+      '<span class="nav-icon">' + item.icon + '</span><span class="nav-label">' + item.label + '</span>' +
     '</div>'
   ).join('');
 
@@ -497,7 +557,7 @@ function render() {
         const url = urlEl ? urlEl.value.trim() : '';
         if (url) {
           const playlists = getSettings().playlists;
-          playlists.push({ name: name || 'Unnamed', url });
+          playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
           saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
           addMode = false;
           render();
@@ -522,7 +582,7 @@ function render() {
         const url = urlEl ? urlEl.value.trim() : '';
         if (url && editIndex >= 0) {
           const playlists = getSettings().playlists;
-          playlists[editIndex] = { name: name || 'Unnamed', url };
+          playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
           saveSettings({ playlists });
           editMode = false;
           editIndex = -1;
@@ -555,6 +615,14 @@ function render() {
         } else if (this.id === 'toggle-update-check') {
           const enabled = this.classList.contains('on');
           setConsented(enabled);
+        } else if (this.id === 'toggle-watermark') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ showWatermark: enabled });
+          ui.setOverlayVisibility({ watermark: enabled });
+        } else if (this.id === 'toggle-badge') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ showResolutionBadge: enabled });
+          ui.setOverlayVisibility({ badge: enabled });
         }
       });
     });
@@ -568,7 +636,7 @@ function renderSourceCard(s, lastFetched) {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u{1F4E1}</span> Channel Source</h3></div>';
   html += '<div class="card-body">';
-  html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/8). Select one, then click Fetch.</p>';
+  html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/' + MAX_PLAYLISTS + '). Select one, then press Active.</p>';
   if (addMode) {
     html += '<div class="input-group">';
     html += '<label for="pl-add-name">Playlist Name</label>';
@@ -612,6 +680,7 @@ function renderSourceCard(s, lastFetched) {
         }
         html += '</div>';
         html += '<span class="playlist-url">' + escapeHtml(p.url || '') + '</span>';
+        html += '<span class="playlist-meta">Added ' + formatDate(p.addedAt) + ' \u2022 Last played ' + (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') + '</span>';
         html += '<div class="btn-group">';
         html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">Edit</button>';
         html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">Delete</button>';
@@ -621,10 +690,10 @@ function renderSourceCard(s, lastFetched) {
     }
     html += '</div>';
     html += '<div class="btn-group">';
-    if (s.playlists.length < 8) {
+    if (s.playlists.length < MAX_PLAYLISTS) {
       html += '<button id="pl-add-btn" class="btn btn-secondary">+ Add Playlist</button>';
     }
-    html += '<button id="settings-fetch-btn" class="btn btn-primary">Fetch Active</button>';
+    html += '<button id="settings-fetch-btn" class="btn btn-primary">Active</button>';
     html += '</div>';
     html += '<div id="settings-fetch-status" class="status-info hidden" style="margin-top:24px;"></div>';
     html += '<p class="hint" style="margin-top:32px;">Last fetched: ' + lastFetched + '</p>';
@@ -638,6 +707,8 @@ function renderPlaybackCard() {
   const autoQ = s.autoQuality !== false;
   const autoRefresh = s.autoRefreshPlaylist !== false;
   const updateCheck = s.updateCheck === true;
+  const watermark = s.showWatermark !== false;
+  const badge = s.showResolutionBadge !== false;
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -654,6 +725,14 @@ function renderPlaybackCard() {
   html += '<div><div class="toggle-label">Check for updates</div><div class="toggle-desc">Notify when a new version is available (anonymous)</div></div>';
   html += '<div class="toggle' + (updateCheck ? ' on' : '') + '" id="toggle-update-check"><div class="knob"></div></div>';
   html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">App logo</div><div class="toggle-desc">Show logo and name in the top-left corner</div></div>';
+  html += '<div class="toggle' + (watermark ? ' on' : '') + '" id="toggle-watermark"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Quality badge</div><div class="toggle-desc">Show quality and stream type in the top-right corner</div></div>';
+  html += '<div class="toggle' + (badge ? ' on' : '') + '" id="toggle-badge"><div class="knob"></div></div>';
+  html += '</div>';
   html += '</div></div>';
   return html;
 }
@@ -663,10 +742,18 @@ function renderAboutCard() {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
   html += '<div class="card-body">';
+  html += '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
   html += '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' + APP_VERSION + '</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' + (player.isNativeAvailable() ? 'Available' : 'Not available') + '</div></div>';
+  html += '</div></div>';
+  html += '<div class="setting-card">';
+  html += '<div class="card-header"><h3><span class="card-icon">\u{1F517}</span> Links</h3></div>';
+  html += '<div class="card-body">';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Developer</div></div><div class="toggle-value">Nur-allhi</div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">GitHub</div></div><div class="toggle-value"><a class="about-link" href="https://github.com/Nur-allhi" target="_blank" rel="noopener">github.com/Nur-allhi</a></div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Telegram</div></div><div class="toggle-value"><a class="about-link" href="https://t.me/eniptvplayer" target="_blank" rel="noopener">t.me/eniptvplayer</a></div></div>';
   html += '</div></div>';
   return html;
 }
@@ -697,6 +784,13 @@ async function handleFetch() {
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;
   }
+}
+
+function formatDate(isoString) {
+  if (!isoString) return 'Never';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return 'Never';
+  return d.toLocaleDateString();
 }
 
 function timeAgo(isoString) {

@@ -41,6 +41,7 @@ let bootTypewriterEnd = 0;
 const BOOT_MIN_MS = 1500; // logo stays at least this long on every launch
 const BOOT_ZOOM_MS = 700; // fly-into-the-logo exit
 const BOOT_IDLE_HOLD_MS = 1500; // extra hold after tagline when no playlist fetch runs
+const BOOT_READ_MS = 1800; // linger once all text is up so it can be read
 
 function showBootSplash(statusText) {
   const el = document.getElementById('boot-splash');
@@ -90,34 +91,43 @@ function startTypewriter(el, text, charDelay, startDelay, onDone) {
   }, startDelay);
 }
 
-function hideBootSplash(holdAfterTypeMs = 0) {
+function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
   const el = document.getElementById('boot-splash');
-  if (!el || el.classList.contains('hidden')) return;
+  const finish = () => { if (typeof onDone === 'function') onDone(); };
+  if (!el || el.classList.contains('hidden')) { finish(); return; }
   // Hold the logo for a beat AND until the tagline finishes typing
   // (plus an optional extra hold for the idle/no-fetch path),
   // then fly into it before fading the overlay.
   const waitMin = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
   const waitType = Math.max(0, bootTypewriterEnd - Date.now()) + holdAfterTypeMs;
-  const wait = Math.max(waitMin, waitType);
-  setTimeout(() => {
-    clearTimeout(bootTypewriterTimer);
-    el.classList.add('zooming');
-    const logo = document.getElementById('boot-logo');
-    if (logo) logo.classList.add('zoom-in');
+  const wait = Math.max(waitMin, waitType) + BOOT_READ_MS;
     setTimeout(() => {
-      el.classList.add('fade-out');
+      clearTimeout(bootTypewriterTimer);
+      el.classList.add('zooming');
+      const logo = document.getElementById('boot-logo');
+      if (logo) logo.classList.add('zoom-in');
       setTimeout(() => {
-        el.classList.add('hidden');
-        el.classList.remove('fade-out', 'zooming');
-        if (logo) logo.classList.remove('zoom-in');
-      }, 500);
-    }, BOOT_ZOOM_MS);
-  }, wait);
+        el.classList.add('fade-out');
+        setTimeout(() => {
+          el.classList.add('hidden');
+          el.classList.remove('fade-out', 'zooming');
+          if (logo) logo.classList.remove('zoom-in');
+          finish();
+        }, 500);
+      }, BOOT_ZOOM_MS);
+    }, wait);
 }
 
 const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
+  {
+    version: '2.2.0',
+    sections: [
+      { type: 'added', items: ['Channel Source revamp: 3 playlists max, side-by-side cards with added and last-played dates', 'OK on a card loads it immediately, Left/Right moves across cards', 'TV keyboard opens from playlist inputs, fetch button relabeled Active', 'Display toggles: App logo and Quality badge can be shown or hidden'] },
+      { type: 'fixed', items: ['Settings side-nav spacing, header to top, bigger white title'] },
+    ],
+  },
   {
     version: '2.1.0',
     sections: [
@@ -249,11 +259,15 @@ function showWhatsNew() {
   document.addEventListener('keydown', onKey);
 }
 
-function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0) {
-  hideBootSplash(holdAfterTypeMs);
-  if (checkWhatsNew()) {
-    setTimeout(showWhatsNew, 600);
-  }
+function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0, onDone = null) {
+  // The modal waits for the splash to be fully gone — a fixed timer raced
+  // the zoom/fade exit and popped it over the splash mid-load.
+  hideBootSplash(holdAfterTypeMs, () => {
+    if (typeof onDone === 'function') onDone();
+    if (checkWhatsNew()) {
+      setTimeout(showWhatsNew, 300);
+    }
+  });
 }
 
 function isWhatsNewOpen() {
@@ -320,7 +334,7 @@ async function init() {
       } catch (e) {
         console.warn('Failed to fetch playlist:', e.message);
         hideBootSplashAndMaybeWhatsNew();
-        showFirstLaunch();
+        showFirstRun();
       }
     }
   } else if (s.channels && s.channels.length > 0) {
@@ -342,10 +356,10 @@ async function init() {
     } catch (e) {
       console.warn('Failed to fetch playlist:', e.message);
       hideBootSplashAndMaybeWhatsNew();
-      showFirstLaunch();
+      showFirstRun();
     }
   } else {
-    showFirstLaunch();
+    showFirstRun();
   }
 
 
@@ -398,6 +412,12 @@ function startPlayer() {
 
   ui.init(channels, handleChannelSelect);
 
+  const overlaySettings = getSettings();
+  ui.setOverlayVisibility({
+    watermark: overlaySettings.showWatermark !== false,
+    badge: overlaySettings.showResolutionBadge !== false,
+  });
+
   ui.setAutoCloseCallback(() => {
     if (settings.isVisible()) {
       settings.hide();
@@ -409,6 +429,11 @@ function startPlayer() {
   ui.setResolutionCallback((height) => {
     player.selectResolution(height);
     updateResolutionBadge(height || player.getActiveHeight());
+  });
+
+  ui.setAudioCallback((id) => {
+    player.selectAudioTrackById(id);
+    ui.setSelectedAudio(id);
   });
 
   let playPauseButton = document.getElementById('playpause-button');
@@ -447,6 +472,7 @@ function startPlayer() {
     videoEl.style.visibility = '';
     hideProgress();
     ui.hideBuffering();
+    ui.hideEmptyLogo();
   });
   addCleanupListener(videoEl, 'click', () => player.togglePlay());
 
@@ -481,7 +507,10 @@ function startPlayer() {
     }
   }, 500);
 
-  player.onTrackChange(({ height, bandwidth }) => updateResolutionBadge(height, bandwidth));
+  player.onTrackChange(({ height, bandwidth }) => {
+    updateResolutionBadge(height, bandwidth);
+    ui.setSelectedAudio(player.getActiveAudioId());
+  });
 
   player.onChannelAdvance(() => {
     const next = (currentIndex + 1) % channels.length;
@@ -497,6 +526,10 @@ function startPlayer() {
 
 function showEmptyState() {
   showPlayer();
+  const active = getActivePlaylist();
+  ui.showEmptyLogo(!active || !active.url
+    ? 'No playlist yet — open Settings to add one and start watching'
+    : 'This playlist has no channels — check the URL or try another');
   const nameEl = document.getElementById('channel-name');
   if (nameEl) nameEl.textContent = 'No channels';
   const infoEl = document.getElementById('channel-info');
@@ -529,35 +562,19 @@ function scheduleUpdateCheck() {
   }, 1500);
 }
 
-function showFirstLaunch() {
-  hidePlayer();
-
-  settings.init(document.getElementById('settings-page'), {
-    onPlaylistFetched: (newChannels) => {
-      try {
-        sortChannels(newChannels);
-        channels = newChannels;
-        settings.hide();
-        showPlayer();
-        startPlayer();
-      } catch (e) {
-        console.error('Failed to start player after fetch:', e);
-      }
-    },
-    onClose: () => {
-      // BUG-018: backing out with no playlist must land on a working shell,
-      // not a dead page — startPlayer() handles the empty case.
-      settings.hide();
-      if (channels && channels.length > 0) {
-        showPlayer();
-      } else {
-        startPlayer();
-      }
-    },
+function showFirstRun() {
+  // First launch (or fetch failure with nothing cached): land on the player
+  // shell with its empty state — never strand the user on Settings. The
+  // menu opens showing the Settings button, and a hint names the Blue key.
+  channels = channels || [];
+  startPlayer();
+  ui.toggleRightSidebar();
+  showBootSplash('Loading...');
+  hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {
+    setTimeout(() => {
+      if (!isWhatsNewOpen()) ui.showFirstRunHint();
+    }, 1200);
   });
-
-  document.body.style.overflow = 'hidden';
-  settings.show();
 }
 
 function showPlayer() {
@@ -569,15 +586,6 @@ function showPlayer() {
   const videoEl = document.getElementById('video');
   if (videoEl) videoEl.style.visibility = '';
   ui.showSidebarWithContent();
-}
-
-function hidePlayer() {
-  const playerContainer = document.getElementById('player-container');
-  const nowPlaying = document.getElementById('now-playing');
-  const sidebar = document.getElementById('sidebar');
-  if (playerContainer) playerContainer.classList.add('hidden');
-  if (nowPlaying) nowPlaying.classList.add('hidden');
-  if (sidebar) sidebar.classList.add('closed');
 }
 
 function showSettingsPage() {
@@ -598,6 +606,7 @@ function showSettingsPage() {
 async function handleChannelSelect(channel) {
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
+  ui.setAudioTracks([]);
   // Drop the video plane at once: on Tizen it renders above the web layer,
   // so without this the old/black frame covers the loading veil.
   const tuneVideo = document.getElementById('video');
@@ -614,10 +623,20 @@ async function handleChannelSelect(channel) {
     setTimeout(finish, 350); // safety: never stall tuning
   });
   currentIndex = channels.indexOf(channel);
+  // Stamp the active playlist so Channel Source cards can show "last played".
+  try {
+    const s = getSettings();
+    const idx = s.activePlaylistIndex;
+    if (s.playlists[idx]) {
+      s.playlists[idx].lastPlayedAt = new Date().toISOString();
+      saveSettings({ playlists: s.playlists });
+    }
+  } catch {}
   const ok = await player.loadChannel(channel);
   if (!ok) {
     hideProgress();
     ui.hideBuffering();
+    ui.showEmptyLogo('');
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
@@ -626,6 +645,7 @@ async function handleChannelSelect(channel) {
   const p = player.getPlayer();
   if (p) {
     ui.setResolutions(player.getResolutions());
+    ui.setAudioTracks(player.getAudioTracks());
     const height = player.getActiveHeight();
     if (height) updateResolutionBadge(height);
   }
@@ -663,6 +683,10 @@ function channelTypeTag(channel) {
 function updateResolutionBadge(height, bandwidth) {
   const el = document.getElementById('resolution-badge');
   if (!el) return;
+  if (getSettings().showResolutionBadge === false) {
+    el.classList.add('hidden');
+    return;
+  }
   const label = getResolutionLabel(height);
   const bw = bandwidth || player.getActiveBandwidth();
   const type = channelTypeTag(channels[currentIndex]);
@@ -942,6 +966,7 @@ function handleRemoteAction(action, value) {
       break;
     case 'stop':
       player.stop();
+      ui.showEmptyLogo('Playback stopped — pick a channel to watch');
       ui.toggleSidebar();
       break;
     case 'red':

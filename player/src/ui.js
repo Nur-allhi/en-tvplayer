@@ -533,10 +533,64 @@ function applySidebar() {
   if (sidebar) {
     sidebar.classList.toggle('closed', !sidebarOpen);
   }
+  applyWatermark();
+}
+
+/* Top-left logo + top-right quality badge visibility */
+let showWatermark = true;
+let showBadge = true;
+
+export function setOverlayVisibility({ watermark, badge } = {}) {
+  if (typeof watermark === 'boolean') showWatermark = watermark;
+  if (typeof badge === 'boolean') showBadge = badge;
+  applyWatermark();
+  applyBadge();
+}
+
+function applyWatermark() {
   const watermark = document.getElementById('player-watermark');
-  if (watermark) {
-    watermark.classList.toggle('docked', !sidebarOpen);
+  if (!watermark) return;
+  if (!showWatermark) {
+    watermark.classList.add('hidden');
+    watermark.classList.remove('docked');
+    return;
   }
+  watermark.classList.remove('hidden');
+  watermark.classList.toggle('docked', !sidebarOpen);
+}
+
+function applyBadge() {
+  const el = document.getElementById('resolution-badge');
+  if (!el) return;
+  if (!showBadge) el.classList.add('hidden');
+}
+
+export function isBadgeVisible() {
+  return showBadge;
+}
+
+/* Centered brand mark for dead-air states (no channels, failed tune, stopped).
+   Pass a reason to print under the logo; pass '' to leave the error pill
+   as the only message. */
+export function showEmptyLogo(message) {
+  const el = document.getElementById('player-empty-logo');
+  if (el) el.classList.remove('hidden');
+  const container = document.getElementById('player-container');
+  if (container) container.classList.add('show-brand');
+  if (typeof message === 'string') {
+    const msgEl = document.getElementById('empty-logo-message');
+    if (msgEl) {
+      msgEl.textContent = message;
+      msgEl.classList.toggle('hidden', message.length === 0);
+    }
+  }
+}
+
+export function hideEmptyLogo() {
+  const el = document.getElementById('player-empty-logo');
+  if (el) el.classList.add('hidden');
+  const container = document.getElementById('player-container');
+  if (container) container.classList.remove('show-brand');
 }
 
 /* Right sidebar */
@@ -559,6 +613,10 @@ export function toggleRightSidebar() {
   rightSidebarOpen = !rightSidebarOpen;
   applyRightSidebar();
   if (rightSidebarOpen) {
+    qualityOpen = false;
+    audioOpen = false;
+    renderRightResolutionList();
+    renderAudioList();
     buildRightItems();
     rightFocus = 0;
     updateRightFocus();
@@ -588,34 +646,180 @@ export function setSelectedResolution(value) {
   renderRightResolutionList();
 }
 
-function renderRightResolutionList() {
-  const list = document.getElementById('resolution-list-right');
+/* Multi-audio tracks (languages, commentary, …). Same row treatment as
+   quality; the whole section hides when a channel offers < 2 tracks. */
+let rightAudios = [];
+let rightSelectedAudioId = null;
+let rightAudioCallback = null;
+
+export function setAudioCallback(cb) {
+  rightAudioCallback = cb;
+}
+
+export function setAudioTracks(tracks) {
+  rightAudios = tracks || [];
+  if (rightSelectedAudioId == null || !rightAudios.some((t) => t.id === rightSelectedAudioId)) {
+    const active = rightAudios.find((t) => t.active);
+    rightSelectedAudioId = active ? active.id : (rightAudios[0] ? rightAudios[0].id : null);
+  }
+  renderAudioList();
+  if (rightSidebarOpen) {
+    buildRightItems();
+    updateRightFocus();
+  }
+}
+
+export function setSelectedAudio(id) {
+  rightSelectedAudioId = id;
+  renderAudioList();
+}
+
+function audioTrackLabel(track, index) {
+  if (track.label) return track.label;
+  if (track.language) return track.language;
+  return 'Track ' + (index + 1);
+}
+
+function renderAudioList() {
+  const section = document.getElementById('audio-section-right');
+  const list = document.getElementById('audio-list-right');
   if (!list) return;
+  const show = rightAudios.length > 1;
+  if (section) section.classList.toggle('hidden', !show);
+  list.classList.toggle('hidden', !show);
   list.innerHTML = '';
-  rightResolutions.forEach((res, index) => {
+  if (!show) return;
+  const header = document.createElement('button');
+  header.className = 'right-sidebar-btn dropdown-header';
+  header.type = 'button';
+  header.textContent = audioHeaderLabel();
+  header.addEventListener('click', () => {
+    setAudioOpen(!audioOpen);
+  });
+  list.appendChild(header);
+  if (!audioOpen) return;
+  rightAudios.forEach((track, index) => {
     const item = document.createElement('div');
-    item.className = 'resolution-item-right';
-    if (res === rightSelectedResolution) {
+    item.className = 'resolution-item-right audio-item-right';
+    if (track.id === rightSelectedAudioId) {
       item.classList.add('active');
     }
-    item.dataset.index = index;
-    item.textContent = res === 'auto' ? 'Auto' : res + 'p';
+    item.textContent = audioTrackLabel(track, index);
     item.addEventListener('click', () => {
-      rightFocus = index;
+      const at = rightItems.findIndex((it) => it.element === item);
+      rightFocus = at >= 0 ? at : rightFocus;
       doRightSelect();
     });
     list.appendChild(item);
   });
 }
 
+function selectAudioById(id) {
+  rightSelectedAudioId = id;
+  qualityOpen = false;
+  audioOpen = false;
+  renderRightResolutionList();
+  renderAudioList();
+  if (rightAudioCallback) {
+    rightAudioCallback(id);
+  }
+  rightSidebarOpen = false;
+  applyRightSidebar();
+}
+
+/* Quality + Audio dropdowns: headers always show, options expand in place.
+   Only one dropdown opens at a time; both start closed on menu open. */
+let qualityOpen = false;
+let audioOpen = false;
+
+function qualityHeaderLabel() {
+  const sel = rightSelectedResolution;
+  return 'Quality: ' + (sel === 'auto' ? 'Auto' : sel + 'p') + (qualityOpen ? ' ▲' : ' ▼');
+}
+
+function renderRightResolutionList() {
+  const list = document.getElementById('resolution-list-right');
+  if (!list) return;
+  list.innerHTML = '';
+  const header = document.createElement('button');
+  header.className = 'right-sidebar-btn dropdown-header';
+  header.type = 'button';
+  header.textContent = qualityHeaderLabel();
+  header.addEventListener('click', () => {
+    setQualityOpen(!qualityOpen);
+  });
+  list.appendChild(header);
+  if (!qualityOpen) return;
+  rightResolutions.forEach((res) => {
+    const item = document.createElement('div');
+    item.className = 'resolution-item-right';
+    if (res === rightSelectedResolution) {
+      item.classList.add('active');
+    }
+    item.textContent = res === 'auto' ? 'Auto' : res + 'p';
+    item.addEventListener('click', () => {
+      const at = rightItems.findIndex((it) => it.element === item);
+      rightFocus = at >= 0 ? at : rightFocus;
+      doRightSelect();
+    });
+    list.appendChild(item);
+  });
+}
+
+function setQualityOpen(open) {
+  qualityOpen = open;
+  if (open) audioOpen = false;
+  renderRightResolutionList();
+  renderAudioList();
+  buildRightItems();
+  rightFocus = 0; // quality header leads the menu
+  updateRightFocus();
+  resetInactivity();
+}
+
+function audioHeaderLabel() {
+  const current = rightAudios.find((t) => t.id === rightSelectedAudioId);
+  const name = current ? audioTrackLabel(current, rightAudios.indexOf(current)) : 'Default';
+  return 'Audio: ' + name + (audioOpen ? ' ▲' : ' ▼');
+}
+
+function setAudioOpen(open) {
+  audioOpen = open;
+  if (open) qualityOpen = false;
+  renderRightResolutionList();
+  renderAudioList();
+  buildRightItems();
+  const at = rightItems.findIndex((it) => it.type === 'audio-header');
+  rightFocus = at >= 0 ? at : rightFocus;
+  updateRightFocus();
+  resetInactivity();
+}
+
 function buildRightItems() {
   rightItems = [];
-  // Resolution items (indices 0 .. N-1)
+  // Quality dropdown: header always, options only while open
   const list = document.getElementById('resolution-list-right');
   if (list) {
-    const resItems = list.querySelectorAll('.resolution-item-right');
-    resItems.forEach((item) => {
-      rightItems.push({ type: 'resolution', element: item });
+    Array.from(list.children).forEach((child) => {
+      if (child.classList.contains('dropdown-header')) {
+        rightItems.push({ type: 'quality-header', element: child });
+      } else {
+        rightItems.push({ type: 'resolution', element: child });
+      }
+    });
+  }
+  // Audio dropdown follows quality (skipped while the section hides)
+  const audioList = document.getElementById('audio-list-right');
+  if (audioList && !audioList.classList.contains('hidden')) {
+    let audioIndex = 0;
+    Array.from(audioList.children).forEach((child) => {
+      if (child.classList.contains('dropdown-header')) {
+        rightItems.push({ type: 'audio-header', element: child });
+      } else {
+        const id = rightAudios[audioIndex] ? rightAudios[audioIndex].id : null;
+        rightItems.push({ type: 'audio', element: child, audioId: id });
+        audioIndex++;
+      }
     });
   }
   // Button IDs
@@ -644,7 +848,11 @@ export function rightSidebarSelect() {
   if (!rightSidebarOpen || rightItems.length === 0) return;
   const item = rightItems[rightFocus];
   if (!item) return;
-  if (item.type === 'resolution') {
+  if (item.type === 'quality-header') {
+    setQualityOpen(!qualityOpen);
+  } else if (item.type === 'audio-header') {
+    setAudioOpen(!audioOpen);
+  } else if (item.type === 'resolution' || item.type === 'audio') {
     doRightSelect();
   } else if (item.type === 'button') {
     const el = document.getElementById(item.id);
@@ -653,15 +861,26 @@ export function rightSidebarSelect() {
 }
 
 function doRightSelect() {
-  const items = document.querySelectorAll('.resolution-item-right');
-  const idx = rightFocus;
-  if (idx < 0 || idx >= items.length) {
-    // Focus is on a button, not a resolution item - do nothing
+  const item = rightItems[rightFocus];
+  if (!item) return;
+  if (item.type === 'audio') {
+    selectAudioById(item.audioId);
     return;
   }
-  const value = rightResolutions[idx];
+  if (item.type !== 'resolution') {
+    // Focus is on a header or button, not a quality option - do nothing
+    return;
+  }
+  const options = rightItems
+    .map((it, idx) => ({ it, idx }))
+    .filter(({ it }) => it.type === 'resolution');
+  const optIndex = options.findIndex(({ idx }) => idx === rightFocus);
+  if (optIndex < 0 || optIndex >= rightResolutions.length) return;
+  const value = rightResolutions[optIndex];
   rightSelectedResolution = value;
+  qualityOpen = false;
   renderRightResolutionList();
+  renderAudioList();
   if (rightResolutionCallback) {
     rightResolutionCallback(value === 'auto' ? null : value);
   }
@@ -698,6 +917,22 @@ export function showChannelOsd(channel) {
       el.classList.add('hidden');
     }, 300);
   }, 2000);
+}
+
+/* First-run hint: same OSD home, longer stay, plain guidance text */
+export function showFirstRunHint() {
+  const el = document.getElementById('channel-osd');
+  if (!el) return;
+  clearTimeout(osdTimer);
+  el.classList.remove('fade');
+  el.classList.remove('hidden');
+  el.textContent = 'No playlist yet — choose Settings from the menu';
+  osdTimer = setTimeout(() => {
+    el.classList.add('fade');
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 300);
+  }, 5000);
 }
 
 export function getChannels() {

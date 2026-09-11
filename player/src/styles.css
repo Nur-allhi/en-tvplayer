@@ -90,7 +90,7 @@ html, body {
   left: 0;
   bottom: 0;
   width: calc(480px * var(--tv-scale));
-  background: #111;
+  background: rgba(17, 17, 17, 0.8);
   display: flex;
   flex-direction: column;
   transition: transform 0.25s ease;
@@ -118,7 +118,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: calc(24px * var(--tv-scale));
+  font-size: calc(26px * var(--tv-scale));
   font-weight: 600;
   color: #fff;
   letter-spacing: 1px;
@@ -145,9 +145,9 @@ html, body {
 
 .logo-icon {
   flex-shrink: 0;
-  width: calc(26px * var(--tv-scale));
-  height: calc(26px * var(--tv-scale));
-  border-radius: 6px;
+  width: calc(48px * var(--tv-scale));
+  height: calc(48px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
 }
 
 .channel-list {
@@ -300,12 +300,59 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: calc(120px * var(--tv-scale));
-  height: calc(120px * var(--tv-scale));
+  width: calc(180px * var(--tv-scale));
+  height: calc(180px * var(--tv-scale));
   transform: translate(-50%, -50%);
   background: url('/logo.svg') center / contain no-repeat;
   opacity: 0.12;
   pointer-events: none;
+}
+
+/* Centered brand mark for dead-air states (no channels, failed tune, stopped):
+   sits above the video plane but below veils and pills. While it is up, the
+   faint backdrop logo hides so the two don't stack on each other. */
+.player-empty-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+.player-empty-logo > * + * { margin-top: calc(16px * var(--tv-scale)); }
+
+.player-container.show-brand::before {
+  opacity: 0;
+}
+
+.empty-logo-icon {
+  width: calc(120px * var(--tv-scale));
+  height: calc(120px * var(--tv-scale));
+  border-radius: calc(24px * var(--tv-scale));
+}
+
+.empty-logo-text {
+  font-size: calc(34px * var(--tv-scale));
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.empty-logo-text span {
+  color: #ED421F;
+}
+
+.empty-logo-message {
+  font-size: calc(20px * var(--tv-scale));
+  font-weight: 500;
+  color: #8b949e;
+  text-align: center;
+  max-width: calc(520px * var(--tv-scale));
 }
 
 /* Small watermark, top-left over the picture. Parked off-screen left while
@@ -486,13 +533,10 @@ html, body {
   justify-content: center;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
-.play-state-icon > * + * { margin-left: 18px; }
-
-.play-state-icon span {
-  width: 22px;
-  height: calc(56px * var(--tv-scale));
-  background: #fff;
-  border-radius: 4px;
+.play-state-icon img {
+  width: calc(72px * var(--tv-scale));
+  height: calc(72px * var(--tv-scale));
+  border-radius: calc(14px * var(--tv-scale));
 }
 
 /* Right sidebar (overlay — always absolute) */
@@ -502,7 +546,7 @@ html, body {
   top: 0;
   bottom: 0;
   width: calc(400px * var(--tv-scale));
-  background: #111;
+  background: rgba(17, 17, 17, 0.8);
   display: flex;
   flex-direction: column;
   z-index: 55;
@@ -597,6 +641,16 @@ html, body {
 
 .right-sidebar-btn.focused {
   box-shadow: inset 4px 0 0 #ED421F, inset 0 0 0 calc(2px * var(--tv-scale)) #fff;
+}
+
+/* Dropdown headers carry the section name + current pick; options indent */
+.right-sidebar-btn.dropdown-header {
+  font-weight: 600;
+  color: #fff;
+}
+
+.dropdown-options .resolution-item-right {
+  margin-left: calc(28px * var(--tv-scale));
 }
 
 /* Update badge dot (shown when a newer release is available) */
@@ -751,16 +805,18 @@ html, body {
   align-items: center;
 }
 
-/* Logo container — icon + text side by side, centered */
+/* Logo container — icon stacked over the name, centered (same pattern as
+   the centered player brand mark) */
 .boot-logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
   opacity: 0;
   animation: bootLogoIn 0.6s ease-out forwards;
   animation-delay: 0.2s;
 }
 /* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
-.boot-logo > * + * { margin-left: calc(16px * var(--tv-scale)); }
+.boot-logo > * + * { margin-left: 0; margin-top: calc(16px * var(--tv-scale)); }
 
 @keyframes bootLogoIn {
   0% { opacity: 0; transform: scale(0.6); }
@@ -791,13 +847,14 @@ html, body {
 }
 
 .boot-logo-text {
-  font-size: calc(40px * var(--tv-scale));
+  font-size: calc(54px * var(--tv-scale));
   font-weight: 700;
   color: #fff;
   letter-spacing: 2px;
   line-height: 1.1;
-  min-width: calc(210px * var(--tv-scale));
-  min-height: calc(44px * var(--tv-scale));
+  text-align: center;
+  min-width: calc(300px * var(--tv-scale));
+  min-height: calc(60px * var(--tv-scale));
 }
 
 .boot-logo-text span {
@@ -827,14 +884,16 @@ html, body {
   white-space: nowrap;
 }
 
-/* Tagline below the logo row, centered */
+/* Tagline below the logo row, centered on the logo + name lockup */
 .boot-typewriter {
+  display: block;
+  width: 100%;
   margin-top: calc(12px * var(--tv-scale));
   text-align: center;
-  font-size: calc(16px * var(--tv-scale));
+  font-size: calc(21px * var(--tv-scale));
   color: rgba(255,255,255,0.35);
   letter-spacing: 0.04em;
-  min-height: calc(20px * var(--tv-scale));
+  min-height: calc(26px * var(--tv-scale));
 }
 
 .boot-typewriter::after {
@@ -920,7 +979,7 @@ html, body {
 .settings-nav {
   width: calc(384px * var(--tv-scale));
   border-right: 1px solid #222;
-  padding: calc(96px * var(--tv-scale)) 0 0;
+  padding: calc(24px * var(--tv-scale)) 0 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -956,8 +1015,8 @@ html, body {
 }
 
 .nav-sub {
-  font-size: calc(15px * var(--tv-scale));
-  color: #555;
+  font-size: calc(18px * var(--tv-scale));
+  color: #fff;
   letter-spacing: 0.02em;
 }
 
@@ -981,12 +1040,19 @@ html, body {
   height: calc(60px * var(--tv-scale));
   overflow: hidden;
 }
-.nav-item > * + * { margin-left: 13px; }
+.nav-item > * + * { margin-left: calc(13px * var(--tv-scale)); }
 
 .nav-item .nav-icon {
   font-size: calc(19px * var(--tv-scale));
   width: calc(23px * var(--tv-scale));
   text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-item.active {
@@ -1095,6 +1161,7 @@ html, body {
 
 .input-field {
   flex: 1;
+  width: 100%;
   padding: calc(15px * var(--tv-scale)) calc(19px * var(--tv-scale));
   font-size: calc(21px * var(--tv-scale));
   background: #0d1117;
@@ -1241,6 +1308,24 @@ html, body {
   flex-shrink: 0;
 }
 
+.settings-page .about-link {
+  color: #ED421F;
+  text-decoration: none;
+}
+
+.settings-page .about-text {
+  font-size: calc(17px * var(--tv-scale));
+  line-height: 1.5;
+  color: #c9d1d9;
+  background: #0d1117;
+  border: calc(2px * var(--tv-scale)) solid #333;
+  border-left: calc(4px * var(--tv-scale)) solid #ED421F;
+  border-radius: calc(8px * var(--tv-scale));
+  padding: calc(14px * var(--tv-scale)) calc(18px * var(--tv-scale));
+  margin-bottom: calc(16px * var(--tv-scale));
+  max-width: 90%;
+}
+
 .toggle {
   width: calc(54px * var(--tv-scale));
   height: calc(31px * var(--tv-scale));
@@ -1382,13 +1467,20 @@ html, body {
 /* === Playlist list (for Channel Source card) === */
 .settings-page .playlist-list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   margin-bottom: calc(23px * var(--tv-scale));
   min-width: 0;
 }
 .playlist-list > * + * { margin-top: calc(12px * var(--tv-scale)); }
+.settings-page .playlist-list > * + * {
+  margin-top: 0;
+  margin-left: calc(12px * var(--tv-scale));
+}
 
 .settings-page .playlist-entry {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: calc(16px * var(--tv-scale)) calc(20px * var(--tv-scale));
@@ -1419,8 +1511,10 @@ html, body {
 }
 
 .settings-page .playlist-entry .btn-group {
-  margin-top: calc(20px * var(--tv-scale));
+  margin-top: auto;
+  padding-top: calc(20px * var(--tv-scale));
   display: flex;
+  justify-content: center;
 }
 .btn-group > * + * { margin-left: 24px; }
 
@@ -1470,6 +1564,15 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   word-break: break-all;
+  max-width: 100%;
+}
+
+.settings-page .playlist-meta {
+  font-size: calc(14px * var(--tv-scale));
+  color: #777;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   max-width: 100%;
 }
 

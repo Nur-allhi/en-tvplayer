@@ -17,7 +17,7 @@
     <div id="sidebar" class="sidebar closed">
       <div class="sidebar-header">
         <span class="logo">
-          <img src="logo.svg" class="logo-icon" width="28" height="28" alt="EN IPTV logo">
+          <img src="logo.svg" class="logo-icon" width="48" height="48" alt="EN IPTV logo">
         </span>
         <span id="sidebar-title" class="sidebar-title">Groups</span>
       </div>
@@ -41,6 +41,11 @@
         <div id="player-container" class="player-container">
           <object id="avplayer" type="application/avplayer" class="avplayer hidden"></object>
           <video id="video" autoplay></video>
+          <div id="player-empty-logo" class="player-empty-logo hidden">
+            <img src="logo.svg" class="empty-logo-icon" width="120" height="120" alt="EN IPTV logo">
+            <span class="empty-logo-text">EN <span>IPTV</span></span>
+            <span id="empty-logo-message" class="empty-logo-message hidden"></span>
+          </div>
           <div id="player-watermark" class="player-watermark">
             <img src="logo.svg" class="watermark-icon" width="22" height="22" alt="">
             <span class="watermark-text">EN <span>IPTV</span></span>
@@ -60,7 +65,7 @@
 
           <!-- Play/Pause status overlay -->
           <div id="play-state" class="play-state hidden">
-            <div class="play-state-icon"><span></span><span></span></div>
+            <div class="play-state-icon"><img src="logo.svg" width="72" height="72" alt="Paused"></div>
           </div>
 
           <!-- Progress toast for right sidebar actions -->
@@ -85,8 +90,10 @@
           <span class="right-sidebar-title">Menu</span>
         </div>
         <div class="right-sidebar-content">
-          <div class="section-label">Quality</div>
-          <div id="resolution-list-right" class="resolution-list-right"></div>
+          <div id="resolution-list-right" class="resolution-list-right dropdown-options"></div>
+          <div id="audio-section-right">
+            <div id="audio-list-right" class="resolution-list-right dropdown-options"></div>
+          </div>
           <div class="section-label">Actions</div>
           <button id="refresh-stream-btn" class="right-sidebar-btn" type="button">&#8635; Reload Stream</button>
           <button id="refresh-channels-btn" class="right-sidebar-btn" type="button">&#8634; Refresh Channels</button>
@@ -98,7 +105,7 @@
       <div id="boot-splash" class="boot-splash hidden">
         <div class="boot-splash-content">
           <div class="boot-logo" id="boot-logo">
-            <img src="logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="56" height="56" alt="EN IPTV logo">
+            <img src="logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="120" height="120" alt="EN IPTV logo">
             <span class="boot-logo-text typing" id="boot-logo-text"></span>
           </div>
           <span id="boot-typewriter" class="boot-typewriter"></span>
