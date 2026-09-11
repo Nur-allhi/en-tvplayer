@@ -796,6 +796,7 @@ html, body {
   color: #fff;
   letter-spacing: 2px;
   line-height: 1.1;
+  text-align: center;
   min-width: calc(300px * var(--tv-scale));
   min-height: calc(60px * var(--tv-scale));
 }
@@ -827,8 +828,10 @@ html, body {
   white-space: nowrap;
 }
 
-/* Tagline below the logo row, centered */
+/* Tagline below the logo row, centered on the logo + name lockup */
 .boot-typewriter {
+  display: block;
+  width: 100%;
   margin-top: calc(12px * var(--tv-scale));
   text-align: center;
   font-size: calc(21px * var(--tv-scale));
