@@ -119,7 +119,7 @@ git push && git push origin vX.Y.Z
 
 ### Step 5: Create GitHub Release
 - Use `gh release create` or GitHub UI
-- Upload `releases/EN-IPTV_Player.wgt` (direct .wgt, NOT zip)
+- Upload a versioned `.wgt` (e.g. `EN-IPTV_Player_vX.Y.Z.wgt`, direct .wgt, NOT zip) — the community bundle matches `EN-IPTV_Player_v.*[.]wgt$`, an unversioned name is invisible to it
 - Write release notes
 
 ### Step 6: ⚠️ UPDATE COMMUNITY JSON (MANDATORY)
