@@ -760,7 +760,7 @@ html, body {
   animation-delay: 0.2s;
 }
 /* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
-.boot-logo > * + * { margin-left: calc(16px * var(--tv-scale)); }
+.boot-logo > * + * { margin-left: calc(8px * var(--tv-scale)); }
 
 @keyframes bootLogoIn {
   0% { opacity: 0; transform: scale(0.6); }
