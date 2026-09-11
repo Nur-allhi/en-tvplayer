@@ -511,7 +511,10 @@ function startPlayer() {
 
 function showEmptyState() {
   showPlayer();
-  ui.showEmptyLogo();
+  const active = getActivePlaylist();
+  ui.showEmptyLogo(!active || !active.url
+    ? 'No playlist yet — open Settings to add one and start watching'
+    : 'This playlist has no channels — check the URL or try another');
   const nameEl = document.getElementById('channel-name');
   if (nameEl) nameEl.textContent = 'No channels';
   const infoEl = document.getElementById('channel-info');
@@ -642,7 +645,7 @@ async function handleChannelSelect(channel) {
   if (!ok) {
     hideProgress();
     ui.hideBuffering();
-    ui.showEmptyLogo();
+    ui.showEmptyLogo('');
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
@@ -971,7 +974,7 @@ function handleRemoteAction(action, value) {
       break;
     case 'stop':
       player.stop();
-      ui.showEmptyLogo();
+      ui.showEmptyLogo('Playback stopped — pick a channel to watch');
       ui.toggleSidebar();
       break;
     case 'red':

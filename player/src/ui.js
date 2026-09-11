@@ -569,12 +569,21 @@ export function isBadgeVisible() {
   return showBadge;
 }
 
-/* Centered brand mark for dead-air states (no channels, failed tune, stopped) */
-export function showEmptyLogo() {
+/* Centered brand mark for dead-air states (no channels, failed tune, stopped).
+   Pass a reason to print under the logo; pass '' to leave the error pill
+   as the only message. */
+export function showEmptyLogo(message) {
   const el = document.getElementById('player-empty-logo');
   if (el) el.classList.remove('hidden');
   const container = document.getElementById('player-container');
   if (container) container.classList.add('show-brand');
+  if (typeof message === 'string') {
+    const msgEl = document.getElementById('empty-logo-message');
+    if (msgEl) {
+      msgEl.textContent = message;
+      msgEl.classList.toggle('hidden', message.length === 0);
+    }
+  }
 }
 
 export function hideEmptyLogo() {

@@ -347,6 +347,14 @@ html, body {
   color: #ED421F;
 }
 
+.empty-logo-message {
+  font-size: calc(20px * var(--tv-scale));
+  font-weight: 500;
+  color: #8b949e;
+  text-align: center;
+  max-width: calc(520px * var(--tv-scale));
+}
+
 /* Small watermark, top-left over the picture. Parked off-screen left while
    the sidebar is open; slides in once the sidebar hides. */
 .player-watermark {
