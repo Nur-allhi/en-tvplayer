@@ -956,8 +956,8 @@ html, body {
 }
 
 .nav-sub {
-  font-size: calc(15px * var(--tv-scale));
-  color: #555;
+  font-size: calc(18px * var(--tv-scale));
+  color: #fff;
   letter-spacing: 0.02em;
 }
 
