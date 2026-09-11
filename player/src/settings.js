@@ -113,6 +113,28 @@ export function navigateNav(dir) {
   const curIdx = focusOrder.indexOf(cur);
   const inNavZone = curIdx >= 0 && curIdx < navCount;
   const contentStart = navCount;
+  const total = focusOrder.length;
+
+  // Channel Source lays its playlist cards side by side, so Left/Right
+  // steps across the row (prev/next focusable) instead of jumping zones.
+  // Left from the first card is the escape hatch back to the side nav.
+  if (activeSection === 'source' && !inNavZone && curIdx >= contentStart) {
+    if (dir < 0) {
+      if (curIdx === contentStart) {
+        const tabs = Array.from(document.querySelectorAll('.nav-item'));
+        const activeTab = document.querySelector('.nav-item.active');
+        const idx = tabs.indexOf(activeTab);
+        focusIdx = idx >= 0 ? idx : 0;
+      } else {
+        focusIdx = curIdx - 1;
+      }
+      applyFocus();
+      return;
+    }
+    focusIdx = curIdx + 1 >= total ? contentStart : curIdx + 1;
+    applyFocus();
+    return;
+  }
 
   const btnGroup = cur.closest('.btn-group');
   if (btnGroup) {

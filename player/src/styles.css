@@ -1434,8 +1434,10 @@ html, body {
 }
 
 .settings-page .playlist-entry .btn-group {
-  margin-top: calc(20px * var(--tv-scale));
+  margin-top: auto;
+  padding-top: calc(20px * var(--tv-scale));
   display: flex;
+  justify-content: center;
 }
 .btn-group > * + * { margin-left: 24px; }
 
