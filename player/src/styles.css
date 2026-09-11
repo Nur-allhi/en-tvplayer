@@ -90,7 +90,7 @@ html, body {
   left: 0;
   bottom: 0;
   width: calc(480px * var(--tv-scale));
-  background: #111;
+  background: rgba(17, 17, 17, 0.8);
   display: flex;
   flex-direction: column;
   transition: transform 0.25s ease;
@@ -549,7 +549,7 @@ html, body {
   top: 0;
   bottom: 0;
   width: calc(400px * var(--tv-scale));
-  background: #111;
+  background: rgba(17, 17, 17, 0.8);
   display: flex;
   flex-direction: column;
   z-index: 55;
