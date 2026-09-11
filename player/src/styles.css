@@ -533,13 +533,10 @@ html, body {
   justify-content: center;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
-.play-state-icon > * + * { margin-left: 18px; }
-
-.play-state-icon span {
-  width: 22px;
-  height: calc(56px * var(--tv-scale));
-  background: #fff;
-  border-radius: 4px;
+.play-state-icon img {
+  width: calc(72px * var(--tv-scale));
+  height: calc(72px * var(--tv-scale));
+  border-radius: calc(14px * var(--tv-scale));
 }
 
 /* Right sidebar (overlay — always absolute) */
