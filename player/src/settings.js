@@ -747,6 +747,13 @@ function renderAboutCard() {
   html += '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
   html += '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' + (player.isNativeAvailable() ? 'Available' : 'Not available') + '</div></div>';
   html += '</div></div>';
+  html += '<div class="setting-card">';
+  html += '<div class="card-header"><h3><span class="card-icon">\u{1F517}</span> Links</h3></div>';
+  html += '<div class="card-body">';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Developer</div></div><div class="toggle-value">Nur-allhi</div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">GitHub</div></div><div class="toggle-value"><a class="about-link" href="https://github.com/Nur-allhi" target="_blank" rel="noopener">github.com/Nur-allhi</a></div></div>';
+  html += '<div class="toggle-row"><div><div class="toggle-label">Telegram</div></div><div class="toggle-value"><a class="about-link" href="https://t.me/eniptvplayer" target="_blank" rel="noopener">t.me/eniptvplayer</a></div></div>';
+  html += '</div></div>';
   return html;
 }
 

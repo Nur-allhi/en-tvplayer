@@ -1249,6 +1249,11 @@ html, body {
   flex-shrink: 0;
 }
 
+.settings-page .about-link {
+  color: #ED421F;
+  text-decoration: none;
+}
+
 .toggle {
   width: calc(54px * var(--tv-scale));
   height: calc(31px * var(--tv-scale));
