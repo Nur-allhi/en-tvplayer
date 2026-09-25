@@ -75,8 +75,12 @@ function escapeRegExp(s) {
 
 // Append auth token params to a URL unless already present. String-based so
 // raw token chars (~, /, *) match the provider's own URL style.
+// HTTP(S) only: Shaka also fetches non-network URIs through the same
+// pipeline (e.g. ClearKey's `data:` license URI holding the inline keys) —
+// appending a query there corrupts the payload and breaks decryption (6007).
 export function withAuthQuery(uri, authQuery) {
   if (!uri || !authQuery) return uri;
+  if (!/^https?:\/\//i.test(uri)) return uri;
   try {
     const hashIdx = uri.indexOf('#');
     const hash = hashIdx >= 0 ? uri.slice(hashIdx) : '';
