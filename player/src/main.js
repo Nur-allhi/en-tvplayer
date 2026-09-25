@@ -126,7 +126,7 @@ const CHANGELOG = [
   {
     version: '2.3.0',
     sections: [
-      { type: 'added', items: ['Provider-order channel listing by default, A–Z stays optional', 'Hide groups from Settings, cross-group channel search from the group list'] },
+      { type: 'added', items: ['Provider-order channel listing by default, A–Z stays optional', 'Hide groups from Settings, cross-group channel search from the group list', 'Channel Up/Down buttons switch to the next/previous channel', 'CH keys also move the highlight in lists and close the menu to zap'] },
     ],
   },
   {
@@ -801,6 +801,18 @@ function registerTizenKeys() {
   }
 }
 
+// CH Up/Down (and Prev/Next keys): retune to the adjacent channel in the
+// current group view, wrapping around.
+function zapChannel(step) {
+  const displayChannels = getDisplayChannels();
+  if (displayChannels.length === 0) return;
+  const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
+  const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
+  const target = (idx + step + displayChannels.length) % displayChannels.length;
+  currentIndex = channels.indexOf(displayChannels[target]);
+  ui.selectChannel(currentIndex, true);
+}
+
 function handleRemoteAction(action, value) {
   if (action === 'back') {
     const now = Date.now();
@@ -893,6 +905,14 @@ function handleRemoteAction(action, value) {
         break;
       case 'right':
         break;
+      case 'channelUp':
+        ui.toggleRightSidebar();
+        zapChannel(1);
+        break;
+      case 'channelDown':
+        ui.toggleRightSidebar();
+        zapChannel(-1);
+        break;
       default:
         break;
     }
@@ -930,6 +950,12 @@ function handleRemoteAction(action, value) {
         case 'down':
           ui.navigateGroupDown();
           break;
+        case 'channelUp':
+          ui.navigateGroupDown();
+          break;
+        case 'channelDown':
+          ui.navigateGroupUp();
+          break;
         case 'select':
           ui.selectFocusedGroup();
           break;
@@ -955,6 +981,12 @@ function handleRemoteAction(action, value) {
           break;
         case 'down':
           ui.navigateDown();
+          break;
+        case 'channelUp':
+          ui.navigateDown();
+          break;
+        case 'channelDown':
+          ui.navigateUp();
           break;
         case 'select':
           ui.selectFocused();
@@ -993,29 +1025,17 @@ function handleRemoteAction(action, value) {
 
   switch (action) {
     case 'up':
-    case 'channelUp':
-    case 'prev': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
-      const prevChannel = displayChannels[prev];
-      currentIndex = channels.indexOf(prevChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'prev':
+      zapChannel(-1);
       break;
-    }
     case 'down':
-    case 'channelDown':
-    case 'next': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const next = (idx + 1) % displayChannels.length;
-      const nextChannel = displayChannels[next];
-      currentIndex = channels.indexOf(nextChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'next':
+    case 'channelUp':
+      zapChannel(1);
       break;
-    }
+    case 'channelDown':
+      zapChannel(-1);
+      break;
     case 'left':
       ui.toggleSidebar();
       break;
