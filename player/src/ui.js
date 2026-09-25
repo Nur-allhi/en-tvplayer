@@ -1173,8 +1173,13 @@ export function getCurrentChannel() {
 }
 
 export function refreshChannelList(newChannels) {
+  // Preserve the playing mark across playlist refreshes: match by URL
+  // (stable across re-fetch/re-sort); resets when the channel is gone.
+  const playingUrl = currentIndex >= 0 && currentIndex < channels.length && channels[currentIndex]
+    ? channels[currentIndex].url
+    : null;
   channels = newChannels;
-  currentIndex = -1;
+  currentIndex = playingUrl ? newChannels.findIndex((ch) => ch && ch.url === playingUrl) : -1;
   focusedIndex = 0;
   extractGroups(channels);
   if (selectedGroup === 'all') {
