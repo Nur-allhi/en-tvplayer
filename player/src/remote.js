@@ -86,6 +86,46 @@ function handleKeyDown(e) {
     return;
   }
 
+  // Sidebar channel search: let typing and caret keys reach the input.
+  // Only Enter/Escape/arrows are captured for result navigation. Backspace
+  // deletes on desktop but exits on TV (the Tizen IME deletes internally).
+  const searchInput = document.getElementById('channel-search');
+  const isSearchTyping = searchInput && document.activeElement === searchInput;
+  if (isSearchTyping) {
+    const isTV = typeof window !== 'undefined' && !!(window.tizen && window.tizen.tvinputdevice);
+    if (key === 'Enter' || e.keyCode === 13) {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyAction('select');
+      return;
+    }
+    if (key === 'Escape' || key === 'GoBack' || e.keyCode === 27 || e.keyCode === 10009) {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyAction('back');
+      return;
+    }
+    if (isTV && (key === 'Backspace' || e.keyCode === 8)) {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyAction('back');
+      return;
+    }
+    if (key === 'ArrowUp' || e.keyCode === 38) {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyAction('up');
+      return;
+    }
+    if (key === 'ArrowDown' || e.keyCode === 40) {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyAction('down');
+      return;
+    }
+    return;
+  }
+
   // Prevent default for handled keys
   const handled = [
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
