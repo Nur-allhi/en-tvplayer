@@ -6,9 +6,16 @@ All notable changes to EN TV Player will be documented in this file.
 
 ### Added
 - Audio track selection in the right sidebar for multi-audio channels.
-- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching.
-- CH keys move the highlight in the channel/group lists (OK tunes) and close the Menu to zap.
-- Real-Tizen keyCode support (427/428) so CH keys register on hardware remotes.
+
+---
+
+## [2.4.0] - 2026-09-25
+
+### Added
+- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching, in lists and from the Menu, with hardware keyCode support.
+- Native Xtream Codes login: host + username + password source with Test Login, categories as groups.
+- First-run source picker: new installs choose M3U playlist or Xtream login right after the splash.
+- Source form revamp: type selector first, single Test/Save/Cancel row, TV keyboard opens on OK only.
 
 ---
 
