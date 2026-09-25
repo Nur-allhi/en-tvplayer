@@ -1,5 +1,6 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
+import { withAuthQuery } from './utils.js';
 import * as avplay from './avplay.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
@@ -157,6 +158,13 @@ export async function initPlayer(videoEl) {
             else if (lower === 'origin') request.headers['Origin'] = v;
             else request.headers[k] = v;
           }
+        }
+        // Cookie-auth tokens can't be sent by browsers (forbidden header),
+        // so they ride on the query string instead (see channel.authQuery).
+        // Applied per request: DASH segment URLs resolve relative to the
+        // manifest and drop its query, and HLS variants rotate tokens.
+        if (currentChannel.authQuery && request.uris && request.uris[0]) {
+          request.uris[0] = withAuthQuery(request.uris[0], currentChannel.authQuery);
         }
         // Desktop test relay: route this channel's manifest + segments via proxy.
         if (currentChannel.useProxy && request.uris && request.uris[0]) {
@@ -341,7 +349,8 @@ function isNativeLoadCrash(error) {
 async function probeChannelFormat(channel) {
   if (!channel) return null;
   try {
-    const targetUrl = channel.useProxy ? toProxied(channel.url) : channel.url;
+    const authedUrl = withAuthQuery(channel.url, channel.authQuery);
+    const targetUrl = channel.useProxy ? toProxied(authedUrl) : authedUrl;
     if (!targetUrl) return null;
 
     const controller = new AbortController();
@@ -443,7 +452,7 @@ export async function loadChannel(channel) {
   advancePending = false;
   lastResortAttempts = 0;
 
-  let url = channel.url;
+  let url = withAuthQuery(channel.url, channel.authQuery);
   if (reconnectAttempts > 0) {
     const sep = url.indexOf('?') >= 0 ? '&' : '?';
     url += sep + '_t=' + Date.now();
@@ -964,7 +973,7 @@ function stopBlackWatchdog() {
 }
 
 function avplayStreamUrl(channel) {
-  return channel.url;
+  return withAuthQuery(channel.url, channel.authQuery);
 }
 
 async function loadViaAvplay(channel, myToken) {

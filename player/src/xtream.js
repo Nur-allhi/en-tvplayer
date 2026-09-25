@@ -66,6 +66,7 @@ export async function fetchXtreamChannels(entry) {
     drm: null,
     userAgent: null,
     customHeaders: null,
+    authQuery: null,
     group: names[String(s.category_id)] || 'Ungrouped',
   }));
 }
