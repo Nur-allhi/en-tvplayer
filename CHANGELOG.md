@@ -7,6 +7,9 @@ All notable changes to EN TV Player will be documented in this file.
 ### Added
 - Audio track selection in the right sidebar for multi-audio channels.
 
+### Fixed
+- Cookie-authenticated channels (e.g. JioTV+ Business, Devotional) now play: edge-auth tokens from the playlist's Cookie header are sent as URL query params, since browsers refuse to send Cookie headers and native players don't.
+
 ---
 
 ## [3.0.2] - 2026-09-25
