@@ -122,6 +122,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '2.3.0',
+    sections: [
+      { type: 'added', items: ['Channel Up/Down buttons switch to the next/previous channel', 'CH keys also move the highlight in lists and close the menu to zap'] },
+    ],
+  },
+  {
     version: '2.2.0',
     sections: [
       { type: 'added', items: ['Channel Source revamp: 3 playlists max, side-by-side cards with added and last-played dates', 'OK on a card loads it immediately, Left/Right moves across cards', 'TV keyboard opens from playlist inputs, fetch button relabeled Active', 'Display toggles: App logo and Quality badge can be shown or hidden'] },

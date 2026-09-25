@@ -9,6 +9,15 @@ All notable changes to EN TV Player will be documented in this file.
 
 ---
 
+## [2.3.0] - 2026-09-25
+
+### Added
+- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching.
+- CH keys move the highlight in the channel/group lists (OK tunes) and close the Menu to zap.
+- Real-Tizen keyCode support (427/428) so CH keys register on hardware remotes.
+
+---
+
 ## [2.2.0] - 2026-09-11
 
 ### Added
