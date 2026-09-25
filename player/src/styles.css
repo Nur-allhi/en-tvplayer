@@ -485,30 +485,40 @@ html, body {
   display: none !important;
 }
 
-/* Buffering pill (bottom center, enlarged for big TVs) */
+/* Buffering pill (bottom center, enlarged for big TVs).
+   Line 1: spinner + percent. Line 2: status hint underneath, own line. */
 .buffering-indicator {
   position: absolute;
   bottom: calc(20px * var(--tv-scale));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   background: rgba(0, 0, 0, 0.7);
   padding: calc(14px * var(--tv-scale)) calc(28px * var(--tv-scale));
   border-radius: calc(28px * var(--tv-scale));
   font-size: calc(23px * var(--tv-scale));
   z-index: 40;
+  max-width: 86vw;
 }
-.buffering-indicator > * + * { margin-left: 12px; }
-.buffering-indicator .spinner {
+.buffering-row {
+  display: flex;
+  align-items: center;
+}
+.buffering-row > * + * { margin-left: 12px; }
+.buffering-row .spinner {
   width: calc(32px * var(--tv-scale));
   height: calc(32px * var(--tv-scale));
   border-width: calc(3px * var(--tv-scale));
 }
 
 .buffering-hint {
+  margin-top: calc(8px * var(--tv-scale));
   color: #8b949e;
-  font-size: calc(14px * var(--tv-scale));
+  font-size: calc(18px * var(--tv-scale));
+  text-align: center;
+  max-width: 100%;
 }
 
 .spinner.small {
