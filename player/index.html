@@ -57,13 +57,13 @@
           <div id="resolution-badge" class="resolution-badge hidden">Auto</div>
           <div id="error" class="error hidden"></div>
 
-          <!-- Buffering pill -->
-          <div id="buffering-indicator" class="buffering-indicator hidden">
-            <div class="buffering-row">
+          <!-- Buffering pill + status line above it (separate elements) -->
+          <div id="buffering-wrap" class="buffering-wrap">
+            <span id="buffering-hint" class="buffering-hint hidden"></span>
+            <div id="buffering-indicator" class="buffering-indicator hidden">
               <div class="spinner small"></div>
               <span>Buffering <span id="buffering-percent">0%</span></span>
             </div>
-            <span id="buffering-hint" class="buffering-hint hidden"></span>
           </div>
 
           <!-- Play/Pause status overlay -->
