@@ -181,7 +181,9 @@ export function updateGroupFocus() {
     item.classList.toggle('focused', idx === groupFocusedIndex);
   });
   if (items[groupFocusedIndex]) {
-    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + centered: smooth queues animations on key-repeat (hold)
+    // and the focus runs ahead of the visible scroll position.
+    items[groupFocusedIndex].scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
@@ -329,7 +331,8 @@ function updateSearchFocus() {
   const items = document.querySelectorAll('#search-results .search-item');
   items.forEach((item, i) => item.classList.toggle('focused', i === searchFocus));
   if (items[searchFocus]) {
-    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + centered: see updateGroupFocus.
+    items[searchFocus].scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
@@ -1118,7 +1121,8 @@ function updateRightFocus() {
     }
   });
   if (rightItems[rightFocus] && rightItems[rightFocus].element) {
-    rightItems[rightFocus].element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + centered: see updateGroupFocus.
+    rightItems[rightFocus].element.scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
@@ -1264,7 +1268,8 @@ function updateFocus() {
 function scrollToFocused() {
   const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
   if (el) {
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + centered: see updateGroupFocus.
+    el.scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
