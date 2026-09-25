@@ -15,6 +15,7 @@ gh api repos/Nur-allhi/en-tvplayer/releases --jq \
 
 | Release | Downloads |
 |---------|-----------|
+| v3.0.3 | 4 |
 | v3.0.2 | 2 |
 | v2.2.0 | 84 |
 | v2.1.0 | 12 |
