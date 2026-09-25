@@ -844,10 +844,10 @@ function buildRightItems() {
     });
   }
   // Button IDs
-  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'settings-btn'];
+  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'settings-btn', 'proxy-toggle-btn'];
   btnIds.forEach((id) => {
     const el = document.getElementById(id);
-    if (el) {
+    if (el && !el.classList.contains('hidden')) {
       rightItems.push({ type: 'button', element: el, id: id });
     }
   });
@@ -1141,6 +1141,12 @@ function setBufferingPercent(percent) {
 export function setUpdateBadge(visible) {
   const btn = document.getElementById('settings-btn');
   if (btn) btn.classList.toggle('has-update', !!visible);
+}
+
+/* Desktop test relay label (branch-only): Proxy (test): On/Off */
+export function setProxyToggleLabel(on) {
+  const btn = document.getElementById('proxy-toggle-btn');
+  if (btn) btn.textContent = 'Proxy (test): ' + (on ? 'On' : 'Off');
 }
 
 /* Confirm Dialog */

@@ -85,6 +85,31 @@ function detectMimeType(url) {
   return null; // let Shaka auto-detect
 }
 
+// Desktop test relay (branch-only, never shipped): prefix a channel URL so
+// it loads through the local proxy (CORS + Origin/Referer/UA fix).
+function proxyBase() {
+  try {
+    return (getSettings().proxyUrl || 'https://localhost:5001').replace(/\/+$/, '');
+  } catch {
+    return 'https://localhost:5001';
+  }
+}
+
+function toProxied(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return url;
+  const base = proxyBase();
+  if (url.startsWith(base + '/')) return url;
+  return base + '/' + url;
+}
+
+function isProxyEnabledFor(url) {
+  try {
+    return !!((getSettings().proxyChannels || {})[url]);
+  } catch {
+    return false;
+  }
+}
+
 export async function initPlayer(videoEl) {
   videoElement = videoEl;
 
@@ -127,6 +152,10 @@ export async function initPlayer(videoEl) {
             else if (lower === 'origin') request.headers['Origin'] = v;
             else request.headers[k] = v;
           }
+        }
+        // Desktop test relay: route this channel's manifest + segments via proxy.
+        if (currentChannel.useProxy && request.uris && request.uris[0]) {
+          request.uris[0] = toProxied(request.uris[0]);
         }
       }
     });
@@ -306,7 +335,7 @@ function isNativeLoadCrash(error) {
 async function probeChannelFormat(channel) {
   if (!channel) return null;
   try {
-    const targetUrl = channel.url;
+    const targetUrl = channel.useProxy ? toProxied(channel.url) : channel.url;
     if (!targetUrl) return null;
 
     const controller = new AbortController();
@@ -394,6 +423,7 @@ export async function loadChannel(channel) {
 
   const myToken = ++loadToken;
   currentChannel = channel;
+  channel.useProxy = isProxyEnabledFor(channel.url);
   useAvplay = false;
   avplay.stop();
   stopBlackWatchdog();
