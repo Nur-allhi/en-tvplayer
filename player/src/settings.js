@@ -474,6 +474,8 @@ function setFormType(prefix, type) {
   const xtBtn = document.getElementById(prefix + '-type-xtream');
   if (m3uBtn) m3uBtn.classList.toggle('active', type === 'm3u');
   if (xtBtn) xtBtn.classList.toggle('active', type === 'xtream');
+  const testBtn = document.getElementById(prefix + '-test');
+  if (testBtn) testBtn.classList.toggle('hidden', type !== 'xtream');
   moveSettingsFocus(prefix + (type === 'm3u' ? '-url' : '-host'));
 }
 
@@ -828,12 +830,10 @@ function renderSourceCard(s, lastFetched) {
     html += '<label for="pl-add-pass">Password</label>';
     html += '<input id="pl-add-pass" class="input-field" type="password" placeholder="Password" />';
     html += '</div>';
-    html += '<div class="btn-group">';
-    html += '<button id="pl-add-test" class="btn btn-secondary" type="button">Test Login</button>';
-    html += '</div>';
     html += '<div id="pl-add-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
     html += '</div>';
     html += '<div class="btn-group">';
+    html += '<button id="pl-add-test" class="btn btn-secondary' + (addType !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
     html += '<button id="pl-add-cancel" class="btn btn-secondary">Cancel</button>';
     html += '</div>';
@@ -875,12 +875,10 @@ function renderSourceCard(s, lastFetched) {
         html += '<label for="pl-edit-pass">Password</label>';
         html += '<input id="pl-edit-pass" class="input-field" type="password" placeholder="Password" />';
         html += '</div>';
-        html += '<div class="btn-group">';
-        html += '<button id="pl-edit-test" class="btn btn-secondary" type="button">Test Login</button>';
-        html += '</div>';
         html += '<div id="pl-edit-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
         html += '</div>';
         html += '<div class="btn-group">';
+        html += '<button id="pl-edit-test" class="btn btn-secondary' + (et !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
         html += '<button id="pl-edit-save" class="btn btn-primary">Save</button>';
         html += '<button id="pl-edit-cancel" class="btn btn-secondary">Cancel</button>';
         html += '</div>';
