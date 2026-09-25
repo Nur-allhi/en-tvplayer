@@ -774,6 +774,10 @@ async function handleChannelSelect(channel) {
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
+  } else {
+    // Still buffering after load: veil is gone, first frame not up yet.
+    // Keep the center brand with the channel name under it until playback.
+    ui.showEmptyLogo(channel.name);
   }
   ui.setSelectedResolution('auto');
   const p = player.getPlayer();
