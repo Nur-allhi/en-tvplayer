@@ -774,14 +774,12 @@ export function isBadgeVisible() {
   return showBadge;
 }
 
-/* Centered brand mark for dead-air states (no channels, failed tune, stopped).
-   Pass a reason to print under the logo; pass '' to leave the error pill
-   as the only message. */
+/* Centered status line for dead-air states (no channels, failed tune,
+   stopped) and post-tune buffering. The faint backdrop logo stays visible
+   behind it — pass a reason to print as the message. */
 export function showEmptyLogo(message) {
   const el = document.getElementById('player-empty-logo');
   if (el) el.classList.remove('hidden');
-  const container = document.getElementById('player-container');
-  if (container) container.classList.add('show-brand');
   if (typeof message === 'string') {
     const msgEl = document.getElementById('empty-logo-message');
     if (msgEl) {
@@ -794,8 +792,6 @@ export function showEmptyLogo(message) {
 export function hideEmptyLogo() {
   const el = document.getElementById('player-empty-logo');
   if (el) el.classList.add('hidden');
-  const container = document.getElementById('player-container');
-  if (container) container.classList.remove('show-brand');
 }
 
 /* Right sidebar */
