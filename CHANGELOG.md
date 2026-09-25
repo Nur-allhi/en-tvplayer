@@ -9,6 +9,15 @@ All notable changes to EN TV Player will be documented in this file.
 
 ---
 
+## [2.3.0] - 2026-09-25
+
+### Added
+- Provider-order channel listing by default (playlist file order preserved); A–Z sorting stays as an opt-in Settings toggle.
+- Hide groups: per-group Show/Hide manager in Settings → Playback → Groups (global list, applies to lists, number-jump and search).
+- Cross-group channel search: 🔍 Search row at the top of the group list with live results across all visible groups.
+
+---
+
 ## [2.2.0] - 2026-09-11
 
 ### Added

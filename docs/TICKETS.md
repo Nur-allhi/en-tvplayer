@@ -127,7 +127,7 @@
 
 ---
 
-## Milestone v2.4.0 — "Playlist & Discovery"
+## Milestone v2.3.0 — "Playlist & Discovery"
 
 ### T-035: Provider-order channel sorting (default)
 - **Skills:** `senior-frontend`
