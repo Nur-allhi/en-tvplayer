@@ -181,7 +181,11 @@ export function updateGroupFocus() {
     item.classList.toggle('focused', idx === groupFocusedIndex);
   });
   if (items[groupFocusedIndex]) {
-    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + minimal scroll: smooth queues animations on key-repeat (hold)
+    // and the focus runs ahead of the visible scroll position; re-centering
+    // on every step makes the list jump so the eye can't track focus.
+    // Nearest keeps the focused row steadily in view, one step at a time.
+    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
@@ -329,7 +333,8 @@ function updateSearchFocus() {
   const items = document.querySelectorAll('#search-results .search-item');
   items.forEach((item, i) => item.classList.toggle('focused', i === searchFocus));
   if (items[searchFocus]) {
-    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + minimal scroll: see updateGroupFocus.
+    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
@@ -1118,7 +1123,8 @@ function updateRightFocus() {
     }
   });
   if (rightItems[rightFocus] && rightItems[rightFocus].element) {
-    rightItems[rightFocus].element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + centered: see updateGroupFocus.
+    rightItems[rightFocus].element.scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
@@ -1169,8 +1175,13 @@ export function getCurrentChannel() {
 }
 
 export function refreshChannelList(newChannels) {
+  // Preserve the playing mark across playlist refreshes: match by URL
+  // (stable across re-fetch/re-sort); resets when the channel is gone.
+  const playingUrl = currentIndex >= 0 && currentIndex < channels.length && channels[currentIndex]
+    ? channels[currentIndex].url
+    : null;
   channels = newChannels;
-  currentIndex = -1;
+  currentIndex = playingUrl ? newChannels.findIndex((ch) => ch && ch.url === playingUrl) : -1;
   focusedIndex = 0;
   extractGroups(channels);
   if (selectedGroup === 'all') {
@@ -1264,7 +1275,8 @@ function updateFocus() {
 function scrollToFocused() {
   const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
   if (el) {
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Instant + minimal scroll: see updateGroupFocus.
+    el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
