@@ -230,6 +230,11 @@ html, body {
 
 
 
+/* Standalone button rows inside cards need breathing room from the fields */
+.settings-page .card-body > .btn-group {
+  margin-top: calc(16px * var(--tv-scale));
+}
+
 /* Channel search (sidebar): input row + result rows reuse channel rows */
 .search-row {
   padding: calc(8px * var(--tv-scale)) calc(12px * var(--tv-scale));
@@ -1751,6 +1756,17 @@ html, body {
   border-top: 1px solid #222;
   display: flex;
   justify-content: flex-end;
+}
+
+/* First-run picker: centered choice buttons */
+.onboarding-actions {
+  justify-content: center;
+}
+.onboarding-actions > * + * { margin-left: 16px; }
+
+/* First-run picker: centered title */
+#onboarding-modal .whats-new-header {
+  justify-content: center;
 }
 
 .confirm-dialog { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.7); }

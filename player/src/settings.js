@@ -52,6 +52,21 @@ export function show() {
   applyFocus();
 }
 
+// Opens Settings → Source with the add form showing, preset to the given
+// type ('m3u' or 'xtream'). Used by the first-run source picker.
+export function openAddForm(type) {
+  if (!container) return;
+  activeSection = 'source';
+  addMode = true;
+  editMode = false;
+  editIndex = -1;
+  addType = type === 'xtream' ? 'xtream' : 'm3u';
+  focusIdx = 0;
+  container.classList.remove('hidden');
+  render();
+  applyFocus();
+}
+
 export function hide() {
   if (!container) return;
   container.classList.add('hidden');
@@ -218,25 +233,25 @@ export function selectFocused() {
     // field act like pressing Enter on a desktop form: advance to the next
     // field, or save from the last field (playlist URL).
     if (el.id === 'pl-add-name') {
-      moveSettingsFocus(addType === 'xtream' ? 'pl-add-host' : 'pl-add-url');
-    } else if (el.id === 'pl-add-url') {
       saveAddPlaylist();
+    } else if (el.id === 'pl-add-url') {
+      moveSettingsFocus('pl-add-name');
     } else if (el.id === 'pl-add-host') {
       moveSettingsFocus('pl-add-user');
     } else if (el.id === 'pl-add-user') {
       moveSettingsFocus('pl-add-pass');
     } else if (el.id === 'pl-add-pass') {
-      saveAddPlaylist();
+      moveSettingsFocus('pl-add-name');
     } else if (el.id === 'pl-edit-name') {
-      moveSettingsFocus(editType === 'xtream' ? 'pl-edit-host' : 'pl-edit-url');
-    } else if (el.id === 'pl-edit-url') {
       saveEditPlaylist();
+    } else if (el.id === 'pl-edit-url') {
+      moveSettingsFocus('pl-edit-name');
     } else if (el.id === 'pl-edit-host') {
       moveSettingsFocus('pl-edit-user');
     } else if (el.id === 'pl-edit-user') {
       moveSettingsFocus('pl-edit-pass');
     } else if (el.id === 'pl-edit-pass') {
-      saveEditPlaylist();
+      moveSettingsFocus('pl-edit-name');
     } else {
       el.focus();
     }
@@ -459,6 +474,8 @@ function setFormType(prefix, type) {
   const xtBtn = document.getElementById(prefix + '-type-xtream');
   if (m3uBtn) m3uBtn.classList.toggle('active', type === 'm3u');
   if (xtBtn) xtBtn.classList.toggle('active', type === 'xtream');
+  const testBtn = document.getElementById(prefix + '-test');
+  if (testBtn) testBtn.classList.toggle('hidden', type !== 'xtream');
   moveSettingsFocus(prefix + (type === 'm3u' ? '-url' : '-host'));
 }
 
@@ -487,7 +504,6 @@ function buildFocusOrder() {
 
   if (activeSection === 'source') {
     if (addMode) {
-      focusOrder.push(document.getElementById('pl-add-name'));
       focusOrder.push(document.getElementById('pl-add-type-m3u'));
       focusOrder.push(document.getElementById('pl-add-type-xtream'));
       if (addType === 'xtream') {
@@ -498,10 +514,10 @@ function buildFocusOrder() {
       } else {
         focusOrder.push(document.getElementById('pl-add-url'));
       }
+      focusOrder.push(document.getElementById('pl-add-name'));
       focusOrder.push(document.getElementById('pl-add-save'));
       focusOrder.push(document.getElementById('pl-add-cancel'));
     } else if (editMode && editIndex >= 0) {
-      focusOrder.push(document.getElementById('pl-edit-name'));
       focusOrder.push(document.getElementById('pl-edit-type-m3u'));
       focusOrder.push(document.getElementById('pl-edit-type-xtream'));
       if (editType === 'xtream') {
@@ -512,6 +528,7 @@ function buildFocusOrder() {
       } else {
         focusOrder.push(document.getElementById('pl-edit-url'));
       }
+      focusOrder.push(document.getElementById('pl-edit-name'));
       focusOrder.push(document.getElementById('pl-edit-save'));
       focusOrder.push(document.getElementById('pl-edit-cancel'));
     } else {
@@ -558,13 +575,15 @@ function applyFocus() {
     if (el) {
       el.setAttribute('data-focused', '');
       el.scrollIntoView({ block: 'nearest' });
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      const activeEl = document.activeElement;
+      const elIsField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+      // Desktop focuses fields on arrival so typing works at once. On Tizen
+      // the keyboard must open only after OK on the field (selectFocused),
+      // never while merely passing through it.
+      if (elIsField && !isTizenTV) {
         el.focus();
-      } else {
-        const activeEl = document.activeElement;
-        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-          activeEl.blur();
-        }
+      } else if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl !== el) {
+        activeEl.blur();
       }
     }
   }
@@ -784,10 +803,6 @@ function renderSourceCard(s, lastFetched) {
   html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/' + MAX_PLAYLISTS + '). Select one, then press Active.</p>';
   if (addMode) {
     html += '<div class="input-group">';
-    html += '<label for="pl-add-name">Playlist Name</label>';
-    html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
-    html += '</div>';
-    html += '<div class="input-group">';
     html += '<label>Source Type</label>';
     html += '<div class="select-grid">';
     html += '<button id="pl-add-type-m3u" class="select-opt' + (addType !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
@@ -813,12 +828,14 @@ function renderSourceCard(s, lastFetched) {
     html += '<label for="pl-add-pass">Password</label>';
     html += '<input id="pl-add-pass" class="input-field" type="password" placeholder="Password" />';
     html += '</div>';
-    html += '<div class="btn-group">';
-    html += '<button id="pl-add-test" class="btn btn-secondary" type="button">Test Login</button>';
-    html += '</div>';
     html += '<div id="pl-add-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
     html += '</div>';
+    html += '<div class="input-group">';
+    html += '<label for="pl-add-name">Playlist Name</label>';
+    html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
+    html += '</div>';
     html += '<div class="btn-group">';
+    html += '<button id="pl-add-test" class="btn btn-secondary' + (addType !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
     html += '<button id="pl-add-cancel" class="btn btn-secondary">Cancel</button>';
     html += '</div>';
@@ -830,10 +847,6 @@ function renderSourceCard(s, lastFetched) {
       if (editMode && editIndex === i) {
         const et = p.type === 'xtream' ? 'xtream' : 'm3u';
         html += '<div id="playlist-entry-' + i + '" class="playlist-entry active">';
-        html += '<div class="input-group">';
-        html += '<label for="pl-edit-name">Playlist Name</label>';
-        html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
-        html += '</div>';
         html += '<div class="input-group">';
         html += '<label>Source Type</label>';
         html += '<div class="select-grid">';
@@ -860,12 +873,14 @@ function renderSourceCard(s, lastFetched) {
         html += '<label for="pl-edit-pass">Password</label>';
         html += '<input id="pl-edit-pass" class="input-field" type="password" placeholder="Password" />';
         html += '</div>';
-        html += '<div class="btn-group">';
-        html += '<button id="pl-edit-test" class="btn btn-secondary" type="button">Test Login</button>';
-        html += '</div>';
         html += '<div id="pl-edit-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
         html += '</div>';
+        html += '<div class="input-group">';
+        html += '<label for="pl-edit-name">Playlist Name</label>';
+        html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
+        html += '</div>';
         html += '<div class="btn-group">';
+        html += '<button id="pl-edit-test" class="btn btn-secondary' + (et !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
         html += '<button id="pl-edit-save" class="btn btn-primary">Save</button>';
         html += '<button id="pl-edit-cancel" class="btn btn-secondary">Cancel</button>';
         html += '</div>';
