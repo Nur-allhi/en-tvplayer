@@ -401,11 +401,13 @@ function startPlayer() {
       ui.refreshChannelList(channels);
       settings.hide();
       ui.stopInactivityTimer();
+      refreshProxyMenu();
       showPlayer();
     },
     onClose: () => {
       settings.hide();
       ui.stopInactivityTimer();
+      refreshProxyMenu();
       showPlayer();
     },
   });
@@ -464,6 +466,40 @@ function startPlayer() {
   if (settingsBtn) {
     addCleanupListener(settingsBtn, 'click', () => {
       showSettingsPage();
+    });
+  }
+
+  // Desktop test relay toggle: visible only on local test hosts (localhost,
+  // loopback, .local, LAN IPs — never in the TV build, which runs from
+  // file:// with an empty hostname) AND when enabled in Settings → Playback.
+  // Off by default, so release users never see it.
+  function refreshProxyMenu() {
+    const host = window.location.hostname || '';
+    const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' ||
+      host.endsWith('.local') ||
+      /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
+    const show = isLocalhost && getSettings().showProxyMenu === true;
+    const btn = document.getElementById('proxy-toggle-btn');
+    if (btn) btn.classList.toggle('hidden', !show);
+    const label = document.getElementById('proxy-testing-label');
+    if (label) label.classList.toggle('hidden', !show);
+  }
+
+  let proxyToggleBtn = document.getElementById('proxy-toggle-btn');
+  if (proxyToggleBtn) {
+    refreshProxyMenu();
+    addCleanupListener(proxyToggleBtn, 'click', () => {
+      const ch = ui.getCurrentChannel();
+      if (!ch) return;
+      const s = getSettings();
+      const map = { ...(s.proxyChannels || {}) };
+      const on = !map[ch.url];
+      if (on) map[ch.url] = true;
+      else delete map[ch.url];
+      saveSettings({ proxyChannels: map });
+      ch.useProxy = on;
+      ui.setProxyToggleLabel(on);
+      player.reloadChannel();
     });
   }
 
@@ -632,6 +668,7 @@ async function handleChannelSelect(channel) {
       saveSettings({ playlists: s.playlists });
     }
   } catch {}
+  ui.setProxyToggleLabel(!!((getSettings().proxyChannels || {})[channel.url]));
   const ok = await player.loadChannel(channel);
   if (!ok) {
     hideProgress();

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Amazon CDN (Prime Video)",
+    "match": "otte\\.cache\\.aiv-cdn\\.net$|aiv-cdn\\.net$|pv-cdn\\.net$",
+    "headers": {
+      "origin": "https://www.primevideo.com",
+      "referer": "https://www.primevideo.com/"
+    }
+  },
+  {
+    "name": "Akamai CDN (Tapmad)",
+    "match": "akamaized\\.net$",
+    "headers": {
+      "origin": "https://tapmad.com",
+      "referer": "https://tapmad.com/"
+    }
+  },
+  {
+    "name": "Fancode",
+    "match": "fancode\\.com$",
+    "headers": {
+      "origin": "https://www.fancode.com",
+      "referer": "https://www.fancode.com/"
+    }
+  }
+]

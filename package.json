@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "npm run dev -w player",
     "build": "npm run build -w player",
-    "tizen": "cd tizen && node package.mjs"
+    "tizen": "cd tizen && node package.mjs",
+    "proxy": "npm start -w proxy"
   },
   "workspaces": [
     "player",
-    "tizen"
+    "tizen",
+    "proxy"
   ],
   "keywords": ["tizen", "iptv", "samsung", "tv", "player"],
   "author": "Nur-allhi",

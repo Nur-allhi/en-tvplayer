@@ -1,0 +1,13 @@
+{
+  "name": "@en-iptv/proxy",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EN IPTV — desktop testing relay (CORS + Origin/Referer/UA fix for DRM channels)",
+  "main": "proxy.mjs",
+  "scripts": {
+    "start": "node proxy.mjs"
+  },
+  "dependencies": {
+    "selfsigned": "^5.5.0"
+  }
+}

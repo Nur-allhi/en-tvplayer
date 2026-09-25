@@ -23,6 +23,9 @@ stable/
 # Logs
 *.log
 
+# Proxy self-signed certs (auto-generated on first run)
+certs/
+
 # OS files
 .DS_Store
 Thumbs.db

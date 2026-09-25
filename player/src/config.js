@@ -12,6 +12,11 @@ const settingsDefaults = {
   updateCheck: false,
   showWatermark: true,
   showResolutionBadge: true,
+  // Desktop test relay (branch-only, never shipped): base URL + per-channel
+  // opt-ins keyed by channel URL.
+  proxyUrl: 'https://localhost:5001',
+  proxyChannels: {},
+  showProxyMenu: false,
 };
 
 export function getSettings() {

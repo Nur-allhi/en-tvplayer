@@ -411,6 +411,7 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('toggle-update-check'));
     focusOrder.push(document.getElementById('toggle-watermark'));
     focusOrder.push(document.getElementById('toggle-badge'));
+    focusOrder.push(document.getElementById('toggle-proxymenu'));
   }
 }
 
@@ -623,6 +624,9 @@ function render() {
           const enabled = this.classList.contains('on');
           saveSettings({ showResolutionBadge: enabled });
           ui.setOverlayVisibility({ badge: enabled });
+        } else if (this.id === 'toggle-proxymenu') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ showProxyMenu: enabled });
         }
       });
     });
@@ -709,6 +713,7 @@ function renderPlaybackCard() {
   const updateCheck = s.updateCheck === true;
   const watermark = s.showWatermark !== false;
   const badge = s.showResolutionBadge !== false;
+  const proxyMenu = s.showProxyMenu === true;
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -732,6 +737,10 @@ function renderPlaybackCard() {
   html += '<div class="toggle-row">';
   html += '<div><div class="toggle-label">Quality badge</div><div class="toggle-desc">Show quality and stream type in the top-right corner</div></div>';
   html += '<div class="toggle' + (badge ? ' on' : '') + '" id="toggle-badge"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Proxy menu</div><div class="toggle-desc">Show per-channel proxy option in the sidebar menu</div></div>';
+  html += '<div class="toggle' + (proxyMenu ? ' on' : '') + '" id="toggle-proxymenu"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   return html;
