@@ -108,6 +108,10 @@ export default {
       // BUG-019: start pessimistic so Auto mode opens on the lowest rung for
       // fast first frame, then ABR ramps up to what the line sustains.
       defaultBandwidthEstimate: 500000,
+      // Auto sticks to FHD: top 2K/4K variants stall to black on Tizen
+      // (decoder or bandwidth), while manual 1080 plays fine. Soft cap —
+      // manual selection can still exceed it.
+      restrictions: { maxHeight: 1080 },
     },
     manifest: {
       retryParameters: {
