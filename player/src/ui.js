@@ -632,11 +632,21 @@ export function setResolutionCallback(cb) {
   rightResolutionCallback = cb;
 }
 
+function clampRightFocus() {
+  if (rightItems.length === 0) {
+    rightFocus = 0;
+    return;
+  }
+  if (rightFocus < 0) rightFocus = 0;
+  if (rightFocus >= rightItems.length) rightFocus = rightItems.length - 1;
+}
+
 export function setResolutions(heights) {
   rightResolutions = ['auto'].concat(heights || []);
   renderRightResolutionList();
   if (rightSidebarOpen) {
     buildRightItems();
+    clampRightFocus();
     updateRightFocus();
   }
 }
@@ -644,6 +654,11 @@ export function setResolutions(heights) {
 export function setSelectedResolution(value) {
   rightSelectedResolution = value;
   renderRightResolutionList();
+  if (rightSidebarOpen) {
+    buildRightItems();
+    clampRightFocus();
+    updateRightFocus();
+  }
 }
 
 /* Multi-audio tracks (languages, commentary, …). Same row treatment as
@@ -665,6 +680,7 @@ export function setAudioTracks(tracks) {
   renderAudioList();
   if (rightSidebarOpen) {
     buildRightItems();
+    clampRightFocus();
     updateRightFocus();
   }
 }
@@ -672,6 +688,11 @@ export function setAudioTracks(tracks) {
 export function setSelectedAudio(id) {
   rightSelectedAudioId = id;
   renderAudioList();
+  if (rightSidebarOpen) {
+    buildRightItems();
+    clampRightFocus();
+    updateRightFocus();
+  }
 }
 
 function audioTrackLabel(track, index) {
