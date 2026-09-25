@@ -29,6 +29,11 @@ let lastStallCheck = 0;
 let lastResortAttempts = 0;
 let advancePending = false;
 
+// Timestamp of the last ABR switch — error logs reference it so adaptation-
+// linked failures (e.g. a DRM variant switch that kills playback) can be
+// told apart from load-time failures.
+let lastAdaptationAt = 0;
+
 let loadingTimeout = null;
 let stalledTimer = null;
 let lastShakaActivity = 0;
@@ -196,6 +201,7 @@ export async function initPlayer(videoEl) {
   // BUG-019: ABR switches fire 'adaptation', not 'variantchanged' — without
   // this the badge freezes on the initial (optimistic) pick and lies.
   player.addEventListener('adaptation', () => {
+    lastAdaptationAt = Date.now();
     const active = getActiveTrack();
     if (trackCallback && active) {
       trackCallback({ height: active.height, bandwidth: active.bandwidth });
@@ -690,6 +696,11 @@ function handlePlayerError(error) {
 
   // Ignore interruptions from switching channels
   if (error.code === 7000) return;
+
+  try {
+    const sinceAdapt = lastAdaptationAt ? Math.round((Date.now() - lastAdaptationAt) / 1000) + 's' : 'n/a';
+    logEvent('ERROR', 'Shaka error code=' + error.code + ' height=' + (getActiveHeight() || '?') + ' sinceAdapt=' + sinceAdapt);
+  } catch {}
 
   console.error('Shaka error:', error);
 
