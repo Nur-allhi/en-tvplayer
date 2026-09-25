@@ -14,6 +14,12 @@ let bufferingActive = false;
 let cleanupListeners = [];
 let pendingPreview = null;
 
+// Boot recovery: the boot tune uses cached (possibly stale-token) URLs while
+// the background refresh fetches fresh ones. If nothing is playing once the
+// refresh lands, re-tune the latest intent with its fresh URL.
+let playbackStarted = false;
+let tuneSucceeded = false;
+let lastIntent = null;
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
 function applyResponsiveScale() {
@@ -569,6 +575,7 @@ function startPlayer() {
 
   let videoEl = document.getElementById('video');
   addCleanupListener(videoEl, 'playing', () => {
+    playbackStarted = true;
     videoEl.style.visibility = '';
     hideProgress();
     ui.hideBuffering();
@@ -798,6 +805,12 @@ function forcePaint() {
 }
 
 async function handleChannelSelect(channel) {
+  // Record the tune intent FIRST (before the paint-delay await below): the
+  // background refresh may land while this tune is still yielding, and it
+  // needs the latest intent to decide on a fresh-URL re-tune.
+  currentIndex = channels.indexOf(channel);
+  // Latest tune intent (name+group survive token rotation; URLs don't).
+  lastIntent = { name: channel.name, group: (channel.group || 'Ungrouped') };
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
   ui.setAudioTracks([]);
@@ -820,7 +833,6 @@ async function handleChannelSelect(channel) {
     } catch { finish(); }
     setTimeout(finish, 350); // safety: never stall tuning
   });
-  currentIndex = channels.indexOf(channel);
   // Stamp the active playlist so Channel Source cards can show "last played".
   try {
     const s = getSettings();
@@ -837,6 +849,7 @@ async function handleChannelSelect(channel) {
   } catch {}
   ui.setProxyToggleLabel(!!((getSettings().proxyChannels || {})[channel.url]));
   const ok = await player.loadChannel(channel);
+  tuneSucceeded = ok === true;
   if (!ok) {
     hideProgress();
     ui.hideBuffering();
@@ -937,6 +950,15 @@ async function refreshChannelsInBackground() {
     sortChannels(newChannels);
     channels = newChannels;
     ui.refreshChannelList(channels);
+    // The boot tune ran on pre-refresh (possibly stale-token) URLs. If it
+    // never got anywhere, re-tune the same channel with its fresh URL
+    // instead of stranding the user on the brand screen. Working playback
+    // is never touched.
+    if (!playbackStarted && !tuneSucceeded && lastIntent) {
+      const at = channels.findIndex((ch) => ch && ch.name === lastIntent.name &&
+        ((ch.group || 'Ungrouped') === lastIntent.group));
+      if (at >= 0) ui.selectChannel(at, true);
+    }
 
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
