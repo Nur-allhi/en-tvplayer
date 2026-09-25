@@ -124,9 +124,9 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
-    version: '2.4.0',
+    version: '3.0.0',
     sections: [
-      { type: 'added', items: ['Channel Up/Down buttons switch to the next/previous channel', 'Xtream login source with Test Login', 'First-run source picker for new installs'] },
+      { type: 'added', items: ['Xtream login source with Test Login', 'First-run source picker for new installs', 'Channel Up/Down buttons switch to the next/previous channel'] },
     ],
   },
   {

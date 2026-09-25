@@ -9,13 +9,20 @@ All notable changes to EN TV Player will be documented in this file.
 
 ---
 
-## [2.4.0] - 2026-09-25
+## [3.0.0] - 2026-09-25
 
 ### Added
-- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching, in lists and from the Menu, with hardware keyCode support.
-- Native Xtream Codes login: host + username + password source with Test Login, categories as groups.
-- First-run source picker: new installs choose M3U playlist or Xtream login right after the splash.
-- Source form revamp: type selector first, single Test/Save/Cancel row, TV keyboard opens on OK only.
+- Xtream Codes login as a first-class source: host + username + password with Test Login, provider categories as channel groups, provider channel order preserved. Live TV only.
+- First-run source picker: new installs choose M3U playlist or Xtream login right after the splash, landing directly in the matching add form.
+- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching, move the highlight in channel/group lists, and close the Menu to zap — with hardware keyCode support (427/428).
+- Per-channel proxy toggle in the Menu (desktop testing relay, off by default behind Settings → Playback → Proxy menu).
+
+### Changed
+- Source add/edit forms start with the M3U/Xtream type selector, ask the playlist name last, and share one Test/Save/Cancel row with proper spacing.
+
+### Fixed
+- TV keyboard in Settings fields opens only after OK on the field, no longer while merely passing through inputs.
+- Fresh-boot race where the source picker could pop over an already-open Settings page.
 
 ---
 
