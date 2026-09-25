@@ -12,7 +12,7 @@ All notable changes to EN TV Player will be documented in this file.
 ## [3.0.1] - 2026-09-25
 
 ### Fixed
-- Buffering status messages ("Slow server…") now show on their own line under the buffering pill, larger and centered, instead of cramped beside the percent.
+- Buffering status messages ("Slow server…") now show as a separate line above the buffering pill, larger and centered, instead of cramped inside it.
 
 ---
 

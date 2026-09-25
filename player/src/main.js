@@ -126,7 +126,7 @@ const CHANGELOG = [
   {
     version: '3.0.1',
     sections: [
-      { type: 'fixed', items: ['Buffering hints now show under the pill, larger and centered'] },
+      { type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] },
     ],
   },
   {
