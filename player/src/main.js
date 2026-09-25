@@ -790,6 +790,18 @@ function registerTizenKeys() {
   }
 }
 
+// CH Up/Down (and Prev/Next keys): retune to the adjacent channel in the
+// current group view, wrapping around.
+function zapChannel(step) {
+  const displayChannels = getDisplayChannels();
+  if (displayChannels.length === 0) return;
+  const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
+  const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
+  const target = (idx + step + displayChannels.length) % displayChannels.length;
+  currentIndex = channels.indexOf(displayChannels[target]);
+  ui.selectChannel(currentIndex, true);
+}
+
 function handleRemoteAction(action, value) {
   if (action === 'back') {
     const now = Date.now();
@@ -880,6 +892,14 @@ function handleRemoteAction(action, value) {
         break;
       case 'right':
         break;
+      case 'channelUp':
+        ui.toggleRightSidebar();
+        zapChannel(-1);
+        break;
+      case 'channelDown':
+        ui.toggleRightSidebar();
+        zapChannel(1);
+        break;
       default:
         break;
     }
@@ -894,6 +914,12 @@ function handleRemoteAction(action, value) {
           ui.navigateGroupUp();
           break;
         case 'down':
+          ui.navigateGroupDown();
+          break;
+        case 'channelUp':
+          ui.navigateGroupUp();
+          break;
+        case 'channelDown':
           ui.navigateGroupDown();
           break;
         case 'select':
@@ -920,6 +946,12 @@ function handleRemoteAction(action, value) {
           ui.navigateUp();
           break;
         case 'down':
+          ui.navigateDown();
+          break;
+        case 'channelUp':
+          ui.navigateUp();
+          break;
+        case 'channelDown':
           ui.navigateDown();
           break;
         case 'select':
@@ -960,28 +992,14 @@ function handleRemoteAction(action, value) {
   switch (action) {
     case 'up':
     case 'channelUp':
-    case 'prev': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
-      const prevChannel = displayChannels[prev];
-      currentIndex = channels.indexOf(prevChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'prev':
+      zapChannel(-1);
       break;
-    }
     case 'down':
     case 'channelDown':
-    case 'next': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const next = (idx + 1) % displayChannels.length;
-      const nextChannel = displayChannels[next];
-      currentIndex = channels.indexOf(nextChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'next':
+      zapChannel(1);
       break;
-    }
     case 'left':
       ui.toggleSidebar();
       break;
