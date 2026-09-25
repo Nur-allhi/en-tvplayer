@@ -18,6 +18,7 @@ const settingsDefaults = {
   proxyUrl: 'https://localhost:5001',
   proxyChannels: {},
   showProxyMenu: false,
+  hiddenGroups: [],
 };
 
 export function getSettings() {
@@ -50,13 +51,21 @@ export function getSettings() {
     return { ...settingsDefaults, playlists: [] };
   }
 }
-
 export function getActivePlaylist() {
   const s = getSettings();
   if (s.activePlaylistIndex >= 0 && s.activePlaylistIndex < s.playlists.length) {
     return s.playlists[s.activePlaylistIndex];
   }
   return null;
+}
+
+export function getHiddenGroups() {
+  try {
+    const hg = getSettings().hiddenGroups;
+    return Array.isArray(hg) ? hg : [];
+  } catch {
+    return [];
+  }
 }
 
 export function saveSettings(partial) {

@@ -1,4 +1,5 @@
 import { escapeHtml } from './utils.js';
+import { getHiddenGroups } from './config.js';
 
 let channels = [];
 let currentIndex = -1;
@@ -96,8 +97,10 @@ export function init(channelList, callback) {
 }
 
 export function extractGroups(channelList) {
+  const hidden = getHiddenGroups();
+  const visible = (channelList || []).filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
   const groupMap = {};
-  for (const ch of channelList) {
+  for (const ch of visible) {
     const g = ch.group || 'Ungrouped';
     if (!groupMap[g]) groupMap[g] = [];
     groupMap[g].push(ch);
@@ -108,7 +111,7 @@ export function extractGroups(channelList) {
     channels: groupMap[name],
   }));
   groups = [
-    { name: 'All Channels', count: channelList.length, channels: channelList },
+    { name: 'All Channels', count: visible.length, channels: visible },
     ...realGroups,
   ];
 }
@@ -210,6 +213,22 @@ export function showGroupList() {
   if (groupList) groupList.classList.remove('hidden');
   renderGroupList();
   updateSidebarTitle();
+}
+
+/* Re-derive groups after the hidden-groups setting changes, preserving the
+   playing mark and focus. Falls back to the group list when the open group
+   was just hidden. */
+export function refreshGroupVisibility() {
+  extractGroups(channels);
+  const hidden = getHiddenGroups();
+  if (sidebarMode === 'groups' || (selectedGroup && selectedGroup !== 'all' && hidden.includes(selectedGroup))) {
+    selectedGroup = null;
+    showGroupList();
+  } else {
+    renderChannelList();
+    updateSidebarTitle();
+    updateFocus();
+  }
 }
 
 export function renderChannelList() {
@@ -347,10 +366,12 @@ export function selectFocused() {
 }
 
 export function getDisplayChannels() {
+  const hidden = getHiddenGroups();
+  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
   if (selectedGroup === 'all' || !selectedGroup) {
-    return channels;
+    return visible;
   }
-  return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
 }
 
 export function jumpToNumber(num, skipFullscreen) {

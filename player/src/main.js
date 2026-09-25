@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, getActivePlaylist, APP_VERSION } from './config.js';
+import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups, APP_VERSION } from './config.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
 import * as remote from './remote.js';
@@ -25,8 +25,10 @@ function applyResponsiveScale() {
 applyResponsiveScale();
 
 function getDisplayChannels() {
-  if (selectedGroup === 'all' || !selectedGroup) return channels;
-  return channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  const hidden = getHiddenGroups();
+  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
+  if (selectedGroup === 'all' || !selectedGroup) return visible;
+  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
 }
 
 const BOOT_TITLE = 'EN IPTV';
@@ -423,6 +425,8 @@ function startPlayer() {
       settings.hide();
       ui.stopInactivityTimer();
       refreshProxyMenu();
+      ui.refreshGroupVisibility();
+      selectedGroup = ui.getSelectedGroup();
       showPlayer();
     },
   });
@@ -439,11 +443,12 @@ function startPlayer() {
     if (settings.isVisible()) {
       settings.hide();
       refreshProxyMenu();
+      ui.refreshGroupVisibility();
+      selectedGroup = ui.getSelectedGroup();
       showPlayer();
       ui.stopInactivityTimer();
     }
   });
-
   ui.setResolutionCallback((height) => {
     player.selectResolution(height);
     updateResolutionBadge(height || player.getActiveHeight());
@@ -847,6 +852,8 @@ function handleRemoteAction(action, value) {
       case 'back':
         settings.hide();
         refreshProxyMenu();
+        ui.refreshGroupVisibility();
+        selectedGroup = ui.getSelectedGroup();
         // BUG-018: with no playlist yet, initialize the empty shell so the
         // sidebars and Settings stay reachable.
         if (channels && channels.length > 0) {

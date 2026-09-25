@@ -413,6 +413,10 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('toggle-badge'));
     focusOrder.push(document.getElementById('toggle-proxymenu'));
     focusOrder.push(document.getElementById('toggle-channelsort'));
+    const gn = groupNames();
+    for (let i = 0; i < gn.length; i++) {
+      focusOrder.push(document.getElementById('show-group-' + i));
+    }
   }
 }
 
@@ -631,6 +635,15 @@ function render() {
         } else if (this.id === 'toggle-channelsort') {
           const enabled = this.classList.contains('on');
           saveSettings({ channelSort: enabled ? 'provider' : 'name' });
+        } else if (this.id.startsWith('show-group-')) {
+          const idx = parseInt(this.id.slice('show-group-'.length), 10);
+          const name = groupNames()[idx];
+          if (name) {
+            const shown = this.classList.contains('on');
+            const hidden = (getSettings().hiddenGroups || []).filter(g => g !== name);
+            if (!shown) hidden.push(name);
+            saveSettings({ hiddenGroups: hidden });
+          }
         }
       });
     });
@@ -752,11 +765,45 @@ function renderPlaybackCard() {
   html += '<div class="toggle' + (providerSort ? ' on' : '') + '" id="toggle-channelsort"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
+  html += renderGroupsCard();
   return html;
 }
 
-function renderAboutCard() {
+function groupNames() {
+  const map = {};
+  for (const ch of getSettings().channels || []) {
+    const g = ((ch && ch.group) || 'Ungrouped');
+    map[g] = (map[g] || 0) + 1;
+  }
+  return Object.keys(map).sort();
+}
+
+function groupChannelCount(name) {
+  return (getSettings().channels || []).filter(ch => (((ch && ch.group) || 'Ungrouped') === name)).length;
+}
+
+function renderGroupsCard() {
+  const hidden = getSettings().hiddenGroups || [];
+  const names = groupNames();
   let html = '';
+  html += '<div class="setting-card">';
+  html += '<div class="card-header"><h3><span class="card-icon">\u{1F4C1}</span> Groups</h3></div>';
+  html += '<div class="card-body">';
+  if (names.length === 0) {
+    html += '<div class="toggle-row"><div><div class="toggle-label">No groups yet</div><div class="toggle-desc">Load a playlist to manage groups</div></div></div>';
+  }
+  names.forEach((name, i) => {
+    const shown = !hidden.includes(name);
+    html += '<div class="toggle-row">';
+    html += '<div><div class="toggle-label">' + escapeHtml(name) + '</div><div class="toggle-desc">' + groupChannelCount(name) + ' channels</div></div>';
+    html += '<div class="toggle' + (shown ? ' on' : '') + '" id="show-group-' + i + '"><div class="knob"></div></div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function renderAboutCard() {  let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
   html += '<div class="card-body">';
