@@ -26,6 +26,7 @@
 | Channels | localStorage | Cached from playlist |
 | Proxy overrides | localStorage | Per-channel toggle |
 | DRM keys | localStorage | User's own data |
+| Xtream credentials | localStorage | Host + username + password, device-local only, sent only to the user's own provider host |
 
 **No data leaves the device by default. Telemetry is strictly opt-in**
 (Settings → Playback → "Check for updates", asked once on first launch,

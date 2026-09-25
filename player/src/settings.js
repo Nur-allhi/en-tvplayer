@@ -1,5 +1,6 @@
 import { getSettings, saveSettings, getActivePlaylist, APP_VERSION } from './config.js';
-import { processStreamUrl, parseM3u, fetchPlaylist, escapeHtml } from './utils.js';
+import { fetchPlaylistEntry, escapeHtml } from './utils.js';
+import { login as xtreamLogin } from './xtream.js';
 import { setConsented } from './update.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
@@ -14,6 +15,9 @@ let focusIdx = 0;
 let focusOrder = [];
 let addMode = false;
 let editMode = false;
+// Playlist form type: 'm3u' (URL) or 'xtream' (host + credentials).
+let addType = 'm3u';
+let editType = 'm3u';
 
 const NAV_ITEMS = [
   { id: 'source', icon: '📡', label: 'Channel Source' },
@@ -214,12 +218,24 @@ export function selectFocused() {
     // field act like pressing Enter on a desktop form: advance to the next
     // field, or save from the last field (playlist URL).
     if (el.id === 'pl-add-name') {
-      moveSettingsFocus('pl-add-url');
+      moveSettingsFocus(addType === 'xtream' ? 'pl-add-host' : 'pl-add-url');
     } else if (el.id === 'pl-add-url') {
       saveAddPlaylist();
+    } else if (el.id === 'pl-add-host') {
+      moveSettingsFocus('pl-add-user');
+    } else if (el.id === 'pl-add-user') {
+      moveSettingsFocus('pl-add-pass');
+    } else if (el.id === 'pl-add-pass') {
+      saveAddPlaylist();
     } else if (el.id === 'pl-edit-name') {
-      moveSettingsFocus('pl-edit-url');
+      moveSettingsFocus(editType === 'xtream' ? 'pl-edit-host' : 'pl-edit-url');
     } else if (el.id === 'pl-edit-url') {
+      saveEditPlaylist();
+    } else if (el.id === 'pl-edit-host') {
+      moveSettingsFocus('pl-edit-user');
+    } else if (el.id === 'pl-edit-user') {
+      moveSettingsFocus('pl-edit-pass');
+    } else if (el.id === 'pl-edit-pass') {
       saveEditPlaylist();
     } else {
       el.focus();
@@ -229,6 +245,7 @@ export function selectFocused() {
 
   if (el.id === 'pl-add-btn') {
     addMode = true;
+    addType = 'm3u';
     render();
     applyFocus();
     return;
@@ -239,8 +256,10 @@ export function selectFocused() {
   // used to be swallowed here, so editing a playlist never saved.
   if (el.id && /^pl-edit-\d+$/.test(el.id)) {
     const idx = parseInt(el.id.split('-')[2], 10);
+    const entry = getSettings().playlists[idx];
     editMode = true;
     editIndex = idx;
+    editType = entry && entry.type === 'xtream' ? 'xtream' : 'm3u';
     render();
     applyFocus();
     return;
@@ -260,6 +279,36 @@ export function selectFocused() {
       render();
       applyFocus();
     });
+    return;
+  }
+
+  if (el.id === 'pl-add-type-m3u') {
+    setFormType('pl-add', 'm3u');
+    return;
+  }
+
+  if (el.id === 'pl-add-type-xtream') {
+    setFormType('pl-add', 'xtream');
+    return;
+  }
+
+  if (el.id === 'pl-add-test') {
+    testXtreamLogin('pl-add');
+    return;
+  }
+
+  if (el.id === 'pl-edit-type-m3u') {
+    setFormType('pl-edit', 'm3u');
+    return;
+  }
+
+  if (el.id === 'pl-edit-type-xtream') {
+    setFormType('pl-edit', 'xtream');
+    return;
+  }
+
+  if (el.id === 'pl-edit-test') {
+    testXtreamLogin('pl-edit');
     return;
   }
 
@@ -335,14 +384,22 @@ function moveSettingsFocus(targetId) {
 
 function saveAddPlaylist() {
   const nameEl = document.getElementById('pl-add-name');
-  const urlEl = document.getElementById('pl-add-url');
   const name = nameEl ? nameEl.value.trim() : '';
-  const url = urlEl ? urlEl.value.trim() : '';
-  if (!url) return;
   const settings = getSettings();
   if (settings.playlists.length >= MAX_PLAYLISTS) return;
   const playlists = settings.playlists;
-  playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
+  const base = { name: name || 'Unnamed', addedAt: new Date().toISOString(), lastPlayedAt: null };
+  if (addType === 'xtream') {
+    const host = valOf('pl-add-host');
+    const username = valOf('pl-add-user');
+    const password = document.getElementById('pl-add-pass') ? document.getElementById('pl-add-pass').value : '';
+    if (!host || !username || !password) return;
+    playlists.push({ ...base, type: 'xtream', host, username, password, url: host });
+  } else {
+    const url = valOf('pl-add-url');
+    if (!url) return;
+    playlists.push({ ...base, type: 'm3u', url });
+  }
   saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
   addMode = false;
   render();
@@ -355,14 +412,27 @@ function saveAddPlaylist() {
   applyFocus();
 }
 
+function valOf(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
 function saveEditPlaylist() {
   const nameEl = document.getElementById('pl-edit-name');
-  const urlEl = document.getElementById('pl-edit-url');
   const name = nameEl ? nameEl.value.trim() : '';
-  const url = urlEl ? urlEl.value.trim() : '';
-  if (!url || editIndex < 0) return;
+  if (editIndex < 0) return;
   const playlists = getSettings().playlists;
-  playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
+  if (editType === 'xtream') {
+    const host = valOf('pl-edit-host');
+    const username = valOf('pl-edit-user');
+    const password = document.getElementById('pl-edit-pass') ? document.getElementById('pl-edit-pass').value : '';
+    if (!host || !username || !password) return;
+    playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', type: 'xtream', host, username, password, url: host };
+  } else {
+    const url = valOf('pl-edit-url');
+    if (!url) return;
+    playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', type: 'm3u', url };
+  }
   saveSettings({ playlists });
   editMode = false;
   editIndex = -1;
@@ -376,6 +446,41 @@ function saveEditPlaylist() {
   applyFocus();
 }
 
+// Switches the add/edit form between M3U URL and Xtream login fields
+// without re-rendering (typed values survive).
+function setFormType(prefix, type) {
+  if (prefix === 'pl-add') addType = type;
+  else editType = type;
+  const m3u = document.getElementById(prefix + '-m3u-fields');
+  const xt = document.getElementById(prefix + '-xtream-fields');
+  if (m3u) m3u.classList.toggle('hidden', type !== 'm3u');
+  if (xt) xt.classList.toggle('hidden', type !== 'xtream');
+  const m3uBtn = document.getElementById(prefix + '-type-m3u');
+  const xtBtn = document.getElementById(prefix + '-type-xtream');
+  if (m3uBtn) m3uBtn.classList.toggle('active', type === 'm3u');
+  if (xtBtn) xtBtn.classList.toggle('active', type === 'xtream');
+  moveSettingsFocus(prefix + (type === 'm3u' ? '-url' : '-host'));
+}
+
+// Tests Xtream credentials, reporting plainly in the form status line.
+async function testXtreamLogin(prefix) {
+  const statusEl = document.getElementById(prefix + '-test-status');
+  const host = valOf(prefix + '-host');
+  const username = valOf(prefix + '-user');
+  const passEl = document.getElementById(prefix + '-pass');
+  const password = passEl ? passEl.value : '';
+  if (statusEl) {
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = 'Checking...';
+  }
+  try {
+    await xtreamLogin({ host, username, password });
+    if (statusEl) statusEl.textContent = 'Login OK — save to load channels';
+  } catch (e) {
+    if (statusEl) statusEl.textContent = e.message;
+  }
+}
+
 function buildFocusOrder() {
   focusOrder = [];
   document.querySelectorAll('.nav-item').forEach(el => focusOrder.push(el));
@@ -383,12 +488,30 @@ function buildFocusOrder() {
   if (activeSection === 'source') {
     if (addMode) {
       focusOrder.push(document.getElementById('pl-add-name'));
-      focusOrder.push(document.getElementById('pl-add-url'));
+      focusOrder.push(document.getElementById('pl-add-type-m3u'));
+      focusOrder.push(document.getElementById('pl-add-type-xtream'));
+      if (addType === 'xtream') {
+        focusOrder.push(document.getElementById('pl-add-host'));
+        focusOrder.push(document.getElementById('pl-add-user'));
+        focusOrder.push(document.getElementById('pl-add-pass'));
+        focusOrder.push(document.getElementById('pl-add-test'));
+      } else {
+        focusOrder.push(document.getElementById('pl-add-url'));
+      }
       focusOrder.push(document.getElementById('pl-add-save'));
       focusOrder.push(document.getElementById('pl-add-cancel'));
     } else if (editMode && editIndex >= 0) {
       focusOrder.push(document.getElementById('pl-edit-name'));
-      focusOrder.push(document.getElementById('pl-edit-url'));
+      focusOrder.push(document.getElementById('pl-edit-type-m3u'));
+      focusOrder.push(document.getElementById('pl-edit-type-xtream'));
+      if (editType === 'xtream') {
+        focusOrder.push(document.getElementById('pl-edit-host'));
+        focusOrder.push(document.getElementById('pl-edit-user'));
+        focusOrder.push(document.getElementById('pl-edit-pass'));
+        focusOrder.push(document.getElementById('pl-edit-test'));
+      } else {
+        focusOrder.push(document.getElementById('pl-edit-url'));
+      }
       focusOrder.push(document.getElementById('pl-edit-save'));
       focusOrder.push(document.getElementById('pl-edit-cancel'));
     } else {
@@ -557,19 +680,20 @@ function render() {
     const saveBtn = document.getElementById('pl-add-save');
     if (saveBtn) {
       saveBtn.addEventListener('click', () => {
-        const nameEl = document.getElementById('pl-add-name');
-        const urlEl = document.getElementById('pl-add-url');
-        const name = nameEl ? nameEl.value.trim() : '';
-        const url = urlEl ? urlEl.value.trim() : '';
-        if (url) {
-          const playlists = getSettings().playlists;
-          playlists.push({ name: name || 'Unnamed', url, addedAt: new Date().toISOString(), lastPlayedAt: null });
-          saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
-          addMode = false;
-          render();
-          applyFocus();
-        }
+        saveAddPlaylist();
       });
+    }
+    const addTypeM3u = document.getElementById('pl-add-type-m3u');
+    if (addTypeM3u) {
+      addTypeM3u.addEventListener('click', () => setFormType('pl-add', 'm3u'));
+    }
+    const addTypeXtream = document.getElementById('pl-add-type-xtream');
+    if (addTypeXtream) {
+      addTypeXtream.addEventListener('click', () => setFormType('pl-add', 'xtream'));
+    }
+    const addTestBtn = document.getElementById('pl-add-test');
+    if (addTestBtn) {
+      addTestBtn.addEventListener('click', () => testXtreamLogin('pl-add'));
     }
     const cancelBtn = document.getElementById('pl-add-cancel');
     if (cancelBtn) {
@@ -582,20 +706,20 @@ function render() {
     const editSaveBtn = document.getElementById('pl-edit-save');
     if (editSaveBtn) {
       editSaveBtn.addEventListener('click', () => {
-        const nameEl = document.getElementById('pl-edit-name');
-        const urlEl = document.getElementById('pl-edit-url');
-        const name = nameEl ? nameEl.value.trim() : '';
-        const url = urlEl ? urlEl.value.trim() : '';
-        if (url && editIndex >= 0) {
-          const playlists = getSettings().playlists;
-          playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', url };
-          saveSettings({ playlists });
-          editMode = false;
-          editIndex = -1;
-          render();
-          applyFocus();
-        }
+        saveEditPlaylist();
       });
+    }
+    const editTypeM3u = document.getElementById('pl-edit-type-m3u');
+    if (editTypeM3u) {
+      editTypeM3u.addEventListener('click', () => setFormType('pl-edit', 'm3u'));
+    }
+    const editTypeXtream = document.getElementById('pl-edit-type-xtream');
+    if (editTypeXtream) {
+      editTypeXtream.addEventListener('click', () => setFormType('pl-edit', 'xtream'));
+    }
+    const editTestBtn = document.getElementById('pl-edit-test');
+    if (editTestBtn) {
+      editTestBtn.addEventListener('click', () => testXtreamLogin('pl-edit'));
     }
     const editCancelBtn = document.getElementById('pl-edit-cancel');
     if (editCancelBtn) {
@@ -664,8 +788,35 @@ function renderSourceCard(s, lastFetched) {
     html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
     html += '</div>';
     html += '<div class="input-group">';
+    html += '<label>Source Type</label>';
+    html += '<div class="select-grid">';
+    html += '<button id="pl-add-type-m3u" class="select-opt' + (addType !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
+    html += '<button id="pl-add-type-xtream" class="select-opt' + (addType === 'xtream' ? ' active' : '') + '" type="button">Xtream Login</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div id="pl-add-m3u-fields"' + (addType === 'xtream' ? ' class="hidden"' : '') + '>';
+    html += '<div class="input-group">';
     html += '<label for="pl-add-url">Playlist URL</label>';
     html += '<input id="pl-add-url" class="input-field" type="text" placeholder="https://..." />';
+    html += '</div>';
+    html += '</div>';
+    html += '<div id="pl-add-xtream-fields"' + (addType !== 'xtream' ? ' class="hidden"' : '') + '>';
+    html += '<div class="input-group">';
+    html += '<label for="pl-add-host">Host</label>';
+    html += '<input id="pl-add-host" class="input-field" type="text" placeholder="http://host:port" />';
+    html += '</div>';
+    html += '<div class="input-group">';
+    html += '<label for="pl-add-user">Username</label>';
+    html += '<input id="pl-add-user" class="input-field" type="text" placeholder="Username" />';
+    html += '</div>';
+    html += '<div class="input-group">';
+    html += '<label for="pl-add-pass">Password</label>';
+    html += '<input id="pl-add-pass" class="input-field" type="password" placeholder="Password" />';
+    html += '</div>';
+    html += '<div class="btn-group">';
+    html += '<button id="pl-add-test" class="btn btn-secondary" type="button">Test Login</button>';
+    html += '</div>';
+    html += '<div id="pl-add-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
     html += '</div>';
     html += '<div class="btn-group">';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
@@ -677,14 +828,42 @@ function renderSourceCard(s, lastFetched) {
       const p = s.playlists[i];
       const isActive = i === s.activePlaylistIndex;
       if (editMode && editIndex === i) {
+        const et = p.type === 'xtream' ? 'xtream' : 'm3u';
         html += '<div id="playlist-entry-' + i + '" class="playlist-entry active">';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-name">Playlist Name</label>';
         html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
         html += '</div>';
         html += '<div class="input-group">';
+        html += '<label>Source Type</label>';
+        html += '<div class="select-grid">';
+        html += '<button id="pl-edit-type-m3u" class="select-opt' + (et !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
+        html += '<button id="pl-edit-type-xtream" class="select-opt' + (et === 'xtream' ? ' active' : '') + '" type="button">Xtream Login</button>';
+        html += '</div>';
+        html += '</div>';
+        html += '<div id="pl-edit-m3u-fields"' + (et === 'xtream' ? ' class="hidden"' : '') + '>';
+        html += '<div class="input-group">';
         html += '<label for="pl-edit-url">Playlist URL</label>';
         html += '<input id="pl-edit-url" class="input-field" type="text" value="' + escapeHtml(p.url || '') + '" placeholder="https://..." />';
+        html += '</div>';
+        html += '</div>';
+        html += '<div id="pl-edit-xtream-fields"' + (et !== 'xtream' ? ' class="hidden"' : '') + '>';
+        html += '<div class="input-group">';
+        html += '<label for="pl-edit-host">Host</label>';
+        html += '<input id="pl-edit-host" class="input-field" type="text" value="' + escapeHtml(p.host || p.url || '') + '" placeholder="http://host:port" />';
+        html += '</div>';
+        html += '<div class="input-group">';
+        html += '<label for="pl-edit-user">Username</label>';
+        html += '<input id="pl-edit-user" class="input-field" type="text" value="' + escapeHtml(p.username || '') + '" placeholder="Username" />';
+        html += '</div>';
+        html += '<div class="input-group">';
+        html += '<label for="pl-edit-pass">Password</label>';
+        html += '<input id="pl-edit-pass" class="input-field" type="password" placeholder="Password" />';
+        html += '</div>';
+        html += '<div class="btn-group">';
+        html += '<button id="pl-edit-test" class="btn btn-secondary" type="button">Test Login</button>';
+        html += '</div>';
+        html += '<div id="pl-edit-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
         html += '</div>';
         html += '<div class="btn-group">';
         html += '<button id="pl-edit-save" class="btn btn-primary">Save</button>';
@@ -828,9 +1007,9 @@ async function handleFetch() {
   const statusEl = document.getElementById('settings-fetch-status');
   if (!statusEl) return;
   const active = getActivePlaylist();
-  if (!active || !active.url) {
+  if (!active || (active.type !== 'xtream' && !active.url)) {
     statusEl.className = 'status-info';
-    statusEl.textContent = 'Select or add a playlist with a URL first';
+    statusEl.textContent = 'Select or add a playlist first';
     statusEl.classList.remove('hidden');
     return;
   }
@@ -840,7 +1019,7 @@ async function handleFetch() {
   statusEl.textContent = 'Fetching...';
   statusEl.classList.remove('hidden');
   try {
-    const channels = await fetchPlaylist(active.url);
+    const channels = await fetchPlaylistEntry(active);
     saveSettings({ channels, channelsFetched: new Date().toISOString() });
     statusEl.textContent = 'Fetched ' + channels.length + ' channels';
     if (onPlaylistFetched) onPlaylistFetched(channels);
