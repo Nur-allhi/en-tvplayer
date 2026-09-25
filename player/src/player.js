@@ -609,6 +609,14 @@ export async function loadChannel(channel) {
       logEvent('WARN', 'Load failed (recoverable ' + error.code + ')');
       if (reconnectAttempts < 3) {
         scheduleReconnect();
+      } else if (shouldTryNative(error) && myToken === loadToken) {
+        // Last resort: the native pipeline ignores CORS and survives relays
+        // that defeat the browser stack (e.g. workers without ACAO headers).
+        // Tried once — a native failure is recorded and never retried.
+        logEvent('WARN', 'Shaka retries exhausted — trying native playback');
+        const okNative = await switchToAvplay();
+        if (myToken !== loadToken) return false;
+        return okNative === true;
       } else {
         showError(getErrorMessage(error) + ' — channel may be turned off');
       }
@@ -803,6 +811,20 @@ function handlePlayerError(error) {
       }, 4000);
     }
   }
+}
+
+// Native last resort for loads the browser stack cannot complete: CORS-blocked
+// relays (HTTP_ERROR 1002 with no usable response), timeouts, and status-less
+// failures. A server that explicitly answered (e.g. 404) is excluded — native
+// would get the same answer. Tried once per URL: desktop has no native stack,
+// and native failures are recorded in avplayFailedUrls by loadViaAvplay.
+function shouldTryNative(error) {
+  if (!error || !currentChannel) return false;
+  if (!avplay.isAvailable()) return false;
+  if (avplayFailedUrls.has(currentChannel.url)) return false;
+  if (error.code === 1002 || error.code === 1003) return true;
+  if (error.code === 1001 && !(error.data && error.data[1])) return true;
+  return false;
 }
 
 function isRecoverable(error) {
@@ -1022,7 +1044,7 @@ async function loadViaAvplay(channel, myToken) {
 async function switchToAvplay() {
   const channel = currentChannel;
   const tokenAtSwitch = loadToken;
-  if (!channel || !avplay.isAvailable()) return;
+  if (!channel || !avplay.isAvailable()) return false;
   stopBlackWatchdog();
   stopStallWatchdog();
   logEvent('WARN', 'No frames rendered — switching to native playback: ' +
@@ -1032,8 +1054,8 @@ async function switchToAvplay() {
     try { await player.destroy(); } catch {}
     player = null;
   }
-  if (tokenAtSwitch !== loadToken) return;
-  await loadViaAvplay(channel, tokenAtSwitch);
+  if (tokenAtSwitch !== loadToken) return false;
+  return loadViaAvplay(channel, tokenAtSwitch);
 }
 
 // Force-reload the current channel (e.g. from R key or remote)
