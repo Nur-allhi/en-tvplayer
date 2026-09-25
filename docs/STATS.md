@@ -11,20 +11,26 @@ gh api repos/Nur-allhi/en-tvplayer/releases --jq \
   "[.[] | {tag: .tag_name, downloads: ([.assets[] | .download_count] | add)}]"
 ```
 
-## Downloads by release (2026-09-11)
+## Downloads by release (2026-09-25)
 
 | Release | Downloads |
 |---------|-----------|
-| v2.1.0 | 6 |
-| v2.0.0 | 12 |
+| v2.2.0 | 84 |
+| v2.1.0 | 12 |
+| v2.0.0 | 13 |
 | v1.10.1 | 9 |
 | v1.10.0 | 10 |
-| v1.9.0 | 2 |
+| v1.9.0 | 3 |
 | v1.8.0 | 2 |
 | v1.7.0 | 8 |
 | v1.5.0 | 5 |
-| v1.4.0 | 7 |
+| v1.4.0 | 9 |
 | v1.3.0 | 1 |
+| v1.2.1 | 0 |
+| v1.2.0 | 0 |
+| v1.1.3 | 0 |
+| v1.1.2 | 0 |
+| v1.1.1 | 0 |
 | v1.1.0 | 12 |
 
 ## Active users
