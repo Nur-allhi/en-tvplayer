@@ -1041,6 +1041,8 @@ function handleRemoteAction(action, value) {
 
 function sortChannels(ch) {
   if (!ch || !ch.length) return;
+  // Provider order (default): keep playlist file order. A–Z is opt-in.
+  if (getSettings().channelSort !== 'name') return;
   ch.sort((a, b) => {
     if (!a || !b) return 0;
     // Sort by group first, then alphabetically by name within group

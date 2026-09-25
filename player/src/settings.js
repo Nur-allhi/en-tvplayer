@@ -412,6 +412,7 @@ function buildFocusOrder() {
     focusOrder.push(document.getElementById('toggle-watermark'));
     focusOrder.push(document.getElementById('toggle-badge'));
     focusOrder.push(document.getElementById('toggle-proxymenu'));
+    focusOrder.push(document.getElementById('toggle-channelsort'));
   }
 }
 
@@ -627,6 +628,9 @@ function render() {
         } else if (this.id === 'toggle-proxymenu') {
           const enabled = this.classList.contains('on');
           saveSettings({ showProxyMenu: enabled });
+        } else if (this.id === 'toggle-channelsort') {
+          const enabled = this.classList.contains('on');
+          saveSettings({ channelSort: enabled ? 'provider' : 'name' });
         }
       });
     });
@@ -714,6 +718,7 @@ function renderPlaybackCard() {
   const watermark = s.showWatermark !== false;
   const badge = s.showResolutionBadge !== false;
   const proxyMenu = s.showProxyMenu === true;
+  const providerSort = s.channelSort !== 'name';
   let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
@@ -741,6 +746,10 @@ function renderPlaybackCard() {
   html += '<div class="toggle-row">';
   html += '<div><div class="toggle-label">Proxy menu</div><div class="toggle-desc">Show per-channel proxy option in the sidebar menu</div></div>';
   html += '<div class="toggle' + (proxyMenu ? ' on' : '') + '" id="toggle-proxymenu"><div class="knob"></div></div>';
+  html += '</div>';
+  html += '<div class="toggle-row">';
+  html += '<div><div class="toggle-label">Provider order</div><div class="toggle-desc">List channels in provider order instead of A–Z (applies on next refresh)</div></div>';
+  html += '<div class="toggle' + (providerSort ? ' on' : '') + '" id="toggle-channelsort"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   return html;

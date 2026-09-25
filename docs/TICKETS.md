@@ -132,7 +132,7 @@
 ### T-035: Provider-order channel sorting (default)
 - **Skills:** `senior-frontend`
 - **Spec:** Add `channelSort: 'provider'` default in `player/src/config.js`. Settings → Playback gets a "Channel order" toggle row (Provider order ↔ A–Z). `sortChannels()` in `player/src/main.js` is skipped entirely in provider mode (parse/API order kept); `channelNumber` already equals file position so number-jump stays consistent. Migration note in release notes: existing installs reorder on update.
-- **Acceptance:** Fresh default install lists channels in playlist file order; flipping to A–Z restores old sort; number-jump hits the same channels in both modes.
+- **Acceptance:** Fresh default install lists channels in playlist file order; flipping to A–Z applies on next playlist refresh; number-jump hits the same channels in both modes.
 - **LOC:** ≤ 30
 
 ### T-036: Hide groups (global list)

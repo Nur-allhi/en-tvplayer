@@ -9,6 +9,7 @@ const settingsDefaults = {
   channelsFetched: null,
   autoQuality: true,
   autoRefreshPlaylist: true,
+  channelSort: 'provider',
   updateCheck: false,
   showWatermark: true,
   showResolutionBadge: true,
