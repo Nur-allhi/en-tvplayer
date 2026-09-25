@@ -17,6 +17,9 @@ tizen/author-key.pem
 *.wgt
 !releases/*.wgt
 
+# Local test builds (never committed)
+beta/
+
 # Stable folder (build output)
 stable/
 
