@@ -1278,8 +1278,8 @@ let bufferingChannelName = '';
 let bufferingStart = 0;
 let bufferingHintTimer = null;
 const BUFFERING_HINTS = [
-  [4000, ' — slow server, holding on…'],
-  [9000, ' — taking longer than usual, you can wait or try another channel'],
+  [4000, 'Slow server — holding on…'],
+  [9000, 'Taking longer than usual — you can wait or try another channel'],
 ];
 
 export function setBufferingChannel(name) {
@@ -1317,6 +1317,7 @@ function updateBufferingHint() {
     if (elapsed >= after) hint = text;
   }
   el.textContent = hint;
+  el.classList.toggle('hidden', hint.length === 0);
 }
 
 export function updateBuffering(percent) {
@@ -1334,7 +1335,10 @@ export function hideBuffering() {
   clearInterval(bufferingHintTimer);
   bufferingHintTimer = null;
   const hint = document.getElementById('buffering-hint');
-  if (hint) hint.textContent = '';
+  if (hint) {
+    hint.textContent = '';
+    hint.classList.add('hidden');
+  }
 }
 
 function setBufferingPercent(percent) {
