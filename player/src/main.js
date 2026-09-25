@@ -130,6 +130,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '3.1.0',
+    sections: [
+      { type: 'added', items: ['Remembers your last group and channel — reopening the app replays what you were watching'] },
+      { type: 'fixed', items: ['Channel list focus stays visible while scrolling with the button held', 'Reload no longer strands you on the logo when stream links went stale — the last channel is retried with fresh links'] },
+    ],
+  },
+  {
     version: '3.0.4',
     sections: [
       { type: 'fixed', items: ['Protected channels with cookie login (Star Plus HD and similar) play again — channel key loading fixed'] },

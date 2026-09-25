@@ -2,6 +2,15 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [3.1.0] - 2026-09-26
+
+### Added
+- Remembers the last group and channel: relaunching the app replays what was playing instead of always starting on channel 1.
+
+### Fixed
+- Channel/group list focus stays visible while scrolling with Up/Down held: stepwise instant scrolling replaces the jumpy re-centering, so the highlight never runs out of frame.
+- Reload no longer strands you on the brand screen when cached stream links went stale: the resumed channel is re-tuned with fresh links once the background playlist refresh lands.
+
 ## [3.0.4] - 2026-09-25
 
 ### Fixed
