@@ -124,6 +124,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '3.0.4',
+    sections: [
+      { type: 'fixed', items: ['Protected channels with cookie login (Star Plus HD and similar) play again — channel key loading fixed'] },
+    ],
+  },
+  {
     version: '3.0.3',
     sections: [
       { type: 'added', items: ['Audio track selection in the right sidebar for multi-audio channels'] },

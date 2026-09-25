@@ -2,7 +2,7 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
-## [Unreleased]
+## [3.0.4] - 2026-09-25
 
 ### Fixed
 - ClearKey license loading no longer breaks on cookie-authenticated channels: query-token auth is only attached to HTTP(S) URLs, never to the embedded `data:` license URI.
