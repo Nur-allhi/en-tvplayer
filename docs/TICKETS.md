@@ -127,4 +127,32 @@
 
 ---
 
+## Milestone v2.4.0 — "Playlist & Discovery"
+
+### T-035: Provider-order channel sorting (default)
+- **Skills:** `senior-frontend`
+- **Spec:** Add `channelSort: 'provider'` default in `player/src/config.js`. Settings → Playback gets a "Channel order" toggle row (Provider order ↔ A–Z). `sortChannels()` in `player/src/main.js` is skipped entirely in provider mode (parse/API order kept); `channelNumber` already equals file position so number-jump stays consistent. Migration note in release notes: existing installs reorder on update.
+- **Acceptance:** Fresh default install lists channels in playlist file order; flipping to A–Z restores old sort; number-jump hits the same channels in both modes.
+- **LOC:** ≤ 30
+
+### T-036: Hide groups (global list)
+- **Skills:** `senior-frontend`
+- **Spec:** Add global `hiddenGroups: []` (group names) in `player/src/config.js`. Settings gains a Groups manager (one toggle row per known group, persisted on flip). `extractGroups()` + `getDisplayChannels()` in `player/src/ui.js` exclude hidden names everywhere (list, number-jump, search). Complements T-032 (PIN lock stays a separate future ticket — hiding is not locking).
+- **Acceptance:** Hiding "Adult" removes it from group list, channel list, number-jump and search; unhiding restores it; empty-state copy still reads correctly with all groups hidden.
+- **LOC:** ≤ 80
+
+### T-037: Cross-group channel search
+- **Skills:** `senior-frontend` + `ui-ux-pro-max`
+- **Spec:** Pin a 🔍 Search row first in the group list (`player/src/ui.js`). Selecting it opens a text input reusing the playlist-field TV-keyboard/IME flow; live-filter channels across all visible groups (hidden groups excluded). OK tunes into context, Back returns to groups, empty query exits. Remote cases in `player/src/remote.js` + `player/src/main.js`, styles in `player/src/styles.css`.
+- **Acceptance:** Remote-only flow finds and tunes a channel from another group; hidden-group channels never surface; Back always lands back on groups.
+- **LOC:** ≤ 130
+
+### T-038: Native Xtream Codes login
+- **Skills:** `senior-frontend` + `code-reviewer`
+- **Spec:** New `player/src/xtream.js`: `login(host, user, pass)` surfacing auth/expired errors from `player_api.php?username&password`, and `fetchXtreamChannels()` mapping `get_live_categories` → `group` and `get_live_streams` → `{host}/live/{u}/{p}/{stream_id}.m3u8`, keeping provider `num` order. Playlist entry gains `{type:'xtream', host, username, password}`; Source card add/edit forms gain type selector + credential fields + Test-connection button; `fetchPlaylist()` dispatches by type. Live TV only — VOD/series explicitly out of scope. Credentials live in localStorage (note in `docs/SECURITY.md`).
+- **Acceptance:** Valid login imports categories as groups and streams as playable channels; wrong credentials and expired lines show plain-language errors; M3U playlists unchanged.
+- **LOC:** ≤ 250
+
+---
+
 **Sequencing:** T-001 → T-002 → T-003 → T-004 → v1.1.1 release → T-010 → T-011 → T-012 → v1.2.0 → T-020..T-024 → v1.3.0
