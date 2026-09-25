@@ -641,7 +641,10 @@ function showFirstRun() {
   const fresh = (s.playlists || []).length === 0 && (s.channels || []).length === 0;
   if (fresh) {
     // True first install: offer the source choice directly, no hint toast.
-    hideBootSplash(BOOT_IDLE_HOLD_MS, () => showOnboarding());
+    // Skip if the user already opened Settings meanwhile.
+    hideBootSplash(BOOT_IDLE_HOLD_MS, () => {
+      if (!settings.isVisible()) showOnboarding();
+    });
     return;
   }
   hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {

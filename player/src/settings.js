@@ -575,13 +575,15 @@ function applyFocus() {
     if (el) {
       el.setAttribute('data-focused', '');
       el.scrollIntoView({ block: 'nearest' });
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      const activeEl = document.activeElement;
+      const elIsField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+      // Desktop focuses fields on arrival so typing works at once. On Tizen
+      // the keyboard must open only after OK on the field (selectFocused),
+      // never while merely passing through it.
+      if (elIsField && !isTizenTV) {
         el.focus();
-      } else {
-        const activeEl = document.activeElement;
-        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-          activeEl.blur();
-        }
+      } else if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl !== el) {
+        activeEl.blur();
       }
     }
   }
