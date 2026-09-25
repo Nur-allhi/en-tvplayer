@@ -736,10 +736,22 @@ function showSettingsPage() {
   settings.show();
 }
 
+// Readback forces style/layout (and with it, a composite) synchronously,
+// so the tune veil is on screen before heavy teardown below.
+function forcePaint() {
+  try {
+    void document.body.offsetHeight;
+  } catch {}
+}
+
 async function handleChannelSelect(channel) {
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
   ui.setAudioTracks([]);
+  // Force the veil + name through layout before the teardown/load below
+  // runs — on Tizen the first paint can otherwise stall until load
+  // resolves, leaving a bare logo with no indication of what's happening.
+  forcePaint();
   // Drop the video plane at once: on Tizen it renders above the web layer,
   // so without this the old/black frame covers the loading veil.
   const tuneVideo = document.getElementById('video');
@@ -774,6 +786,10 @@ async function handleChannelSelect(channel) {
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
+  } else {
+    // Still buffering after load: veil is gone, first frame not up yet.
+    // Keep the center brand with the channel name under it until playback.
+    ui.showEmptyLogo(channel.name);
   }
   ui.setSelectedResolution('auto');
   const p = player.getPlayer();

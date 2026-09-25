@@ -496,6 +496,10 @@ export async function loadChannel(channel) {
         return;
       }
       const idleFor = Date.now() - lastShakaActivity;
+      const elapsed = Math.round((Date.now() - loadStart) / 1000);
+      if (elapsed >= 10 && currentChannel) {
+        showTuneElapsed(currentChannel.name, elapsed);
+      }
       if (idleFor >= 15000 || Date.now() - loadStart > 60000) {
         clearInterval(loadingTimeout);
         loadingTimeout = null;
@@ -848,6 +852,16 @@ function showCustomMessage(message) {
   if (el) {
     el.textContent = message;
     el.classList.remove('hidden');
+  }
+}
+
+// Liveness proof while a load hangs: the tune veil keeps counting seconds
+// so a slow connect never looks frozen on a bare logo.
+function showTuneElapsed(name, seconds) {
+  const veil = document.getElementById('loading');
+  const nameEl = document.getElementById('loading-name');
+  if (veil && nameEl && !veil.classList.contains('hidden')) {
+    nameEl.textContent = (name || 'Loading') + ' • ' + seconds + 's';
   }
 }
 

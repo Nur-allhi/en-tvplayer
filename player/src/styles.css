@@ -337,51 +337,29 @@ html, body {
   pointer-events: none;
 }
 
-/* Centered brand mark for dead-air states (no channels, failed tune, stopped):
-   sits above the video plane but below veils and pills. While it is up, the
-   faint backdrop logo hides so the two don't stack on each other. */
+/* Centered status line for dead-air states (no channels, failed tune,
+   stopped) and post-tune buffering: the faint backdrop logo above is the
+   only logo on screen, this text names the channel or state under it. */
 .player-empty-logo {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  opacity: 0.9;
+  justify-content: center;
   pointer-events: none;
   z-index: 2;
-}
-.player-empty-logo > * + * { margin-top: calc(16px * var(--tv-scale)); }
-
-.player-container.show-brand::before {
-  opacity: 0;
-}
-
-.empty-logo-icon {
-  width: calc(120px * var(--tv-scale));
-  height: calc(120px * var(--tv-scale));
-  border-radius: calc(24px * var(--tv-scale));
-}
-
-.empty-logo-text {
-  font-size: calc(34px * var(--tv-scale));
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-}
-
-.empty-logo-text span {
-  color: #ED421F;
+  max-width: 86%;
 }
 
 .empty-logo-message {
-  font-size: calc(20px * var(--tv-scale));
-  font-weight: 500;
-  color: #8b949e;
+  font-size: calc(24px * var(--tv-scale));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
   text-align: center;
-  max-width: calc(520px * var(--tv-scale));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Small watermark, top-left over the picture. Parked off-screen left while

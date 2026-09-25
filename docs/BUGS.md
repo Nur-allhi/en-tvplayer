@@ -295,6 +295,17 @@
 
 ---
 
+## BUG-022: Slow connect stares at a bare logo — no name, no liveness
+
+- **Status:** fixed (pending release — needs TV verification)
+- **Severity:** medium
+- **Found:** 2026-09-25 (user reported)
+- **Location:** `player/src/main.js` (`handleChannelSelect()`), `player/src/player.js` (load watchdog)
+- **Description:** While a channel connects slowly, the whole screen shows only the background logo — no channel name, no indication anything is happening. The tune veil (spinner + name) exists in DOM but on Tizen its first paint can stall until load resolves, so a hanging load looks frozen for 15–60s.
+- **Fix:** Two layers. (1) Synchronous pre-paint: veil + name are forced through layout (`forcePaint()` readback) before teardown/load blocks the main thread. (2) Liveness ticks: the load watchdog updates the veil name with elapsed seconds ("Channel • 10s") from 10s on, so a slow connect visibly counts instead of staring.
+
+---
+
 | Bug | Fixed | Commit |
 |-----|-------|--------|
 | BUG-008 | 2026-08-28 | fix/first-fetch-failure |
