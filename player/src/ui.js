@@ -774,14 +774,12 @@ export function isBadgeVisible() {
   return showBadge;
 }
 
-/* Centered brand mark for dead-air states (no channels, failed tune, stopped).
-   Pass a reason to print under the logo; pass '' to leave the error pill
-   as the only message. */
+/* Centered status line for dead-air states (no channels, failed tune,
+   stopped) and post-tune buffering. The faint backdrop logo stays visible
+   behind it — pass a reason to print as the message. */
 export function showEmptyLogo(message) {
   const el = document.getElementById('player-empty-logo');
   if (el) el.classList.remove('hidden');
-  const container = document.getElementById('player-container');
-  if (container) container.classList.add('show-brand');
   if (typeof message === 'string') {
     const msgEl = document.getElementById('empty-logo-message');
     if (msgEl) {
@@ -794,8 +792,6 @@ export function showEmptyLogo(message) {
 export function hideEmptyLogo() {
   const el = document.getElementById('player-empty-logo');
   if (el) el.classList.add('hidden');
-  const container = document.getElementById('player-container');
-  if (container) container.classList.remove('show-brand');
 }
 
 /* Right sidebar */
@@ -1278,8 +1274,8 @@ let bufferingChannelName = '';
 let bufferingStart = 0;
 let bufferingHintTimer = null;
 const BUFFERING_HINTS = [
-  [4000, ' — slow server, holding on…'],
-  [9000, ' — taking longer than usual, you can wait or try another channel'],
+  [4000, 'Slow server — holding on…'],
+  [9000, 'Taking longer than usual — you can wait or try another channel'],
 ];
 
 export function setBufferingChannel(name) {
@@ -1317,6 +1313,7 @@ function updateBufferingHint() {
     if (elapsed >= after) hint = text;
   }
   el.textContent = hint;
+  el.classList.toggle('hidden', hint.length === 0);
 }
 
 export function updateBuffering(percent) {
@@ -1334,7 +1331,10 @@ export function hideBuffering() {
   clearInterval(bufferingHintTimer);
   bufferingHintTimer = null;
   const hint = document.getElementById('buffering-hint');
-  if (hint) hint.textContent = '';
+  if (hint) {
+    hint.textContent = '';
+    hint.classList.add('hidden');
+  }
 }
 
 function setBufferingPercent(percent) {

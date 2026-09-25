@@ -230,6 +230,11 @@ html, body {
 
 
 
+/* Standalone button rows inside cards need breathing room from the fields */
+.settings-page .card-body > .btn-group {
+  margin-top: calc(16px * var(--tv-scale));
+}
+
 /* Channel search (sidebar): input row + result rows reuse channel rows */
 .search-row {
   padding: calc(8px * var(--tv-scale)) calc(12px * var(--tv-scale));
@@ -332,51 +337,29 @@ html, body {
   pointer-events: none;
 }
 
-/* Centered brand mark for dead-air states (no channels, failed tune, stopped):
-   sits above the video plane but below veils and pills. While it is up, the
-   faint backdrop logo hides so the two don't stack on each other. */
+/* Centered status line for dead-air states (no channels, failed tune,
+   stopped) and post-tune buffering: the faint backdrop logo above is the
+   only logo on screen, this text names the channel or state under it. */
 .player-empty-logo {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  opacity: 0.9;
+  justify-content: center;
   pointer-events: none;
   z-index: 2;
-}
-.player-empty-logo > * + * { margin-top: calc(16px * var(--tv-scale)); }
-
-.player-container.show-brand::before {
-  opacity: 0;
-}
-
-.empty-logo-icon {
-  width: calc(120px * var(--tv-scale));
-  height: calc(120px * var(--tv-scale));
-  border-radius: calc(24px * var(--tv-scale));
-}
-
-.empty-logo-text {
-  font-size: calc(34px * var(--tv-scale));
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-}
-
-.empty-logo-text span {
-  color: #ED421F;
+  max-width: 86%;
 }
 
 .empty-logo-message {
-  font-size: calc(20px * var(--tv-scale));
-  font-weight: 500;
-  color: #8b949e;
+  font-size: calc(24px * var(--tv-scale));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
   text-align: center;
-  max-width: calc(520px * var(--tv-scale));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Small watermark, top-left over the picture. Parked off-screen left while
@@ -480,19 +463,28 @@ html, body {
   display: none !important;
 }
 
-/* Buffering pill (bottom center, enlarged for big TVs) */
-.buffering-indicator {
+/* Buffering stack (bottom center, enlarged for big TVs):
+   status line sits above the pill as its own element. */
+.buffering-wrap {
   position: absolute;
   bottom: calc(20px * var(--tv-scale));
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 40;
+  pointer-events: none;
+  max-width: 86vw;
+}
+
+.buffering-indicator {
   display: flex;
   align-items: center;
   background: rgba(0, 0, 0, 0.7);
   padding: calc(14px * var(--tv-scale)) calc(28px * var(--tv-scale));
   border-radius: calc(28px * var(--tv-scale));
   font-size: calc(23px * var(--tv-scale));
-  z-index: 40;
 }
 .buffering-indicator > * + * { margin-left: 12px; }
 .buffering-indicator .spinner {
@@ -502,8 +494,14 @@ html, body {
 }
 
 .buffering-hint {
-  color: #8b949e;
-  font-size: calc(14px * var(--tv-scale));
+  margin-bottom: calc(10px * var(--tv-scale));
+  background: rgba(0, 0, 0, 0.7);
+  padding: calc(10px * var(--tv-scale)) calc(22px * var(--tv-scale));
+  border-radius: calc(20px * var(--tv-scale));
+  color: #c9d1d9;
+  font-size: calc(18px * var(--tv-scale));
+  text-align: center;
+  max-width: 100%;
 }
 
 .spinner.small {
@@ -1751,6 +1749,17 @@ html, body {
   border-top: 1px solid #222;
   display: flex;
   justify-content: flex-end;
+}
+
+/* First-run picker: centered choice buttons */
+.onboarding-actions {
+  justify-content: center;
+}
+.onboarding-actions > * + * { margin-left: 16px; }
+
+/* First-run picker: centered title */
+#onboarding-modal .whats-new-header {
+  justify-content: center;
 }
 
 .confirm-dialog { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.7); }

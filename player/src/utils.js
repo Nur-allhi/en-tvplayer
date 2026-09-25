@@ -1,5 +1,6 @@
-export function processStreamUrl(rawUrl) {
-  // Kodi pipe suffix, literal '|' or URL-encoded '%7C' (playlists that
+import { fetchXtreamChannels } from './xtream.js';
+
+export function processStreamUrl(rawUrl) {  // Kodi pipe suffix, literal '|' or URL-encoded '%7C' (playlists that
   // escaped it, e.g. `cenc.mpd?%7CdrmScheme=clearkey&drmLicense=KID:KEY`).
   // The suffix is player syntax, never part of the HTTP request URL.
   let pipeIdx = rawUrl.indexOf('|');
@@ -237,6 +238,15 @@ export async function fetchPlaylist(url) {
   if (text.includes('#EXTM3U')) {
     return parseM3u(text);
   }    throw new Error('This playlist format is not supported. Please use an M3U or JSON playlist.');
+}
+
+// Playlist entry dispatcher: Xtream logins go through the Xtream API,
+// everything else fetches a playlist URL as before.
+export function fetchPlaylistEntry(entry) {
+  if (entry && entry.type === 'xtream') {
+    return fetchXtreamChannels(entry);
+  }
+  return fetchPlaylist(entry ? entry.url : '');
 }
 
 export function escapeHtml(text) {

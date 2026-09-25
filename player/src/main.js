@@ -4,7 +4,7 @@ import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
-import { processStreamUrl, parseM3u, fetchPlaylist as fetchFromPlaylistUrl } from './utils.js';
+import { processStreamUrl, parseM3u, fetchPlaylistEntry } from './utils.js';
 
 let currentIndex = 0;
 let channels;
@@ -123,6 +123,26 @@ function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
 const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
+  {
+    version: '3.0.2',
+    sections: [
+      { type: 'added', items: ['Channel name under the center logo while buffering'] },
+      { type: 'changed', items: ['Single center logo — stacked logos impossible'] },
+      { type: 'fixed', items: ['Slow connects show progress instead of a bare logo'] },
+    ],
+  },
+  {
+    version: '3.0.1',
+    sections: [
+      { type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] },
+    ],
+  },
+  {
+    version: '3.0.0',
+    sections: [
+      { type: 'added', items: ['Xtream login source with Test Login', 'First-run source picker for new installs', 'Channel Up/Down buttons switch to the next/previous channel'] },
+    ],
+  },
   {
     version: '2.3.0',
     sections: [
@@ -334,7 +354,7 @@ async function init() {
       // No cached channels — show splash while fetching.
       showBootSplash('Downloading playlist...');
       try {
-        const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
+        const newChannels = await fetchPlaylistEntry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
@@ -356,7 +376,7 @@ async function init() {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
     try {
-      const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
+      const newChannels = await fetchPlaylistEntry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
@@ -496,6 +516,21 @@ function startPlayer() {
     });
   }
 
+  const onboardM3u = document.getElementById('onboard-m3u');
+  if (onboardM3u) {
+    addCleanupListener(onboardM3u, 'click', () => {
+      onboardFocus = 0;
+      selectOnboarding();
+    });
+  }
+  const onboardXtream = document.getElementById('onboard-xtream');
+  if (onboardXtream) {
+    addCleanupListener(onboardXtream, 'click', () => {
+      onboardFocus = 1;
+      selectOnboarding();
+    });
+  }
+
   // Desktop test relay toggle: visible only on local test hosts (localhost,
   // loopback, .local, LAN IPs — never in the TV build, which runs from
   // file:// with an empty hostname) AND when enabled in Settings → Playback.
@@ -622,11 +657,65 @@ function showFirstRun() {
   startPlayer();
   ui.toggleRightSidebar();
   showBootSplash('Loading...');
+  const s = getSettings();
+  const fresh = (s.playlists || []).length === 0 && (s.channels || []).length === 0;
+  if (fresh) {
+    // True first install: offer the source choice directly, no hint toast.
+    // Skip if the user already opened Settings meanwhile.
+    hideBootSplash(BOOT_IDLE_HOLD_MS, () => {
+      if (!settings.isVisible()) showOnboarding();
+    });
+    return;
+  }
   hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {
     setTimeout(() => {
       if (!isWhatsNewOpen()) ui.showFirstRunHint();
     }, 1200);
   });
+}
+
+/* First-run source picker: M3U playlist or Xtream login, straight into the
+   matching Settings add form. Shown only on true first installs. */
+let onboardFocus = 0;
+
+function isOnboardingOpen() {
+  const el = document.getElementById('onboarding-modal');
+  return el && !el.classList.contains('hidden');
+}
+
+function showOnboarding() {
+  const modal = document.getElementById('onboarding-modal');
+  if (!modal) return;
+  // Fresh installs have no changelog to catch up on — don't stack What's New.
+  markVersionSeen();
+  onboardFocus = 0;
+  modal.classList.remove('hidden');
+  updateOnboardFocus();
+}
+
+function hideOnboarding() {
+  const modal = document.getElementById('onboarding-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function updateOnboardFocus() {
+  const m3uBtn = document.getElementById('onboard-m3u');
+  const xtBtn = document.getElementById('onboard-xtream');
+  if (m3uBtn) {
+    if (onboardFocus === 0) m3uBtn.setAttribute('data-focused', '');
+    else m3uBtn.removeAttribute('data-focused');
+  }
+  if (xtBtn) {
+    if (onboardFocus === 1) xtBtn.setAttribute('data-focused', '');
+    else xtBtn.removeAttribute('data-focused');
+  }
+}
+
+function selectOnboarding() {
+  const type = onboardFocus === 1 ? 'xtream' : 'm3u';
+  hideOnboarding();
+  showSettingsPage();
+  settings.openAddForm(type);
 }
 
 function showPlayer() {
@@ -655,10 +744,22 @@ function showSettingsPage() {
   settings.show();
 }
 
+// Readback forces style/layout (and with it, a composite) synchronously,
+// so the tune veil is on screen before heavy teardown below.
+function forcePaint() {
+  try {
+    void document.body.offsetHeight;
+  } catch {}
+}
+
 async function handleChannelSelect(channel) {
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
   ui.setAudioTracks([]);
+  // Force the veil + name through layout before the teardown/load below
+  // runs — on Tizen the first paint can otherwise stall until load
+  // resolves, leaving a bare logo with no indication of what's happening.
+  forcePaint();
   // Drop the video plane at once: on Tizen it renders above the web layer,
   // so without this the old/black frame covers the loading veil.
   const tuneVideo = document.getElementById('video');
@@ -693,6 +794,10 @@ async function handleChannelSelect(channel) {
   } else if (!bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
+  } else {
+    // Still buffering after load: veil is gone, first frame not up yet.
+    // Keep the center brand with the channel name under it until playback.
+    ui.showEmptyLogo(channel.name);
   }
   ui.setSelectedResolution('auto');
   const p = player.getPlayer();
@@ -777,7 +882,7 @@ async function refreshChannelsInBackground() {
   const active = getActivePlaylist();
   if (!active || !active.url) return;
   try {
-    const newChannels = await fetchFromPlaylistUrl(active.url);
+    const newChannels = await fetchPlaylistEntry(active);
     saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
     sortChannels(newChannels);
     channels = newChannels;
@@ -801,11 +906,43 @@ function registerTizenKeys() {
   }
 }
 
+// CH Up/Down (and Prev/Next keys): retune to the adjacent channel in the
+// current group view, wrapping around.
+function zapChannel(step) {
+  const displayChannels = getDisplayChannels();
+  if (displayChannels.length === 0) return;
+  const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
+  const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
+  const target = (idx + step + displayChannels.length) % displayChannels.length;
+  currentIndex = channels.indexOf(displayChannels[target]);
+  ui.selectChannel(currentIndex, true);
+}
+
 function handleRemoteAction(action, value) {
   if (action === 'back') {
     const now = Date.now();
     if (now - lastBackTime < 600) return;
     lastBackTime = now;
+  }
+  if (isOnboardingOpen()) {
+    switch (action) {
+      case 'left':
+      case 'right':
+      case 'up':
+      case 'down':
+        onboardFocus = onboardFocus === 0 ? 1 : 0;
+        updateOnboardFocus();
+        break;
+      case 'select':
+        selectOnboarding();
+        break;
+      case 'back':
+        hideOnboarding();
+        break;
+      default:
+        break;
+    }
+    return;
   }
   if (isWhatsNewOpen()) {
     switch (action) {
@@ -893,6 +1030,14 @@ function handleRemoteAction(action, value) {
         break;
       case 'right':
         break;
+      case 'channelUp':
+        ui.toggleRightSidebar();
+        zapChannel(1);
+        break;
+      case 'channelDown':
+        ui.toggleRightSidebar();
+        zapChannel(-1);
+        break;
       default:
         break;
     }
@@ -930,6 +1075,12 @@ function handleRemoteAction(action, value) {
         case 'down':
           ui.navigateGroupDown();
           break;
+        case 'channelUp':
+          ui.navigateGroupDown();
+          break;
+        case 'channelDown':
+          ui.navigateGroupUp();
+          break;
         case 'select':
           ui.selectFocusedGroup();
           break;
@@ -955,6 +1106,12 @@ function handleRemoteAction(action, value) {
           break;
         case 'down':
           ui.navigateDown();
+          break;
+        case 'channelUp':
+          ui.navigateDown();
+          break;
+        case 'channelDown':
+          ui.navigateUp();
           break;
         case 'select':
           ui.selectFocused();
@@ -993,29 +1150,17 @@ function handleRemoteAction(action, value) {
 
   switch (action) {
     case 'up':
-    case 'channelUp':
-    case 'prev': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const prev = (idx - 1 + displayChannels.length) % displayChannels.length;
-      const prevChannel = displayChannels[prev];
-      currentIndex = channels.indexOf(prevChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'prev':
+      zapChannel(-1);
       break;
-    }
     case 'down':
-    case 'channelDown':
-    case 'next': {
-      const displayChannels = getDisplayChannels();
-      const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
-      const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
-      const next = (idx + 1) % displayChannels.length;
-      const nextChannel = displayChannels[next];
-      currentIndex = channels.indexOf(nextChannel);
-      ui.selectChannel(currentIndex, true);
+    case 'next':
+    case 'channelUp':
+      zapChannel(1);
       break;
-    }
+    case 'channelDown':
+      zapChannel(-1);
+      break;
     case 'left':
       ui.toggleSidebar();
       break;
@@ -1091,7 +1236,7 @@ export async function refreshChannels() {
   const active = getActivePlaylist();
   if (active && active.url) {
     try {
-      const newChannels = await fetchFromPlaylistUrl(active.url);
+      const newChannels = await fetchPlaylistEntry(active);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       sortChannels(newChannels);
       channels = newChannels;

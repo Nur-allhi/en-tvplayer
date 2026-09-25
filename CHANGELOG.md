@@ -9,6 +9,43 @@ All notable changes to EN TV Player will be documented in this file.
 
 ---
 
+## [3.0.2] - 2026-09-25
+
+### Added
+- Channel name under the center logo while a tune keeps buffering after load.
+
+### Changed
+- Single center logo: faint backdrop with a status line; the big brand block is gone, so stacked logos are impossible.
+
+### Fixed
+- Slow connects show the tune veil immediately with elapsed-seconds liveness instead of a frozen bare logo (BUG-022).
+
+---
+
+## [3.0.1] - 2026-09-25
+
+### Fixed
+- Buffering status messages ("Slow server…") now show as a separate line above the buffering pill, larger and centered, instead of cramped inside it.
+
+---
+
+## [3.0.0] - 2026-09-25
+
+### Added
+- Xtream Codes login as a first-class source: host + username + password with Test Login, provider categories as channel groups, provider channel order preserved. Live TV only.
+- First-run source picker: new installs choose M3U playlist or Xtream login right after the splash, landing directly in the matching add form.
+- Samsung remote Channel Up/Down buttons zap to the next/previous channel while watching, move the highlight in channel/group lists, and close the Menu to zap — with hardware keyCode support (427/428).
+- Per-channel proxy toggle in the Menu (desktop testing relay, off by default behind Settings → Playback → Proxy menu).
+
+### Changed
+- Source add/edit forms start with the M3U/Xtream type selector, ask the playlist name last, and share one Test/Save/Cancel row with proper spacing.
+
+### Fixed
+- TV keyboard in Settings fields opens only after OK on the field, no longer while merely passing through inputs.
+- Fresh-boot race where the source picker could pop over an already-open Settings page.
+
+---
+
 ## [2.3.0] - 2026-09-25
 
 ### Added
