@@ -19,6 +19,9 @@ const settingsDefaults = {
   proxyChannels: {},
   showProxyMenu: false,
   hiddenGroups: [],
+  // Resume: last playing channel (stable URL, not index) + group view.
+  lastChannelUrl: null,
+  lastGroup: null,
 };
 
 export function getSettings() {

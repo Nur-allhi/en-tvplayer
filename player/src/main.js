@@ -621,7 +621,39 @@ function startPlayer() {
     showEmptyState();
     return;
   }
-  ui.selectChannel(0, true);
+  restoreLastSession();
+}
+
+// Boot resume: replay the last channel + group view instead of channel 0.
+// Falls back to channel 0 when nothing was saved, the channel is gone, or
+// its group is now hidden. Identity is the channel URL (stable across
+// playlist refresh and re-sort); a raw index would rot on every fetch.
+function restoreLastSession() {
+  let idx = 0;
+  try {
+    const s = getSettings();
+    const at = s && s.lastChannelUrl
+      ? channels.findIndex((ch) => ch && ch.url === s.lastChannelUrl)
+      : -1;
+    if (at >= 0) {
+      const ch = channels[at];
+      const g = (ch && ch.group) || 'Ungrouped';
+      if (!getHiddenGroups().includes(g)) {
+        idx = at;
+        const groups = ui.getGroups().map((x) => x.name);
+        const savedView = s.lastGroup === 'all' ? 'All Channels' : s.lastGroup;
+        if (savedView && groups.includes(savedView) && (savedView === 'All Channels' || savedView === g)) {
+          ui.showGroupChannels(savedView);
+        } else if (groups.includes(g)) {
+          ui.showGroupChannels(g);
+        } else {
+          ui.showGroupChannels('All Channels');
+        }
+        selectedGroup = ui.getSelectedGroup();
+      }
+    }
+  } catch {}
+  ui.selectChannel(idx, true);
 }
 
 function showEmptyState() {
@@ -797,6 +829,11 @@ async function handleChannelSelect(channel) {
       s.playlists[idx].lastPlayedAt = new Date().toISOString();
       saveSettings({ playlists: s.playlists });
     }
+  } catch {}
+  // Resume: remember what was playing (URL is stable across refresh/sort).
+  try {
+    selectedGroup = ui.getSelectedGroup();
+    saveSettings({ lastChannelUrl: channel.url, lastGroup: selectedGroup });
   } catch {}
   ui.setProxyToggleLabel(!!((getSettings().proxyChannels || {})[channel.url]));
   const ok = await player.loadChannel(channel);
