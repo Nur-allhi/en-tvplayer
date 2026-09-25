@@ -124,6 +124,13 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '3.0.3',
+    sections: [
+      { type: 'added', items: ['Audio track selection in the right sidebar for multi-audio channels'] },
+      { type: 'fixed', items: ['Cookie-protected channels (JioTV+ Business, Devotional) now play'] },
+    ],
+  },
+  {
     version: '3.0.2',
     sections: [
       { type: 'added', items: ['Channel name under the center logo while buffering'] },

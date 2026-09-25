@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tizen](https://img.shields.io/badge/Tizen-5.0+-red?logo=samsung)]()
 
-> **Current version: v3.0.2** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
+> **Current version: v3.0.3** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
 >
 > **Looking for** a Samsung Tizen IPTV player — an M3U/M3U8 playlist player for Samsung Smart TV, sideloaded as a `.wgt` file, that plays DRM-protected (ClearKey / PlayReady) channels? That's this app.
 
