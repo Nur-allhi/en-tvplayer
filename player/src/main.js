@@ -385,6 +385,21 @@ function addCleanupListener(element, event, handler) {
   }
 }
 
+// Desktop test relay sidebar entry: hidden unless on a local test host with
+// Settings → Playback → Proxy menu enabled. Called on boot and every time
+// Settings closes (settings.hide() never fires the onClose callback).
+function refreshProxyMenu() {
+  const host = (typeof window !== 'undefined' && window.location.hostname) || '';
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' ||
+    host.endsWith('.local') ||
+    /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
+  const show = isLocalhost && getSettings().showProxyMenu === true;
+  const btn = document.getElementById('proxy-toggle-btn');
+  if (btn) btn.classList.toggle('hidden', !show);
+  const label = document.getElementById('proxy-testing-label');
+  if (label) label.classList.toggle('hidden', !show);
+}
+
 function startPlayer() {
   // BUG-018: must also initialize the shell with zero channels. Otherwise a
   // fresh install that backs out of Settings lands on a dead player page
@@ -423,6 +438,7 @@ function startPlayer() {
   ui.setAutoCloseCallback(() => {
     if (settings.isVisible()) {
       settings.hide();
+      refreshProxyMenu();
       showPlayer();
       ui.stopInactivityTimer();
     }
@@ -473,21 +489,10 @@ function startPlayer() {
   // loopback, .local, LAN IPs — never in the TV build, which runs from
   // file:// with an empty hostname) AND when enabled in Settings → Playback.
   // Off by default, so release users never see it.
-  function refreshProxyMenu() {
-    const host = window.location.hostname || '';
-    const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' ||
-      host.endsWith('.local') ||
-      /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
-    const show = isLocalhost && getSettings().showProxyMenu === true;
-    const btn = document.getElementById('proxy-toggle-btn');
-    if (btn) btn.classList.toggle('hidden', !show);
-    const label = document.getElementById('proxy-testing-label');
-    if (label) label.classList.toggle('hidden', !show);
-  }
+  refreshProxyMenu();
 
   let proxyToggleBtn = document.getElementById('proxy-toggle-btn');
   if (proxyToggleBtn) {
-    refreshProxyMenu();
     addCleanupListener(proxyToggleBtn, 'click', () => {
       const ch = ui.getCurrentChannel();
       if (!ch) return;
@@ -841,6 +846,7 @@ function handleRemoteAction(action, value) {
         break;
       case 'back':
         settings.hide();
+        refreshProxyMenu();
         // BUG-018: with no playlist yet, initialize the empty shell so the
         // sidebars and Settings stay reachable.
         if (channels && channels.length > 0) {
