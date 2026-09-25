@@ -39,6 +39,10 @@ en-tvplayer/
 │   ├── public/          Static assets
 │   └── vite.config.js   Vite configuration
 ├── tizen/               WGT build tools
+├── proxy/               Desktop testing relay (CORS + Origin/Referer/UA fix)
+│   ├── proxy.mjs        HTTPS relay — prefix channel URLs to test DRM on desktop
+│   ├── header-rules.json Hostname → header map
+│   └── package.json     `npm run proxy` (https://localhost:5001)
 ├── releases/            Pre-built WGT releases
 ├── docs/                Project documentation
 └── README.md
