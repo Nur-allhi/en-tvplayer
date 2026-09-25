@@ -233,25 +233,25 @@ export function selectFocused() {
     // field act like pressing Enter on a desktop form: advance to the next
     // field, or save from the last field (playlist URL).
     if (el.id === 'pl-add-name') {
-      moveSettingsFocus(addType === 'xtream' ? 'pl-add-host' : 'pl-add-url');
-    } else if (el.id === 'pl-add-url') {
       saveAddPlaylist();
+    } else if (el.id === 'pl-add-url') {
+      moveSettingsFocus('pl-add-name');
     } else if (el.id === 'pl-add-host') {
       moveSettingsFocus('pl-add-user');
     } else if (el.id === 'pl-add-user') {
       moveSettingsFocus('pl-add-pass');
     } else if (el.id === 'pl-add-pass') {
-      saveAddPlaylist();
+      moveSettingsFocus('pl-add-name');
     } else if (el.id === 'pl-edit-name') {
-      moveSettingsFocus(editType === 'xtream' ? 'pl-edit-host' : 'pl-edit-url');
-    } else if (el.id === 'pl-edit-url') {
       saveEditPlaylist();
+    } else if (el.id === 'pl-edit-url') {
+      moveSettingsFocus('pl-edit-name');
     } else if (el.id === 'pl-edit-host') {
       moveSettingsFocus('pl-edit-user');
     } else if (el.id === 'pl-edit-user') {
       moveSettingsFocus('pl-edit-pass');
     } else if (el.id === 'pl-edit-pass') {
-      saveEditPlaylist();
+      moveSettingsFocus('pl-edit-name');
     } else {
       el.focus();
     }
@@ -504,7 +504,6 @@ function buildFocusOrder() {
 
   if (activeSection === 'source') {
     if (addMode) {
-      focusOrder.push(document.getElementById('pl-add-name'));
       focusOrder.push(document.getElementById('pl-add-type-m3u'));
       focusOrder.push(document.getElementById('pl-add-type-xtream'));
       if (addType === 'xtream') {
@@ -515,10 +514,10 @@ function buildFocusOrder() {
       } else {
         focusOrder.push(document.getElementById('pl-add-url'));
       }
+      focusOrder.push(document.getElementById('pl-add-name'));
       focusOrder.push(document.getElementById('pl-add-save'));
       focusOrder.push(document.getElementById('pl-add-cancel'));
     } else if (editMode && editIndex >= 0) {
-      focusOrder.push(document.getElementById('pl-edit-name'));
       focusOrder.push(document.getElementById('pl-edit-type-m3u'));
       focusOrder.push(document.getElementById('pl-edit-type-xtream'));
       if (editType === 'xtream') {
@@ -529,6 +528,7 @@ function buildFocusOrder() {
       } else {
         focusOrder.push(document.getElementById('pl-edit-url'));
       }
+      focusOrder.push(document.getElementById('pl-edit-name'));
       focusOrder.push(document.getElementById('pl-edit-save'));
       focusOrder.push(document.getElementById('pl-edit-cancel'));
     } else {
@@ -801,10 +801,6 @@ function renderSourceCard(s, lastFetched) {
   html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/' + MAX_PLAYLISTS + '). Select one, then press Active.</p>';
   if (addMode) {
     html += '<div class="input-group">';
-    html += '<label for="pl-add-name">Playlist Name</label>';
-    html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
-    html += '</div>';
-    html += '<div class="input-group">';
     html += '<label>Source Type</label>';
     html += '<div class="select-grid">';
     html += '<button id="pl-add-type-m3u" class="select-opt' + (addType !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
@@ -832,6 +828,10 @@ function renderSourceCard(s, lastFetched) {
     html += '</div>';
     html += '<div id="pl-add-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
     html += '</div>';
+    html += '<div class="input-group">';
+    html += '<label for="pl-add-name">Playlist Name</label>';
+    html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
+    html += '</div>';
     html += '<div class="btn-group">';
     html += '<button id="pl-add-test" class="btn btn-secondary' + (addType !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
@@ -845,10 +845,6 @@ function renderSourceCard(s, lastFetched) {
       if (editMode && editIndex === i) {
         const et = p.type === 'xtream' ? 'xtream' : 'm3u';
         html += '<div id="playlist-entry-' + i + '" class="playlist-entry active">';
-        html += '<div class="input-group">';
-        html += '<label for="pl-edit-name">Playlist Name</label>';
-        html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
-        html += '</div>';
         html += '<div class="input-group">';
         html += '<label>Source Type</label>';
         html += '<div class="select-grid">';
@@ -876,6 +872,10 @@ function renderSourceCard(s, lastFetched) {
         html += '<input id="pl-edit-pass" class="input-field" type="password" placeholder="Password" />';
         html += '</div>';
         html += '<div id="pl-edit-test-status" class="status-info hidden" style="margin-top:12px;"></div>';
+        html += '</div>';
+        html += '<div class="input-group">';
+        html += '<label for="pl-edit-name">Playlist Name</label>';
+        html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
         html += '</div>';
         html += '<div class="btn-group">';
         html += '<button id="pl-edit-test" class="btn btn-secondary' + (et !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';

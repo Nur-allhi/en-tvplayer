@@ -230,6 +230,11 @@ html, body {
 
 
 
+/* Standalone button rows inside cards need breathing room from the fields */
+.settings-page .card-body > .btn-group {
+  margin-top: calc(16px * var(--tv-scale));
+}
+
 /* Channel search (sidebar): input row + result rows reuse channel rows */
 .search-row {
   padding: calc(8px * var(--tv-scale)) calc(12px * var(--tv-scale));
