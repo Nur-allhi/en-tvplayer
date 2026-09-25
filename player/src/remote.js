@@ -99,6 +99,7 @@ function handleKeyDown(e) {
     'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
     'MediaPlay', 'MediaPause',
     37, 38, 39, 40, 13, 27, 32, 82, 10009, // keyCodes
+    427, 428, // CH Up / CH Down (Tizen keyCodes)
   ];
 
   if (handled.includes(key) || handled.includes(e.keyCode)) {
@@ -147,6 +148,17 @@ function handleKeyDown(e) {
   }
   if (key === 'ArrowRight' || e.keyCode === 39) {
     onKeyAction('right');
+    return;
+  }
+
+  // Channel Up/Down (CH keys): real Tizen hardware often reports these as
+  // keyCode-only (427/428) with e.key 'Unidentified', so match both.
+  if (key === 'ChUp' || key === 'ChannelUp' || e.keyCode === 427) {
+    onKeyAction('channelUp');
+    return;
+  }
+  if (key === 'ChDown' || key === 'ChannelDown' || e.keyCode === 428) {
+    onKeyAction('channelDown');
     return;
   }
 
