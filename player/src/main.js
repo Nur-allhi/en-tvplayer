@@ -894,11 +894,11 @@ function handleRemoteAction(action, value) {
         break;
       case 'channelUp':
         ui.toggleRightSidebar();
-        zapChannel(-1);
+        zapChannel(1);
         break;
       case 'channelDown':
         ui.toggleRightSidebar();
-        zapChannel(1);
+        zapChannel(-1);
         break;
       default:
         break;
@@ -917,10 +917,10 @@ function handleRemoteAction(action, value) {
           ui.navigateGroupDown();
           break;
         case 'channelUp':
-          ui.navigateGroupUp();
+          ui.navigateGroupDown();
           break;
         case 'channelDown':
-          ui.navigateGroupDown();
+          ui.navigateGroupUp();
           break;
         case 'select':
           ui.selectFocusedGroup();
@@ -949,10 +949,10 @@ function handleRemoteAction(action, value) {
           ui.navigateDown();
           break;
         case 'channelUp':
-          ui.navigateUp();
+          ui.navigateDown();
           break;
         case 'channelDown':
-          ui.navigateDown();
+          ui.navigateUp();
           break;
         case 'select':
           ui.selectFocused();
@@ -991,14 +991,16 @@ function handleRemoteAction(action, value) {
 
   switch (action) {
     case 'up':
-    case 'channelUp':
     case 'prev':
       zapChannel(-1);
       break;
     case 'down':
-    case 'channelDown':
     case 'next':
+    case 'channelUp':
       zapChannel(1);
+      break;
+    case 'channelDown':
+      zapChannel(-1);
       break;
     case 'left':
       ui.toggleSidebar();
