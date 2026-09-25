@@ -181,9 +181,11 @@ export function updateGroupFocus() {
     item.classList.toggle('focused', idx === groupFocusedIndex);
   });
   if (items[groupFocusedIndex]) {
-    // Instant + centered: smooth queues animations on key-repeat (hold)
-    // and the focus runs ahead of the visible scroll position.
-    items[groupFocusedIndex].scrollIntoView({ block: 'center', behavior: 'auto' });
+    // Instant + minimal scroll: smooth queues animations on key-repeat (hold)
+    // and the focus runs ahead of the visible scroll position; re-centering
+    // on every step makes the list jump so the eye can't track focus.
+    // Nearest keeps the focused row steadily in view, one step at a time.
+    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
@@ -331,8 +333,8 @@ function updateSearchFocus() {
   const items = document.querySelectorAll('#search-results .search-item');
   items.forEach((item, i) => item.classList.toggle('focused', i === searchFocus));
   if (items[searchFocus]) {
-    // Instant + centered: see updateGroupFocus.
-    items[searchFocus].scrollIntoView({ block: 'center', behavior: 'auto' });
+    // Instant + minimal scroll: see updateGroupFocus.
+    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
@@ -1273,8 +1275,8 @@ function updateFocus() {
 function scrollToFocused() {
   const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
   if (el) {
-    // Instant + centered: see updateGroupFocus.
-    el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    // Instant + minimal scroll: see updateGroupFocus.
+    el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
