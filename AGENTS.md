@@ -127,10 +127,9 @@ git push && git push origin vX.Y.Z
 - Write release notes
 
 ### Step 6: ⚠️ UPDATE COMMUNITY JSON (MANDATORY)
-- Edit `packages/Nur-allhi__en-tvplayer.json` in tizen-community-packages repo
-- Ensure `output_name` matches your release asset filename
-- Commit and push
-- Verify PR builds successfully
+- Edit `packages/Nur-allhi__en-tvplayer.json` in your tizen-community-packages fork
+- Bump `name` to the new version and ensure `output_name` matches your release asset filename
+- Commit and push to your fork — no PR needed, the community bundle auto-detects the update
 
 **Without Step 6, the community bundle will have an OLD version of your app!**
 
@@ -143,17 +142,14 @@ git push && git push origin vX.Y.Z
 ### How to Update
 
 ```bash
-# Clone the community repo
+# Clone the community repo (your fork)
 git clone https://github.com/Nur-allhi/tizen-community-packages.git
 
 # Edit your JSON file
 # packages/Nur-allhi__en-tvplayer.json
 
-# Commit and push
+# Commit and push — no PR, the bundle auto-detects
 git add .
 git commit -m "update: EN TV Player to vX.Y.Z"
 git push
-
-# Create PR
-gh pr create --repo Apps2Samsung/tizen-community-packages
 ```
