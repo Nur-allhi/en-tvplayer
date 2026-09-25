@@ -1,9 +1,19 @@
 export function processStreamUrl(rawUrl) {
-  const pipeIdx = rawUrl.indexOf('|');
+  // Kodi pipe suffix, literal '|' or URL-encoded '%7C' (playlists that
+  // escaped it, e.g. `cenc.mpd?%7CdrmScheme=clearkey&drmLicense=KID:KEY`).
+  // The suffix is player syntax, never part of the HTTP request URL.
+  let pipeIdx = rawUrl.indexOf('|');
+  const encIdx = rawUrl.toLowerCase().indexOf('%7c');
+  let delimLen = 1;
+  if (encIdx !== -1 && (pipeIdx === -1 || encIdx < pipeIdx)) {
+    pipeIdx = encIdx;
+    delimLen = 3;
+  }
   if (pipeIdx === -1) return { url: rawUrl, extraHeaders: null };
 
-  const baseUrl = rawUrl.slice(0, pipeIdx);
-  const suffix = rawUrl.slice(pipeIdx + 1);
+  let baseUrl = rawUrl.slice(0, pipeIdx);
+  if (baseUrl.endsWith('?')) baseUrl = baseUrl.slice(0, -1);
+  const suffix = rawUrl.slice(pipeIdx + delimLen);
   const extraHeaders = {};
   const extraParams = [];
 
@@ -12,6 +22,7 @@ export function processStreamUrl(rawUrl) {
     if (eqIdx === -1) continue;
     const key = part.slice(0, eqIdx);
     const value = part.slice(eqIdx + 1);
+    if (/^drmscheme$/i.test(key) || /^drmlicense$/i.test(key)) continue; // DRM directives, not HTTP headers
     if (key.startsWith('edge-')) {
       extraParams.push(key + '=' + value);
     } else {

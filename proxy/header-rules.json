@@ -22,5 +22,11 @@
       "origin": "https://www.fancode.com",
       "referer": "https://www.fancode.com/"
     }
+  },
+  {
+    "name": "StreamHostingCDN (no Origin/Referer)",
+    "match": "streamhostingcdn\\.top$",
+    "headers": {},
+    "drop": ["origin", "referer"]
   }
 ]

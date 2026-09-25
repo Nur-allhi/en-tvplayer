@@ -69,15 +69,23 @@ try {
 }
 
 function applyHeaderRules(hostname, cleanHeaders, url) {
+  const dropped = new Set();
   for (const rule of headerRules) {
     if (rule._re.test(hostname)) {
-      for (const [k, v] of Object.entries(rule.headers)) cleanHeaders[k] = v;
+      for (const [k, v] of Object.entries(rule.headers || {})) cleanHeaders[k] = v;
+      // Some hosts reject any Origin/Referer (they serve the TV app, which
+      // sends none) — drop them even if the browser attached its own.
+      for (const k of rule.drop || []) {
+        const lk = String(k).toLowerCase();
+        dropped.add(lk);
+        delete cleanHeaders[lk];
+      }
       log(`  └─ matched rule "${rule.name}"`);
-      return rule.name;
+      break;
     }
   }
-  if (!cleanHeaders['origin']) cleanHeaders['origin'] = url.protocol + '//' + url.hostname;
-  if (!cleanHeaders['referer']) cleanHeaders['referer'] = url.protocol + '//' + url.hostname + '/';
+  if (!dropped.has('origin') && !cleanHeaders['origin']) cleanHeaders['origin'] = url.protocol + '//' + url.hostname;
+  if (!dropped.has('referer') && !cleanHeaders['referer']) cleanHeaders['referer'] = url.protocol + '//' + url.hostname + '/';
   return null;
 }
 // ──────────────────────────────────────────────────────────────
