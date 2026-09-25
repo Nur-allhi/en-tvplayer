@@ -135,7 +135,9 @@ export function getCurrentIndex() {
 export function updateSidebarTitle() {
   const el = document.getElementById('sidebar-title');
   if (!el) return;
-  if (sidebarMode === 'groups') {
+  if (sidebarMode === 'search') {
+    el.textContent = 'Search';
+  } else if (sidebarMode === 'groups') {
     el.textContent = 'Groups';
   } else if (selectedGroup === 'all') {
     el.textContent = 'All Channels';
@@ -150,6 +152,14 @@ export function renderGroupList() {
   const container = document.getElementById('group-list');
   if (!container) return;
   container.innerHTML = '';
+  const searchRow = document.createElement('div');
+  searchRow.className = 'group-item';
+  searchRow.dataset.search = '1';
+  searchRow.innerHTML = '<span class="group-name">🔍 Search</span>';
+  searchRow.addEventListener('click', () => {
+    enterSearch();
+  });
+  container.appendChild(searchRow);
   groups.forEach((group, index) => {
     const item = document.createElement('div');
     item.className = 'group-item';
@@ -176,20 +186,189 @@ export function updateGroupFocus() {
 }
 
 export function navigateGroupUp() {
-  if (groups.length === 0) return;
-  groupFocusedIndex = (groupFocusedIndex - 1 + groups.length) % groups.length;
+  const total = groups.length + 1; // + Search row
+  if (total === 0) return;
+  groupFocusedIndex = (groupFocusedIndex - 1 + total) % total;
   updateGroupFocus();
 }
 
 export function navigateGroupDown() {
-  if (groups.length === 0) return;
-  groupFocusedIndex = (groupFocusedIndex + 1) % groups.length;
+  const total = groups.length + 1; // + Search row
+  if (total === 0) return;
+  groupFocusedIndex = (groupFocusedIndex + 1) % total;
   updateGroupFocus();
 }
 
 export function selectFocusedGroup() {
-  if (groups.length === 0) return;
-  showGroupChannels(groups[groupFocusedIndex].name);
+  if (groupFocusedIndex === 0) {
+    enterSearch();
+    return;
+  }
+  const group = groups[groupFocusedIndex - 1];
+  if (group) showGroupChannels(group.name);
+}
+
+/* Cross-group search (T-037): the pinned Search row opens a text input;
+   results span all visible groups (hidden groups excluded). */
+let searchQuery = '';
+let searchResults = [];
+let searchFocus = 0;
+const SEARCH_LIMIT = 60;
+
+function getSearchInput() {
+  return document.getElementById('channel-search');
+}
+
+function isSearchInputFocused() {
+  const el = getSearchInput();
+  return !!el && document.activeElement === el;
+}
+
+function computeSearchResults() {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return [];
+  const hidden = getHiddenGroups();
+  return channels.filter(ch =>
+    !hidden.includes(((ch && ch.group) || 'Ungrouped')) &&
+    (ch.name || '').toLowerCase().includes(q)
+  );
+}
+
+export function enterSearch() {
+  sidebarMode = 'search';
+  searchQuery = '';
+  searchResults = [];
+  searchFocus = 0;
+  renderSearch();
+  updateSidebarTitle();
+}
+
+export function exitSearch() {
+  sidebarMode = 'groups';
+  searchQuery = '';
+  searchResults = [];
+  searchFocus = 0;
+  const groupList = document.getElementById('group-list');
+  const channelList = document.getElementById('channel-list');
+  if (channelList) channelList.classList.add('hidden');
+  if (groupList) groupList.classList.remove('hidden');
+  renderGroupList();
+  updateSidebarTitle();
+}
+
+function renderSearch() {
+  const container = document.getElementById('group-list');
+  if (!container) return;
+  const channelList = document.getElementById('channel-list');
+  if (channelList) channelList.classList.add('hidden');
+  container.classList.remove('hidden');
+  container.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'search-row';
+  const input = document.createElement('input');
+  input.id = 'channel-search';
+  input.className = 'input-field';
+  input.type = 'text';
+  input.placeholder = 'Search channels…';
+  input.setAttribute('autocomplete', 'off');
+  input.value = searchQuery;
+  input.addEventListener('input', () => {
+    searchQuery = input.value;
+    searchResults = computeSearchResults();
+    searchFocus = 0;
+    renderSearchResults();
+  });
+  row.appendChild(input);
+  container.appendChild(row);
+  const results = document.createElement('div');
+  results.id = 'search-results';
+  container.appendChild(results);
+  renderSearchResults();
+  input.focus();
+}
+
+function searchHint(text) {
+  const el = document.createElement('div');
+  el.className = 'search-hint';
+  el.textContent = text;
+  return el;
+}
+
+function renderSearchResults() {
+  const box = document.getElementById('search-results');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!searchQuery.trim()) {
+    box.appendChild(searchHint('Type to search all groups'));
+    return;
+  }
+  if (searchResults.length === 0) {
+    box.appendChild(searchHint('No channels found'));
+    return;
+  }
+  searchResults.slice(0, SEARCH_LIMIT).forEach((ch, i) => {
+    const item = document.createElement('div');
+    item.className = 'channel-item search-item';
+    item.innerHTML =
+      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(ch.name) + '</span></span>' +
+      '<span class="group-count">' + escapeHtml(ch.group || 'Ungrouped') + '</span>';
+    item.addEventListener('click', () => {
+      searchFocus = i;
+      updateSearchFocus();
+      searchSelect();
+    });
+    box.appendChild(item);
+  });
+  if (searchResults.length > SEARCH_LIMIT) {
+    box.appendChild(searchHint('+' + (searchResults.length - SEARCH_LIMIT) + ' more — keep typing'));
+  }
+  updateSearchFocus();
+}
+
+function updateSearchFocus() {
+  const items = document.querySelectorAll('#search-results .search-item');
+  items.forEach((item, i) => item.classList.toggle('focused', i === searchFocus));
+  if (items[searchFocus]) {
+    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+export function searchNavigate(dir) {
+  if (isSearchInputFocused()) {
+    if (dir > 0 && searchResults.length > 0) {
+      getSearchInput().blur();
+      searchFocus = 0;
+      updateSearchFocus();
+    }
+    return;
+  }
+  if (searchResults.length === 0) return;
+  searchFocus += dir;
+  if (searchFocus < 0) {
+    searchFocus = 0;
+    const input = getSearchInput();
+    if (input) input.focus();
+    updateSearchFocus();
+    return;
+  }
+  const shown = Math.min(searchResults.length, SEARCH_LIMIT);
+  if (searchFocus >= shown) searchFocus = shown - 1;
+  updateSearchFocus();
+}
+
+export function searchSelect() {
+  if (isSearchInputFocused()) {
+    if (searchResults.length === 0) return;
+    getSearchInput().blur();
+    searchFocus = 0;
+    updateSearchFocus();
+    return;
+  }
+  const ch = searchResults[searchFocus];
+  if (!ch) return;
+  const idx = channels.indexOf(ch);
+  exitSearch();
+  if (idx >= 0) selectChannel(idx);
 }
 
 export function showGroupChannels(groupName) {
@@ -219,6 +398,11 @@ export function showGroupList() {
    playing mark and focus. Falls back to the group list when the open group
    was just hidden. */
 export function refreshGroupVisibility() {
+  if (sidebarMode === 'search') {
+    searchResults = computeSearchResults();
+    renderSearchResults();
+    return;
+  }
   extractGroups(channels);
   const hidden = getHiddenGroups();
   if (sidebarMode === 'groups' || (selectedGroup && selectedGroup !== 'all' && hidden.includes(selectedGroup))) {

@@ -895,6 +895,27 @@ function handleRemoteAction(action, value) {
 
   if (ui.isSidebarOpen()) {
     const mode = ui.getSidebarMode();
+    if (mode === 'search') {
+      switch (action) {
+        case 'up':
+          ui.searchNavigate(-1);
+          break;
+        case 'down':
+          ui.searchNavigate(1);
+          break;
+        case 'select':
+          ui.searchSelect();
+          break;
+        case 'back':
+          ui.exitSearch();
+          break;
+        case 'number':
+          break; // typed into the search box natively
+        default:
+          break;
+      }
+      return;
+    }
     if (mode === 'groups') {
       switch (action) {
         case 'up':

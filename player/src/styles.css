@@ -230,6 +230,30 @@ html, body {
 
 
 
+/* Channel search (sidebar): input row + result rows reuse channel rows */
+.search-row {
+  padding: calc(8px * var(--tv-scale)) calc(12px * var(--tv-scale));
+}
+
+.search-row .input-field {
+  width: 100%;
+}
+
+.search-hint {
+  padding: calc(14px * var(--tv-scale));
+  font-size: calc(18px * var(--tv-scale));
+  color: #666;
+  text-align: center;
+}
+
+.search-item .group-count {
+  font-size: calc(18px * var(--tv-scale));
+  color: #ED421F;
+  font-weight: 600;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
 /* Group list */
 .group-list {
   flex: 1;
