@@ -9,6 +9,19 @@ All notable changes to EN TV Player will be documented in this file.
 
 ---
 
+## [3.0.2] - 2026-09-25
+
+### Added
+- Channel name under the center logo while a tune keeps buffering after load.
+
+### Changed
+- Single center logo: faint backdrop with a status line; the big brand block is gone, so stacked logos are impossible.
+
+### Fixed
+- Slow connects show the tune veil immediately with elapsed-seconds liveness instead of a frozen bare logo (BUG-022).
+
+---
+
 ## [3.0.1] - 2026-09-25
 
 ### Fixed

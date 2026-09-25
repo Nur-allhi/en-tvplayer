@@ -124,6 +124,14 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '3.0.2',
+    sections: [
+      { type: 'added', items: ['Channel name under the center logo while buffering'] },
+      { type: 'changed', items: ['Single center logo — stacked logos impossible'] },
+      { type: 'fixed', items: ['Slow connects show progress instead of a bare logo'] },
+    ],
+  },
+  {
     version: '3.0.1',
     sections: [
       { type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] },
