@@ -4,7 +4,7 @@ import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
-import { processStreamUrl, parseM3u, fetchPlaylist as fetchFromPlaylistUrl } from './utils.js';
+import { processStreamUrl, parseM3u, fetchPlaylistEntry } from './utils.js';
 
 let currentIndex = 0;
 let channels;
@@ -334,7 +334,7 @@ async function init() {
       // No cached channels — show splash while fetching.
       showBootSplash('Downloading playlist...');
       try {
-        const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
+        const newChannels = await fetchPlaylistEntry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
@@ -356,7 +356,7 @@ async function init() {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
     try {
-      const newChannels = await fetchFromPlaylistUrl(activePlaylist.url);
+      const newChannels = await fetchPlaylistEntry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
@@ -777,7 +777,7 @@ async function refreshChannelsInBackground() {
   const active = getActivePlaylist();
   if (!active || !active.url) return;
   try {
-    const newChannels = await fetchFromPlaylistUrl(active.url);
+    const newChannels = await fetchPlaylistEntry(active);
     saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
     sortChannels(newChannels);
     channels = newChannels;
@@ -1091,7 +1091,7 @@ export async function refreshChannels() {
   const active = getActivePlaylist();
   if (active && active.url) {
     try {
-      const newChannels = await fetchFromPlaylistUrl(active.url);
+      const newChannels = await fetchPlaylistEntry(active);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       sortChannels(newChannels);
       channels = newChannels;
