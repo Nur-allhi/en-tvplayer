@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tizen](https://img.shields.io/badge/Tizen-5.0+-red?logo=samsung)]()
 
-> **Current version: v2.2.0** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
+> **Current version: v3.0.2** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
 
 ---
 
@@ -49,9 +49,10 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 | | |
 |---|---|
 | 🔓 DRM playback | ClearKey + PlayReady protected channels |
-| 📃 Playlists | M3U/M3U8, multiple saved playlists, auto-refresh on launch |
-| 🗂️ Organization | Channel groups, alphabetical sorting, fast number jump |
-| 🎚️ Per-channel proxy | Toggle proxy per channel for stubborn streams |
+| 📃 Playlists | M3U/M3U8 + Xtream login, multiple saved playlists, auto-refresh on launch |
+| 🗂️ Organization | Channel groups (hideable), provider order or A–Z, cross-group search, number jump |
+| ✨ First run | Source picker: M3U or Xtream right after install |
+| 🎚️ Per-channel proxy | Testing relay for stubborn streams (desktop, opt-in via Settings) |
 | 📶 Smart playback | Auto quality, stream-format auto-detection, live-token retry |
 | 🔔 Update checker | Opt-in notice when a new version is available |
 | 🎮 Remote-first | Full Samsung remote support incl. color keys & channel up/down |
@@ -67,7 +68,7 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 | Enter | Select channel |
 | Back | Close menu / exit |
 | Volume ↑/↓ | Adjust volume |
-| Red / Green / Yellow / Blue | Shortcuts (menu, groups, proxy, settings) |
+| Red / Green / Yellow / Blue | Green: groups · Blue: settings (Red/Yellow reserved) |
 | Channel Up/Down | Previous / next channel |
 | Numbers | Jump to channel |
 
@@ -76,8 +77,8 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 ## 📖 First Run
 
 1. Install the app and open it from "My Apps"
-2. The Settings page opens automatically
-3. Paste your M3U/M3U8 playlist URL → Fetch
+2. Pick a source: **M3U / M3U8 Playlist** or **Xtream Login**
+3. Paste your playlist URL (or enter host + username + password) → Save → Fetch
 4. Start watching! The app can auto-refresh your playlist on every launch (Settings → Playback)
 
 ---
@@ -86,7 +87,7 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 | Problem | Solution |
 |---------|----------|
-| Channel won't play | Try enabling **Proxy** for that channel from the menu |
+| Channel won't play | Check the playlist URL, try a fixed quality from the menu, or another channel |
 | "Update available" badge | Reinstall via Apps2Samsung — settings are kept |
 | Channel list empty | Re-paste your M3U URL in Settings → Channel Source |
 | App missing from My Apps | Restart the TV, verify Developer Mode is still on |
@@ -95,7 +96,7 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 ## 💬 Contact
 
-Questions, broken channels, or just want to say hi? Message me directly on Telegram: **[@nureallhiii](https://t.me/nureallhiii)**
+Questions, broken channels, or just want to say hi? Join the channel: **[@eniptvplayer](https://t.me/eniptvplayer)**
 
 ---
 
