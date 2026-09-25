@@ -52,6 +52,21 @@ export function show() {
   applyFocus();
 }
 
+// Opens Settings → Source with the add form showing, preset to the given
+// type ('m3u' or 'xtream'). Used by the first-run source picker.
+export function openAddForm(type) {
+  if (!container) return;
+  activeSection = 'source';
+  addMode = true;
+  editMode = false;
+  editIndex = -1;
+  addType = type === 'xtream' ? 'xtream' : 'm3u';
+  focusIdx = 0;
+  container.classList.remove('hidden');
+  render();
+  applyFocus();
+}
+
 export function hide() {
   if (!container) return;
   container.classList.add('hidden');

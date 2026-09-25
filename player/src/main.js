@@ -496,6 +496,21 @@ function startPlayer() {
     });
   }
 
+  const onboardM3u = document.getElementById('onboard-m3u');
+  if (onboardM3u) {
+    addCleanupListener(onboardM3u, 'click', () => {
+      onboardFocus = 0;
+      selectOnboarding();
+    });
+  }
+  const onboardXtream = document.getElementById('onboard-xtream');
+  if (onboardXtream) {
+    addCleanupListener(onboardXtream, 'click', () => {
+      onboardFocus = 1;
+      selectOnboarding();
+    });
+  }
+
   // Desktop test relay toggle: visible only on local test hosts (localhost,
   // loopback, .local, LAN IPs — never in the TV build, which runs from
   // file:// with an empty hostname) AND when enabled in Settings → Playback.
@@ -622,11 +637,62 @@ function showFirstRun() {
   startPlayer();
   ui.toggleRightSidebar();
   showBootSplash('Loading...');
+  const s = getSettings();
+  const fresh = (s.playlists || []).length === 0 && (s.channels || []).length === 0;
+  if (fresh) {
+    // True first install: offer the source choice directly, no hint toast.
+    hideBootSplash(BOOT_IDLE_HOLD_MS, () => showOnboarding());
+    return;
+  }
   hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {
     setTimeout(() => {
       if (!isWhatsNewOpen()) ui.showFirstRunHint();
     }, 1200);
   });
+}
+
+/* First-run source picker: M3U playlist or Xtream login, straight into the
+   matching Settings add form. Shown only on true first installs. */
+let onboardFocus = 0;
+
+function isOnboardingOpen() {
+  const el = document.getElementById('onboarding-modal');
+  return el && !el.classList.contains('hidden');
+}
+
+function showOnboarding() {
+  const modal = document.getElementById('onboarding-modal');
+  if (!modal) return;
+  // Fresh installs have no changelog to catch up on — don't stack What's New.
+  markVersionSeen();
+  onboardFocus = 0;
+  modal.classList.remove('hidden');
+  updateOnboardFocus();
+}
+
+function hideOnboarding() {
+  const modal = document.getElementById('onboarding-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function updateOnboardFocus() {
+  const m3uBtn = document.getElementById('onboard-m3u');
+  const xtBtn = document.getElementById('onboard-xtream');
+  if (m3uBtn) {
+    if (onboardFocus === 0) m3uBtn.setAttribute('data-focused', '');
+    else m3uBtn.removeAttribute('data-focused');
+  }
+  if (xtBtn) {
+    if (onboardFocus === 1) xtBtn.setAttribute('data-focused', '');
+    else xtBtn.removeAttribute('data-focused');
+  }
+}
+
+function selectOnboarding() {
+  const type = onboardFocus === 1 ? 'xtream' : 'm3u';
+  hideOnboarding();
+  showSettingsPage();
+  settings.openAddForm(type);
 }
 
 function showPlayer() {
@@ -806,6 +872,26 @@ function handleRemoteAction(action, value) {
     const now = Date.now();
     if (now - lastBackTime < 600) return;
     lastBackTime = now;
+  }
+  if (isOnboardingOpen()) {
+    switch (action) {
+      case 'left':
+      case 'right':
+      case 'up':
+      case 'down':
+        onboardFocus = onboardFocus === 0 ? 1 : 0;
+        updateOnboardFocus();
+        break;
+      case 'select':
+        selectOnboarding();
+        break;
+      case 'back':
+        hideOnboarding();
+        break;
+      default:
+        break;
+    }
+    return;
   }
   if (isWhatsNewOpen()) {
     switch (action) {
