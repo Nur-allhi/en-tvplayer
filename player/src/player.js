@@ -471,6 +471,21 @@ export async function loadChannel(channel) {
     return loadViaAvplay(channel, myToken);
   }
 
+  // Direct-media URLs (raw .ts/.mp4/…, never HLS/DASH manifests) go native
+  // first on Tizen: Shaka has no top-level parser for them, so a Shaka-first
+  // attempt just hangs until the watchdog kills it. DRM stays on Shaka (CDM).
+  // On native failure (recorded, never retried) the Shaka path below runs as
+  // a second chance. Desktop has no native stack — unchanged behavior.
+  if (!channel.drm && avplay.isAvailable() &&
+      !avplayFailedUrls.has(channel.url) && detectMimeType(url)) {
+    const okNative = await loadViaAvplay(channel, myToken);
+    if (myToken !== loadToken) return false;
+    if (okNative) {
+      avplayPreferredUrls.add(channel.url);
+      return true;
+    }
+  }
+
   try {
     // Always destroy and recreate the player on every channel switch.
     // On Tizen, Shaka's unload/load can hang forever when stuck on a failed
@@ -1296,6 +1311,8 @@ function getErrorMessage(error) {
     3001: 'This channel uses stream values your TV could not process.',
     3002: 'This channel could not play on your TV.',
     3003: 'This channel could not play on your TV.',
+    3016: 'This channel could not be decoded on your TV. Try a different channel.',
+    3017: 'This channel is too high quality for this TV. Try a lower-quality channel.',
     3018: 'The live stream broke up. Trying again — if it persists, try another channel.',
     4000: 'This channel could not be identified. Try a different channel.',
     4032: 'This channel stopped playing in a format your TV accepts. Trying again — if it persists, try another channel.',
