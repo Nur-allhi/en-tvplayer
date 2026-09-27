@@ -4,7 +4,7 @@ import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
-import { processStreamUrl, parseM3u, fetchPlaylistEntry } from './utils.js';
+import { processStreamUrl, parseM3u, fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
 
 let currentIndex = 0;
 let channels;
@@ -381,12 +381,16 @@ async function init() {
       channels = s.channels;
       startPlayer();
       showBootSplash('Updating playlist...');
-      refreshChannelsInBackground().then(() => hideBootSplashAndMaybeWhatsNew());
+      refreshChannelsInBackground().then((ok) => {
+        hideBootSplashAndMaybeWhatsNew(0, () => {
+          if (ok === false) showStaleCacheNotice();
+        });
+      });
     } else {
-      // No cached channels — show splash while fetching.
+      // No cached channels — show splash while fetching (with retries).
       showBootSplash('Downloading playlist...');
       try {
-        const newChannels = await fetchPlaylistEntry(activePlaylist);
+        const newChannels = await fetchPlaylistWithRetry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
@@ -408,7 +412,7 @@ async function init() {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
     try {
-      const newChannels = await fetchPlaylistEntry(activePlaylist);
+      const newChannels = await fetchPlaylistWithRetry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
@@ -956,9 +960,9 @@ let lastBackTime = 0;
 
 async function refreshChannelsInBackground() {
   const active = getActivePlaylist();
-  if (!active || !active.url) return;
+  if (!active || !active.url) return true;
   try {
-    const newChannels = await fetchPlaylistEntry(active);
+    const newChannels = await fetchPlaylistWithRetry(active);
     saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
     sortChannels(newChannels);
     channels = newChannels;
@@ -972,10 +976,22 @@ async function refreshChannelsInBackground() {
         ((ch.group || 'Ungrouped') === lastIntent.group));
       if (at >= 0) ui.selectChannel(at, true);
     }
-
+    return true;
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
+    return false;
   }
+}
+
+// Background refresh failed after retries: the cached list is still on
+// screen — say so (with its date) instead of failing silently.
+function showStaleCacheNotice() {
+  let when = '';
+  try {
+    const iso = getSettings().channelsFetched;
+    if (iso) when = ' from ' + new Date(iso).toLocaleDateString();
+  } catch {}
+  ui.showTransientNotice('Playlist update failed — using saved list' + when);
 }
 
 function registerTizenKeys() {

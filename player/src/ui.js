@@ -1149,18 +1149,27 @@ export function showChannelOsd(channel) {
 
 /* First-run hint: same OSD home, longer stay, plain guidance text */
 export function showFirstRunHint() {
+  showOsdText('No playlist yet — choose Settings from the menu', 5000);
+}
+
+/* Transient notice: same OSD home, custom text (e.g. stale-cache fallback) */
+export function showTransientNotice(text, ms = 5000) {
+  showOsdText(text, ms);
+}
+
+function showOsdText(text, ms) {
   const el = document.getElementById('channel-osd');
   if (!el) return;
   clearTimeout(osdTimer);
   el.classList.remove('fade');
   el.classList.remove('hidden');
-  el.textContent = 'No playlist yet — choose Settings from the menu';
+  el.textContent = text;
   osdTimer = setTimeout(() => {
     el.classList.add('fade');
     setTimeout(() => {
       el.classList.add('hidden');
     }, 300);
-  }, 5000);
+  }, ms);
 }
 
 export function getChannels() {

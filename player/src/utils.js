@@ -322,6 +322,24 @@ export function fetchPlaylistEntry(entry) {
   return fetchPlaylist(entry ? entry.url : '');
 }
 
+// Boot resilience: a transient blip shouldn't strand boot on a dead-end
+// screen. Up to `retries` backoff re-fetches (1.5s, 3s) around the entry
+// fetch; throws the last error when all attempts fail.
+export async function fetchPlaylistWithRetry(entry, retries = 2) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
+    try {
+      return await fetchPlaylistEntry(entry);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
+
 export function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
