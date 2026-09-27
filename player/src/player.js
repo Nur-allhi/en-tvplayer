@@ -445,6 +445,7 @@ export async function loadChannel(channel) {
   }
 
   const myToken = ++loadToken;
+  const prevUrl = currentChannel ? currentChannel.url : null;
   currentChannel = channel;
   channel.useProxy = isProxyEnabledFor(channel.url);
   useAvplay = false;
@@ -572,6 +573,7 @@ export async function loadChannel(channel) {
     if (isBuffering && bufferingCallback) bufferingCallback(true, getBufferingPercent());
     reconnectAttempts = 0;
     consecutiveErrors = 0;
+    lastResortAttempts = 0;
     videoErrorCount = 0;
     startStallWatchdog();
     startBlackWatchdog();
@@ -1083,6 +1085,7 @@ async function loadViaAvplay(channel, myToken) {
   hideError();
   reconnectAttempts = 0;
   consecutiveErrors = 0;
+  lastResortAttempts = 0;
   logEvent('INFO', 'Playing natively: ' + (channel.name || channel.url.slice(0, 60)));
   return true;
 }
@@ -1115,8 +1118,14 @@ export function reloadChannel() {
   if (useAvplay && currentChannel) {
     const ch = currentChannel;
     consecutiveErrors = 0;
-    advancePending = false;
+  advancePending = false;
+  // 401/403 retry budget survives same-URL reloads (mid-playback token
+  // refresh calls loadChannel directly) — reset only on channel switch or
+  // explicit reload, so the "advance after 3 failed retries" branch below
+  // is reachable. Unconditional reset here made that branch dead code.
+  if (prevUrl !== channel.url) {
     lastResortAttempts = 0;
+  }
     loadChannel(ch);
     return;
   }
