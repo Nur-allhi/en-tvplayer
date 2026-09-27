@@ -14,7 +14,7 @@ function logEvent(level, message) {
         : message;
       console.debug('[app][' + level + ']', safe);
     }
-  } catch (e) {}
+  } catch {}
 }
 
 let player = null;
@@ -403,7 +403,7 @@ async function probeChannelFormat(channel) {
         bytes = next;
       }
     }
-    try { await reader.cancel(); } catch (e) {}
+    try { await reader.cancel(); } catch {}
     clearTimeout(timer);
     if (bytes.length < 8) return null;
 
@@ -464,7 +464,13 @@ export async function loadChannel(channel) {
   hideError();
   showLoading(true);
   advancePending = false;
-  lastResortAttempts = 0;
+  // 401/403 retry budget survives same-URL reloads (mid-playback token
+  // refresh calls loadChannel directly) — reset only on channel switch or
+  // explicit reload, so the "advance after 3 failed retries" branch below
+  // is reachable. Unconditional reset here made that branch dead code.
+  if (prevUrl !== channel.url) {
+    lastResortAttempts = 0;
+  }
 
   let url = withAuthQuery(channel.url, channel.authQuery);
   if (reconnectAttempts > 0) {
@@ -708,7 +714,7 @@ async function destroyPlayer(keepElement) {
         player.destroy(),
         new Promise((_, rej) => setTimeout(() => rej(new Error('destroy-timeout')), 5000)),
       ]);
-    } catch (e) {
+    } catch {
       logEvent('WARN', 'Player destroy hung — continuing anyway');
     }
     player = null;
@@ -1125,14 +1131,8 @@ export function reloadChannel() {
   if (useAvplay && currentChannel) {
     const ch = currentChannel;
     consecutiveErrors = 0;
-  advancePending = false;
-  // 401/403 retry budget survives same-URL reloads (mid-playback token
-  // refresh calls loadChannel directly) — reset only on channel switch or
-  // explicit reload, so the "advance after 3 failed retries" branch below
-  // is reachable. Unconditional reset here made that branch dead code.
-  if (prevUrl !== channel.url) {
+    advancePending = false;
     lastResortAttempts = 0;
-  }
     loadChannel(ch);
     return;
   }
