@@ -332,7 +332,7 @@ html, body {
   width: calc(180px * var(--tv-scale));
   height: calc(180px * var(--tv-scale));
   transform: translate(-50%, -50%);
-  background: url('/logo.svg') center / contain no-repeat;
+  background: url('logo.svg') center / contain no-repeat;
   opacity: 0.12;
   pointer-events: none;
 }
