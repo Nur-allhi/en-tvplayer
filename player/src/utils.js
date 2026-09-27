@@ -102,6 +102,16 @@ export function withAuthQuery(uri, authQuery) {
   }
 }
 
+// Privacy: stream URLs often carry `?token=…` query auth. Users paste
+// inspector logs publicly on GitHub — never log the query string, only
+// host + path. HTTP(S) only; other schemes (e.g. data: license URIs) pass
+// through untouched.
+export function redactUrl(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return url;
+  const idx = url.search(/[?#]/);
+  return idx === -1 ? url : url.slice(0, idx);
+}
+
 function findNameSeparator(line) {
   let inQuotes = false;
   for (let i = 0; i < line.length; i++) {

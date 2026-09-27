@@ -1,13 +1,17 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
-import { withAuthQuery } from './utils.js';
+import { withAuthQuery, redactUrl } from './utils.js';
 import * as avplay from './avplay.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
+// Stream tokens (?token=…) are scrubbed: users paste inspector logs publicly.
 function logEvent(level, message) {
   try {
     if (typeof console !== 'undefined' && console.debug) {
-      console.debug('[app][' + level + ']', message);
+      const safe = typeof message === 'string'
+        ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1')
+        : message;
+      console.debug('[app][' + level + ']', safe);
     }
   } catch (e) {}
 }
@@ -141,13 +145,13 @@ export async function initPlayer(videoEl) {
     // Track Shaka request activity for the load watchdog below.
     networkingEngine.registerRequestFilter((type, request) => {
       try {
-        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?');
+        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? redactUrl(request.uris[0]).slice(-55) : '?');
         lastShakaActivity = Date.now();
       } catch {}
     });
     networkingEngine.registerResponseFilter((type, response) => {
       try {
-        lastShakaResp = 't' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?');
+        lastShakaResp = 't' + type + ' ' + (response.uri ? redactUrl(response.uri).slice(-40) : '?');
         lastShakaActivity = Date.now();
       } catch {}
     });
