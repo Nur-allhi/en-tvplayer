@@ -7,9 +7,10 @@
     "dev": "npm run dev -w player",
     "build": "npm run build -w player",
     "test": "npm run test -w player",
-    "lint": "eslint player/src",
-    "format": "prettier --write player/src",
-    "format:check": "prettier --check player/src",
+    "lint": "eslint player/src scripts",
+    "format": "prettier --write player/src scripts",
+    "format:check": "prettier --check player/src scripts",
+    "release": "node scripts/release.mjs",
     "tizen": "cd tizen && node package.mjs",
     "proxy": "npm start -w proxy",
     "prepare": "husky"
@@ -30,7 +31,8 @@
   "license": "MIT",
   "lint-staged": {
     "player/src/**/*.js": ["eslint --max-warnings=0", "prettier --write"],
-    "player/src/**/*.css": ["prettier --write"]
+    "player/src/**/*.css": ["prettier --write"],
+    "scripts/**/*.mjs": ["eslint --max-warnings=0", "prettier --write"]
   },
   "devDependencies": {
     "eslint": "^10.11.0",
