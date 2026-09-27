@@ -41,6 +41,7 @@ en-tvplayer/
 │   ├── public/          Static assets
 │   └── vite.config.js   Vite configuration
 ├── tizen/               WGT build tools
+├── scripts/             Release automation (`npm run release`)
 ├── proxy/               Desktop testing relay (CORS + Origin/Referer/UA fix)
 │   ├── proxy.mjs        HTTPS relay — prefix channel URLs to test DRM on desktop
 │   ├── header-rules.json Hostname → header map
@@ -95,45 +96,42 @@ en-tvplayer/
 
 ## 8. Release Process — MANDATORY STEPS
 
-**⚠️ ALL steps must be completed. Skipping any step breaks the community package.**
+**Run `npm run release -- X.Y.Z [--beta]` — it performs ALL steps below. Manual fallback at the end.**
 
-### Step 1: Update Version
-- Update `package.json` → `"version": "X.Y.Z"`
-- Update `player/package.json` → `"version": "X.Y.Z"`
-- Update `version.json` → `"version": "X.Y.Z"` (drives the in-app update checker via jsDelivr)
-- Refresh `docs/STATS.md` download counts (see file for the `gh api` command)
+**⚠️ Skipping any step breaks the community package.**
+
+### Step 0: Write + commit the words first (human)
+- Add the release content to `CHANGELOG.md` under `## [Unreleased]` and the short in-app entry to `player/src/main.js` (`version: '<base>'`, e.g. `'3.2.0'` for tag `v3.2.0-beta.1`) — the script aborts without them. Commit before running the release.
+
+### What the script does
+1. Guards: clean tree, `gh` auth, `tizen/author-key.pem` present (never mints a fresh key on release — a new key = users lose settings), branch rule (stable → `main`, beta → off-main), tag unused.
+2. Stable: bumps `package.json`, `player/package.json`, `version.json`, `README.md` badge, dates the changelog (`## [X.Y.Z] - <date>`). Beta: bumps only the two `package.json`s — `version.json` stays pinned to stable.
+3. Runs `npm test` + `npm run lint`, builds (`npm run build && npm run tizen`).
+4. Copies the WGT: stable → `releases/EN-IPTV_Player_vX.Y.Z.wgt` (+ refreshes unversioned `releases/EN-IPTV_Player.wgt`); beta → `beta/EN-IPTV_Player-testbuild-X.Y.Z-beta.N.wgt` (never committed).
+5. Commits (`release: vX.Y.Z` / `chore(beta): prepare …`), annotated tag, push + push tag (asks first unless `--yes`), creates the `gh release` with notes from the changelog (`--prerelease` for beta).
+6. Stable only: refreshes `docs/STATS.md` from `gh api` in a follow-up commit — it must postdate the release to include it.
+- `--dry-run` prints the plan and runs guards only. `--yes` skips confirmations.
+
+### Beta procedure
+- Cut from a non-`main` branch: `npm run release -- X.Y.Z-beta.N --beta`.
+- The `testbuild` asset infix keeps it invisible to the community bundle (which matches `EN-IPTV_Player_v.*[.]wgt$`); `version.json` stays pinned so stable users are never prompted to "update" to a beta.
+- Testers sideload the pre-release WGT; stable follows after testing.
+
+### Community bundle (auto-detect, no per-release edit)
+- `packages/Nur-allhi__en-tvplayer.json` (`source: release`, `branch: main`) matches `EN-IPTV_Player_v.*[.]wgt$` on the latest release — stable releases are picked up automatically as long as the asset name matches. No PR, no JSON edit per release.
+- If the schema ever gains a version field, update it in your tizen-community-packages fork and push — no PR needed, the bundle auto-detects.
 
 ### Step 1b: Certificate backup (do once, verify each release)
 - `tizen/author-key.pem` is gitignored and irreplaceable — back it up encrypted off-machine.
 - Future WGTs MUST be signed with the same key or the TV treats them as a new app (settings lost).
 
-### Step 2: Build
-```bash
-npm run build && npm run tizen
-```
-
-### Step 3: Copy WGT
-- Copy built WGT to `releases/EN-IPTV_Player.wgt`
-
-### Step 4: Commit & Tag
-```bash
-git add -A
-git commit -m "release: vX.Y.Z"
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push && git push origin vX.Y.Z
-```
-
-### Step 5: Create GitHub Release
-- Use `gh release create` or GitHub UI
-- Upload a versioned `.wgt` (e.g. `EN-IPTV_Player_vX.Y.Z.wgt`, direct .wgt, NOT zip) — the community bundle matches `EN-IPTV_Player_v.*[.]wgt$`, an unversioned name is invisible to it
-- Write release notes
-
-### Step 6: ⚠️ UPDATE COMMUNITY JSON (MANDATORY)
-- Edit `packages/Nur-allhi__en-tvplayer.json` in your tizen-community-packages fork
-- Bump `name` to the new version and ensure `output_name` matches your release asset filename
-- Commit and push to your fork — no PR needed, the community bundle auto-detects the update
-
-**Without Step 6, the community bundle will have an OLD version of your app!**
+### Manual fallback (script unavailable)
+- Bump `package.json`, `player/package.json`, plus stable-only `version.json`, `README.md`, changelog dating, in-app entry.
+- `npm test && npm run lint && npm run build && npm run tizen`
+- Copy the WGT to `releases/` (stable: versioned + unversioned names).
+- `git add -A && git commit -m "release: vX.Y.Z" && git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push && git push origin vX.Y.Z`
+- `gh release create vX.Y.Z releases/EN-IPTV_Player_vX.Y.Z.wgt --title vX.Y.Z --notes-file <notes>` (`--prerelease` + `testbuild` name for betas)
+- Stable only: refresh `docs/STATS.md` via the `gh api` command in that file, commit + push.
 
 ## 9. Community Packages Maintenance
 

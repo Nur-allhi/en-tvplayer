@@ -89,14 +89,13 @@ async function ask(question) {
 }
 
 function bumpJson(relPath, newVersion) {
-  const path = join(ROOT, relPath);
-  const data = JSON.parse(readFileSync(path, 'utf8'));
+  const doc = readDoc(relPath);
+  const data = JSON.parse(doc.text);
   data.version = newVersion;
-  writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+  writeDoc(relPath, JSON.stringify(data, null, 2) + '\n', doc.eol);
 }
 
 // ── Version bumps ───────────────────────────────────────────────────
-const oldVersion = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 bumpJson('package.json', version);
 bumpJson('player/package.json', version);
 if (!beta) {
@@ -105,11 +104,9 @@ if (!beta) {
   versionData.version = version;
   writeFileSync(versionPath, JSON.stringify(versionData)); // single line, no trailing newline (matches file style)
   const readme = readDoc('README.md');
-  writeDoc(
-    'README.md',
-    readme.text.replace(`Current version: v${oldVersion}`, `Current version: v${version}`),
-    readme.eol,
-  );
+  const badge = readme.text.match(/Current version: v[\d.]+/);
+  if (!badge) fail('README.md version badge line not found');
+  writeDoc('README.md', readme.text.replace(badge[0], `Current version: v${version}`), readme.eol);
   const changelog = readDoc('CHANGELOG.md');
   writeDoc('CHANGELOG.md', changelog.text.replace('## [Unreleased]', `## [${version}] - ${today}`), changelog.eol);
 }

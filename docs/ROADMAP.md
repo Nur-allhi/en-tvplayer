@@ -58,7 +58,7 @@ Work items in execution order once approved; one fix branch per item.
   grep for other unused exports/vars while at it.
 - Size: XS.
 
-### 8. Script the release process (+ beta flow) — `proposed`
+### 8. Script the release process (+ beta flow) — `done`
 - Problem: 8 manual steps across 2 repos per release; the v3.2.0-beta.1 flow
   (testbuild asset naming, community-bundle blindness, version.json pinning)
   exists only in chat history.
