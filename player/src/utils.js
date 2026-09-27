@@ -253,7 +253,7 @@ export function parseM3u(text) {
                 customHeaders[k] = String(v);
               }
             }
-          } catch (e) {}
+          } catch {}
           urlIdx++;
         } else {
           break;
@@ -294,7 +294,7 @@ export async function fetchPlaylist(url) {
   let resp;
   try {
     resp = await fetchWithTimeout(url, 10000);
-  } catch (e) {
+  } catch {
     throw new Error('Could not load playlist. Please check the URL and your internet connection.');
   }
   if (!resp.ok) throw new Error('Server returned error ' + resp.status);

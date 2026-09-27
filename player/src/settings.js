@@ -7,7 +7,6 @@ import * as ui from './ui.js';
 
 let container = null;
 let onPlaylistFetched = null;
-let onClose = null;
 let onRender = null;
 let editIndex = -1;
 let activeSection = 'source';
@@ -36,7 +35,6 @@ const isTizenTV = typeof window !== 'undefined' && !!(window.tizen && window.tiz
 export function init(settingsContainer, callbacks) {
   container = settingsContainer;
   onPlaylistFetched = callbacks.onPlaylistFetched;
-  onClose = callbacks.onClose;
   onRender = callbacks.onRender;
 }
 

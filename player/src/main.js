@@ -4,7 +4,7 @@ import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
-import { processStreamUrl, parseM3u, fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
+import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
 import { filterDisplayChannels, findResumeIndex, findIntentIndex } from './logic.js';
 
 let currentIndex = 0;
@@ -13,7 +13,6 @@ let selectedGroup = null;
 let bufferingInterval = null;
 let bufferingActive = false;
 let cleanupListeners = [];
-let pendingPreview = null;
 
 // Boot recovery: the boot tune uses cached (possibly stale-token) URLs while
 // the background refresh fetches fresh ones. If nothing is playing once the
@@ -996,7 +995,7 @@ function registerTizenKeys() {
     'ChannelUp', 'ChannelDown',
   ];
   for (const key of keys) {
-    try { window.tizen.tvinputdevice.registerKey(key); } catch (e) { console.warn('Failed to register Tizen key:', key); }
+    try { window.tizen.tvinputdevice.registerKey(key); } catch { console.warn('Failed to register Tizen key:', key); }
   }
 }
 
