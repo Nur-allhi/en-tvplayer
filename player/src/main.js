@@ -5,6 +5,7 @@ import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
 import { processStreamUrl, parseM3u, fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
+import { filterDisplayChannels, findResumeIndex, findIntentIndex } from './logic.js';
 
 let currentIndex = 0;
 let channels;
@@ -31,10 +32,7 @@ function applyResponsiveScale() {
 applyResponsiveScale();
 
 function getDisplayChannels() {
-  const hidden = getHiddenGroups();
-  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
-  if (selectedGroup === 'all' || !selectedGroup) return visible;
-  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
 }
 
 const BOOT_TITLE = 'EN IPTV';
@@ -656,25 +654,21 @@ function restoreLastSession() {
   let idx = 0;
   try {
     const s = getSettings();
-    const at = s && s.lastChannelUrl
-      ? channels.findIndex((ch) => ch && ch.url === s.lastChannelUrl)
-      : -1;
+    const at = findResumeIndex(channels, s && s.lastChannelUrl, getHiddenGroups());
     if (at >= 0) {
       const ch = channels[at];
       const g = (ch && ch.group) || 'Ungrouped';
-      if (!getHiddenGroups().includes(g)) {
-        idx = at;
-        const groups = ui.getGroups().map((x) => x.name);
-        const savedView = s.lastGroup === 'all' ? 'All Channels' : s.lastGroup;
-        if (savedView && groups.includes(savedView) && (savedView === 'All Channels' || savedView === g)) {
-          ui.showGroupChannels(savedView);
-        } else if (groups.includes(g)) {
-          ui.showGroupChannels(g);
-        } else {
-          ui.showGroupChannels('All Channels');
-        }
-        selectedGroup = ui.getSelectedGroup();
+      idx = at;
+      const groups = ui.getGroups().map((x) => x.name);
+      const savedView = s.lastGroup === 'all' ? 'All Channels' : s.lastGroup;
+      if (savedView && groups.includes(savedView) && (savedView === 'All Channels' || savedView === g)) {
+        ui.showGroupChannels(savedView);
+      } else if (groups.includes(g)) {
+        ui.showGroupChannels(g);
+      } else {
+        ui.showGroupChannels('All Channels');
       }
+      selectedGroup = ui.getSelectedGroup();
     }
   } catch {}
   ui.selectChannel(idx, true);
@@ -972,8 +966,7 @@ async function refreshChannelsInBackground() {
     // instead of stranding the user on the brand screen. Working playback
     // is never touched.
     if (!playbackStarted && !tuneSucceeded && lastIntent) {
-      const at = channels.findIndex((ch) => ch && ch.name === lastIntent.name &&
-        ((ch.group || 'Ungrouped') === lastIntent.group));
+      const at = findIntentIndex(channels, lastIntent);
       if (at >= 0) ui.selectChannel(at, true);
     }
     return true;

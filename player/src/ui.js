@@ -1,5 +1,6 @@
 import { escapeHtml } from './utils.js';
 import { getHiddenGroups } from './config.js';
+import { filterDisplayChannels } from './logic.js';
 
 let channels = [];
 let currentIndex = -1;
@@ -555,12 +556,7 @@ export function selectFocused() {
 }
 
 export function getDisplayChannels() {
-  const hidden = getHiddenGroups();
-  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
-  if (selectedGroup === 'all' || !selectedGroup) {
-    return visible;
-  }
-  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
 }
 
 export function jumpToNumber(num, skipFullscreen) {

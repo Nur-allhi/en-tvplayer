@@ -1,6 +1,7 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
 import { withAuthQuery, redactUrl } from './utils.js';
+import { segment404Decision, lastResortDecision } from './logic.js';
 import * as avplay from './avplay.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
@@ -799,7 +800,7 @@ function handlePlayerError(error) {
     if (status === 403 || status === 401) {
       lastResortAttempts++;
       logEvent('WARN', status + ' on segment — retry ' + lastResortAttempts + '/3');
-      if (lastResortAttempts <= 3) {
+      if (lastResortDecision(lastResortAttempts) === 'retry') {
         reconnectAttempts = Math.max(reconnectAttempts, 1);
         showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
         setTimeout(() => {
@@ -831,13 +832,15 @@ function handlePlayerError(error) {
   // means the link itself is dead.
   if (error.code === 1001 && currentChannel && !initialLoadPending &&
       error.data && error.data[1] === 404) {
-    if (segment404Url !== currentChannel.url || Date.now() - segment404LastAt > 5 * 60 * 1000) {
-      segment404Url = currentChannel.url;
-      segment404Attempts = 0;
-    }
-    segment404LastAt = Date.now();
-    if (segment404Attempts < 3) {
-      segment404Attempts++;
+    const decision = segment404Decision(
+      segment404Url ? { url: segment404Url, attempts: segment404Attempts, lastAt: segment404LastAt } : null,
+      currentChannel.url,
+      Date.now()
+    );
+    segment404Url = decision.state.url;
+    segment404Attempts = decision.state.attempts;
+    segment404LastAt = decision.state.lastAt;
+    if (decision.retry) {
       logEvent('WARN', 'Live segment 404 — reload ' + segment404Attempts + '/3 for a fresh edge: ' +
           (currentChannel.name || currentChannel.url.slice(0, 80)));
       showReloadingMessage();
@@ -852,7 +855,7 @@ function handlePlayerError(error) {
   // Auto-advance to next channel after 3 failed 401/403 retries
   if (error.code === 1001 && channelAdvanceCallback) {
     const status = error.data && error.data[1];
-    if ((status === 403 || status === 401) && lastResortAttempts > 3) {
+    if ((status === 403 || status === 401) && lastResortDecision(lastResortAttempts) === 'advance') {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
       showError('This channel link has expired. Moving to the next channel...');
