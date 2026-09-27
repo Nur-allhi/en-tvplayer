@@ -35,7 +35,9 @@ en-tvplayer/
 │   │   ├── remote.js    Remote control handler
 │   │   ├── update.js    Update checker + opt-in ping
 │   │   ├── config.js    localStorage settings
-│   │   └── utils.js     Shared utilities
+│   │   ├── utils.js     Shared utilities
+│   │   ├── logic.js     Pure DOM-free logic (testable, no side effects)
+│   │   └── *.test.js    Vitest suites, colocated per module (§10)
 │   ├── public/          Static assets
 │   └── vite.config.js   Vite configuration
 ├── tizen/               WGT build tools
@@ -153,3 +155,22 @@ git add .
 git commit -m "update: EN TV Player to vX.Y.Z"
 git push
 ```
+
+## 10. Test Process — MANDATORY FOR LOGIC CHANGES
+
+Vitest covers DOM-free logic only (node env, no jsdom — see `player/vite.config.js` → `test`).
+TV-specific behavior (Shaka/EME, AVPlay, remote, CSS, `file://` quirks) still needs sideload + inspector smoke tests.
+
+**Commands**
+```bash
+npm test              # run the full suite (root delegates to player workspace)
+npm run test -w player
+npx vitest            # watch mode, run from player/
+```
+
+**Rules for agents**
+1. New pure logic goes in `player/src/logic.js` (inputs in, values out — no localStorage, document, timers). Already-DOM-free code (`utils.js`, exported `update.js` helpers) is tested in place.
+2. Coupled code (player/main/ui) is tested via extract-then-test: move the pure core to `logic.js`, keep the caller delegating, verify `npm run build` still passes — one behavior-identical refactor, no feature mixed in.
+3. Every logic fix gets a regression test first (reproduce → fix → green). Name suites `src/<module>.test.js`, keep each test file ≤ 300 LOC.
+4. Before every commit touching `player/src`: `npm test` AND `npm run build` must both pass.
+5. Never import DOM-coupled modules (`main.js`, `ui.js`, `player.js`, `settings.js`, `remote.js`) in tests — test their extracted helpers instead.

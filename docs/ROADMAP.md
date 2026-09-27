@@ -37,7 +37,7 @@ Work items in execution order once approved; one fix branch per item.
 
 ## Developer velocity
 
-### 5. Automated tests (start with pure logic) — `proposed`
+### 5. Automated tests (start with pure logic) — `done`
 - Problem: zero test runner/scripts — every fix needs manual browser + TV
   verification, and regressions have no net.
 - Change: add Vitest; cover DOM-free logic first: `parseM3u`, resume matching,
