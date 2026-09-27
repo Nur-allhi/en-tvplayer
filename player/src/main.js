@@ -130,6 +130,12 @@ const LAST_SEEN_KEY = 'en_last_seen_version';
 
 const CHANGELOG = [
   {
+    version: '3.2.0',
+    sections: [
+      { type: 'fixed', items: ['Raw TS links play via the TV built-in player instead of looping', 'CORS-blocked relays fall back to native playback', 'Expired live segments re-sync instead of stopping playback', 'Clear messages for undecodable or over-quality channels'] },
+    ],
+  },
+  {
     version: '3.1.0',
     sections: [
       { type: 'added', items: ['Remembers your last group and channel — reopening the app replays what you were watching'] },

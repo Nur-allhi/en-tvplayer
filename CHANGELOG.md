@@ -2,6 +2,14 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Raw TS-style stream links now play via the TV's built-in player instead of looping the browser player (fixes Shaka 3016 hang loop on direct-media URLs).
+- Channels blocked by CORS-restricted relays fall back to native playback once the browser attempts are exhausted.
+- A live segment that expired (404) re-syncs to the live edge instead of killing playback with "link may have changed".
+- Undecodable (3016) and over-quality (3017) failures now show plain-language messages instead of raw error codes.
+
 ## [3.1.0] - 2026-09-26
 
 ### Added
