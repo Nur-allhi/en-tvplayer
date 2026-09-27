@@ -51,7 +51,18 @@ try {
 } catch (e) {
   if (/already exists/.test(e.message)) throw e;
 }
-const changelogMd = readFileSync(join(ROOT, 'CHANGELOG.md'), 'utf8');
+const readText = (relPath) => readFileSync(join(ROOT, relPath), 'utf8').replace(/\r\n/g, '\n');
+
+// Docs use CRLF in this repo — normalize for matching, restore on write
+// so release commits never contain phantom full-file diffs.
+function readDoc(relPath) {
+  const raw = readFileSync(join(ROOT, relPath), 'utf8');
+  return { text: raw.replace(/\r\n/g, '\n'), eol: raw.includes('\r\n') ? '\r\n' : '\n' };
+}
+function writeDoc(relPath, text, eol) {
+  writeFileSync(join(ROOT, relPath), eol === '\r\n' ? text.replace(/\n/g, '\r\n') : text);
+}
+const changelogMd = readText('CHANGELOG.md');
 if (!/## \[Unreleased\]\n\n(\s*###)/.test(changelogMd))
   fail('CHANGELOG.md [Unreleased] is empty — write the release notes first');
 const mainJs = readFileSync(join(ROOT, 'player', 'src', 'main.js'), 'utf8');
@@ -93,12 +104,14 @@ if (!beta) {
   const versionData = JSON.parse(readFileSync(versionPath, 'utf8'));
   versionData.version = version;
   writeFileSync(versionPath, JSON.stringify(versionData)); // single line, no trailing newline (matches file style)
-  const readmePath = join(ROOT, 'README.md');
-  writeFileSync(
-    readmePath,
-    readFileSync(readmePath, 'utf8').replace(`Current version: v${oldVersion}`, `Current version: v${version}`),
+  const readme = readDoc('README.md');
+  writeDoc(
+    'README.md',
+    readme.text.replace(`Current version: v${oldVersion}`, `Current version: v${version}`),
+    readme.eol,
   );
-  writeFileSync(join(ROOT, 'CHANGELOG.md'), changelogMd.replace('## [Unreleased]', `## [${version}] - ${today}`));
+  const changelog = readDoc('CHANGELOG.md');
+  writeDoc('CHANGELOG.md', changelog.text.replace('## [Unreleased]', `## [${version}] - ${today}`), changelog.eol);
 }
 
 // ── Verify, build, package ──────────────────────────────────────────
@@ -129,7 +142,7 @@ function changelogSection(md, heading) {
   }
   return body.join('\n').trim();
 }
-const datedMd = beta ? changelogMd : readFileSync(join(ROOT, 'CHANGELOG.md'), 'utf8');
+const datedMd = beta ? changelogMd : readText('CHANGELOG.md');
 const section = changelogSection(datedMd, beta ? '## [Unreleased]' : `## [${version}] - ${today}`);
 const notes = beta
   ? `TEST BUILD - for sideload testing only, not for general use. Please report results on your issue before this becomes stable.\n\n## What's being tested\n${section}\n\n## How to test\nSideload the .wgt with Tizen Studio (tizen install) or Apps2Samsung sideload. No settings changes needed. If a channel fails, grab the inspector log and post the error lines.\n\nThis pre-release will NOT reach the community bundle; v${base} stable follows after testing.`
@@ -154,13 +167,14 @@ if (!beta) {
     ),
   );
   const rows = stats.map((r) => `| ${r.tag} | ${r.downloads} |`).join('\n');
-  const statsPath = join(ROOT, 'docs', 'STATS.md');
-  writeFileSync(
-    statsPath,
-    readFileSync(statsPath, 'utf8').replace(
+  const statsDoc = readDoc('docs/STATS.md');
+  writeDoc(
+    'docs/STATS.md',
+    statsDoc.text.replace(
       /## Downloads by release \(.*?\)\n\n(\|.*\n)+/,
       `## Downloads by release (${today})\n\n| Release | Downloads |\n|---------|-----------|\n${rows}\n`,
     ),
+    statsDoc.eol,
   );
   run('git add docs/STATS.md');
   run(`git commit -m "docs: refresh download stats for ${tag}"`);
