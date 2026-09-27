@@ -30,6 +30,14 @@ let lastStallCheck = 0;
 let lastResortAttempts = 0;
 let advancePending = false;
 
+// Live-segment-404 reload budget, keyed by URL with a 5-minute window: an
+// incident burst gets 3 edge re-syncs, then the link is condemned; a new URL
+// or a much later incident starts fresh. Deliberately NOT reset in
+// loadChannel(): the reloads below must share one budget or they loop forever.
+let segment404Url = null;
+let segment404Attempts = 0;
+let segment404LastAt = 0;
+
 // Timestamp of the last ABR switch — error logs reference it so adaptation-
 // linked failures (e.g. a DRM variant switch that kills playback) can be
 // told apart from load-time failures.
@@ -792,6 +800,29 @@ function handlePlayerError(error) {
     }
     scheduleReconnect();
     return;
+  }
+
+  // Live segment 404 after a successful load: master/variant/init all loaded,
+  // so the link itself is good — this segment fell off the live edge or its
+  // per-request token died. Reload for a fresh edge instead of condemning
+  // the link. Budgeted per URL (see segment404* above): persistent 404s still
+  // end on the terminal error below. An initial-load 404 (initialLoadPending)
+  // means the link itself is dead.
+  if (error.code === 1001 && currentChannel && !initialLoadPending &&
+      error.data && error.data[1] === 404) {
+    if (segment404Url !== currentChannel.url || Date.now() - segment404LastAt > 5 * 60 * 1000) {
+      segment404Url = currentChannel.url;
+      segment404Attempts = 0;
+    }
+    segment404LastAt = Date.now();
+    if (segment404Attempts < 3) {
+      segment404Attempts++;
+      logEvent('WARN', 'Live segment 404 — reload ' + segment404Attempts + '/3 for a fresh edge: ' +
+          (currentChannel.name || currentChannel.url.slice(0, 80)));
+      showReloadingMessage();
+      loadChannel(currentChannel);
+      return;
+    }
   }
 
   logEvent('ERROR', 'Unrecoverable error ' + error.code + ' (' + (currentChannel && currentChannel.name ? currentChannel.name : 'unknown') + ') — ' + getErrorMessage(error));
