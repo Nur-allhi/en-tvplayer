@@ -51,7 +51,7 @@ Work items in execution order once approved; one fix branch per item.
   `player/recovery.js`), no behavior change per split, build-verified each step.
 - Size: M total, XS per step. Pair with the next feature touching each file.
 
-### 7. Lint/format + dead-code removal — `proposed`
+### 7. Lint/format + dead-code removal — `done`
 - Problem: no eslint/prettier anywhere; style drifts. Confirmed dead code:
   `pendingPreview` in `player/src/main.js` (declared, never used).
 - Change: add eslint + prettier with pre-commit hook; delete `pendingPreview`;

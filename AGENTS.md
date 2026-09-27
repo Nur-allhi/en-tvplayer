@@ -165,6 +165,8 @@ TV-specific behavior (Shaka/EME, AVPlay, remote, CSS, `file://` quirks) still ne
 ```bash
 npm test              # run the full suite (root delegates to player workspace)
 npm run test -w player
+npm run lint          # eslint: dead code + undefined refs in player/src
+npm run format:check  # prettier check (npm run format to write)
 npx vitest            # watch mode, run from player/
 ```
 
@@ -172,5 +174,6 @@ npx vitest            # watch mode, run from player/
 1. New pure logic goes in `player/src/logic.js` (inputs in, values out — no localStorage, document, timers). Already-DOM-free code (`utils.js`, exported `update.js` helpers) is tested in place.
 2. Coupled code (player/main/ui) is tested via extract-then-test: move the pure core to `logic.js`, keep the caller delegating, verify `npm run build` still passes — one behavior-identical refactor, no feature mixed in.
 3. Every logic fix gets a regression test first (reproduce → fix → green). Name suites `src/<module>.test.js`, keep each test file ≤ 300 LOC.
-4. Before every commit touching `player/src`: `npm test` AND `npm run build` must both pass.
+4. Before every commit touching `player/src`: `npm test`, `npm run lint` AND `npm run build` must all pass.
 5. Never import DOM-coupled modules (`main.js`, `ui.js`, `player.js`, `settings.js`, `remote.js`) in tests — test their extracted helpers instead.
+6. A pre-commit hook (husky + lint-staged) runs eslint and prettier on staged files — it blocks on errors, so rules 1–5 stay green. Legacy files are formatted gradually on touch, never in a big-bang reformat.
