@@ -1,15 +1,20 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
-import { withAuthQuery } from './utils.js';
+import { withAuthQuery, redactUrl } from './utils.js';
+import { segment404Decision, lastResortDecision } from './logic.js';
 import * as avplay from './avplay.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
+// Stream tokens (?token=…) are scrubbed: users paste inspector logs publicly.
 function logEvent(level, message) {
   try {
     if (typeof console !== 'undefined' && console.debug) {
-      console.debug('[app][' + level + ']', message);
+      const safe = typeof message === 'string'
+        ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1')
+        : message;
+      console.debug('[app][' + level + ']', safe);
     }
-  } catch (e) {}
+  } catch {}
 }
 
 let player = null;
@@ -141,13 +146,13 @@ export async function initPlayer(videoEl) {
     // Track Shaka request activity for the load watchdog below.
     networkingEngine.registerRequestFilter((type, request) => {
       try {
-        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? request.uris[0].slice(-55) : '?');
+        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? redactUrl(request.uris[0]).slice(-55) : '?');
         lastShakaActivity = Date.now();
       } catch {}
     });
     networkingEngine.registerResponseFilter((type, response) => {
       try {
-        lastShakaResp = 't' + type + ' ' + (response.uri ? response.uri.slice(-40) : '?');
+        lastShakaResp = 't' + type + ' ' + (response.uri ? redactUrl(response.uri).slice(-40) : '?');
         lastShakaActivity = Date.now();
       } catch {}
     });
@@ -398,7 +403,7 @@ async function probeChannelFormat(channel) {
         bytes = next;
       }
     }
-    try { await reader.cancel(); } catch (e) {}
+    try { await reader.cancel(); } catch {}
     clearTimeout(timer);
     if (bytes.length < 8) return null;
 
@@ -445,6 +450,7 @@ export async function loadChannel(channel) {
   }
 
   const myToken = ++loadToken;
+  const prevUrl = currentChannel ? currentChannel.url : null;
   currentChannel = channel;
   channel.useProxy = isProxyEnabledFor(channel.url);
   useAvplay = false;
@@ -458,7 +464,13 @@ export async function loadChannel(channel) {
   hideError();
   showLoading(true);
   advancePending = false;
-  lastResortAttempts = 0;
+  // 401/403 retry budget survives same-URL reloads (mid-playback token
+  // refresh calls loadChannel directly) — reset only on channel switch or
+  // explicit reload, so the "advance after 3 failed retries" branch below
+  // is reachable. Unconditional reset here made that branch dead code.
+  if (prevUrl !== channel.url) {
+    lastResortAttempts = 0;
+  }
 
   let url = withAuthQuery(channel.url, channel.authQuery);
   if (reconnectAttempts > 0) {
@@ -572,6 +584,7 @@ export async function loadChannel(channel) {
     if (isBuffering && bufferingCallback) bufferingCallback(true, getBufferingPercent());
     reconnectAttempts = 0;
     consecutiveErrors = 0;
+    lastResortAttempts = 0;
     videoErrorCount = 0;
     startStallWatchdog();
     startBlackWatchdog();
@@ -701,7 +714,7 @@ async function destroyPlayer(keepElement) {
         player.destroy(),
         new Promise((_, rej) => setTimeout(() => rej(new Error('destroy-timeout')), 5000)),
       ]);
-    } catch (e) {
+    } catch {
       logEvent('WARN', 'Player destroy hung — continuing anyway');
     }
     player = null;
@@ -793,7 +806,7 @@ function handlePlayerError(error) {
     if (status === 403 || status === 401) {
       lastResortAttempts++;
       logEvent('WARN', status + ' on segment — retry ' + lastResortAttempts + '/3');
-      if (lastResortAttempts <= 3) {
+      if (lastResortDecision(lastResortAttempts) === 'retry') {
         reconnectAttempts = Math.max(reconnectAttempts, 1);
         showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
         setTimeout(() => {
@@ -825,13 +838,15 @@ function handlePlayerError(error) {
   // means the link itself is dead.
   if (error.code === 1001 && currentChannel && !initialLoadPending &&
       error.data && error.data[1] === 404) {
-    if (segment404Url !== currentChannel.url || Date.now() - segment404LastAt > 5 * 60 * 1000) {
-      segment404Url = currentChannel.url;
-      segment404Attempts = 0;
-    }
-    segment404LastAt = Date.now();
-    if (segment404Attempts < 3) {
-      segment404Attempts++;
+    const decision = segment404Decision(
+      segment404Url ? { url: segment404Url, attempts: segment404Attempts, lastAt: segment404LastAt } : null,
+      currentChannel.url,
+      Date.now()
+    );
+    segment404Url = decision.state.url;
+    segment404Attempts = decision.state.attempts;
+    segment404LastAt = decision.state.lastAt;
+    if (decision.retry) {
       logEvent('WARN', 'Live segment 404 — reload ' + segment404Attempts + '/3 for a fresh edge: ' +
           (currentChannel.name || currentChannel.url.slice(0, 80)));
       showReloadingMessage();
@@ -846,7 +861,7 @@ function handlePlayerError(error) {
   // Auto-advance to next channel after 3 failed 401/403 retries
   if (error.code === 1001 && channelAdvanceCallback) {
     const status = error.data && error.data[1];
-    if ((status === 403 || status === 401) && lastResortAttempts > 3) {
+    if ((status === 403 || status === 401) && lastResortDecision(lastResortAttempts) === 'advance') {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
       showError('This channel link has expired. Moving to the next channel...');
@@ -1083,6 +1098,7 @@ async function loadViaAvplay(channel, myToken) {
   hideError();
   reconnectAttempts = 0;
   consecutiveErrors = 0;
+  lastResortAttempts = 0;
   logEvent('INFO', 'Playing natively: ' + (channel.name || channel.url.slice(0, 60)));
   return true;
 }

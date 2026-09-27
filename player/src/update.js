@@ -35,7 +35,7 @@ export function setConsented(allowed) {
   saveSettings({ updateCheck: !!allowed });
 }
 
-function compareVersions(a, b) {
+export function compareVersions(a, b) {
   const pa = String(a).split('.').map(Number);
   const pb = String(b).split('.').map(Number);
   for (let i = 0; i < 3; i++) {

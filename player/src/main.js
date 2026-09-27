@@ -4,7 +4,8 @@ import * as ui from './ui.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
-import { processStreamUrl, parseM3u, fetchPlaylistEntry } from './utils.js';
+import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
+import { filterDisplayChannels, findResumeIndex, findIntentIndex } from './logic.js';
 
 let currentIndex = 0;
 let channels;
@@ -12,7 +13,6 @@ let selectedGroup = null;
 let bufferingInterval = null;
 let bufferingActive = false;
 let cleanupListeners = [];
-let pendingPreview = null;
 
 // Boot recovery: the boot tune uses cached (possibly stale-token) URLs while
 // the background refresh fetches fresh ones. If nothing is playing once the
@@ -31,10 +31,7 @@ function applyResponsiveScale() {
 applyResponsiveScale();
 
 function getDisplayChannels() {
-  const hidden = getHiddenGroups();
-  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
-  if (selectedGroup === 'all' || !selectedGroup) return visible;
-  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
 }
 
 const BOOT_TITLE = 'EN IPTV';
@@ -381,12 +378,16 @@ async function init() {
       channels = s.channels;
       startPlayer();
       showBootSplash('Updating playlist...');
-      refreshChannelsInBackground().then(() => hideBootSplashAndMaybeWhatsNew());
+      refreshChannelsInBackground().then((ok) => {
+        hideBootSplashAndMaybeWhatsNew(0, () => {
+          if (ok === false) showStaleCacheNotice();
+        });
+      });
     } else {
-      // No cached channels — show splash while fetching.
+      // No cached channels — show splash while fetching (with retries).
       showBootSplash('Downloading playlist...');
       try {
-        const newChannels = await fetchPlaylistEntry(activePlaylist);
+        const newChannels = await fetchPlaylistWithRetry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
@@ -408,7 +409,7 @@ async function init() {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
     try {
-      const newChannels = await fetchPlaylistEntry(activePlaylist);
+      const newChannels = await fetchPlaylistWithRetry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
@@ -652,25 +653,21 @@ function restoreLastSession() {
   let idx = 0;
   try {
     const s = getSettings();
-    const at = s && s.lastChannelUrl
-      ? channels.findIndex((ch) => ch && ch.url === s.lastChannelUrl)
-      : -1;
+    const at = findResumeIndex(channels, s && s.lastChannelUrl, getHiddenGroups());
     if (at >= 0) {
       const ch = channels[at];
       const g = (ch && ch.group) || 'Ungrouped';
-      if (!getHiddenGroups().includes(g)) {
-        idx = at;
-        const groups = ui.getGroups().map((x) => x.name);
-        const savedView = s.lastGroup === 'all' ? 'All Channels' : s.lastGroup;
-        if (savedView && groups.includes(savedView) && (savedView === 'All Channels' || savedView === g)) {
-          ui.showGroupChannels(savedView);
-        } else if (groups.includes(g)) {
-          ui.showGroupChannels(g);
-        } else {
-          ui.showGroupChannels('All Channels');
-        }
-        selectedGroup = ui.getSelectedGroup();
+      idx = at;
+      const groups = ui.getGroups().map((x) => x.name);
+      const savedView = s.lastGroup === 'all' ? 'All Channels' : s.lastGroup;
+      if (savedView && groups.includes(savedView) && (savedView === 'All Channels' || savedView === g)) {
+        ui.showGroupChannels(savedView);
+      } else if (groups.includes(g)) {
+        ui.showGroupChannels(g);
+      } else {
+        ui.showGroupChannels('All Channels');
       }
+      selectedGroup = ui.getSelectedGroup();
     }
   } catch {}
   ui.selectChannel(idx, true);
@@ -956,9 +953,9 @@ let lastBackTime = 0;
 
 async function refreshChannelsInBackground() {
   const active = getActivePlaylist();
-  if (!active || !active.url) return;
+  if (!active || !active.url) return true;
   try {
-    const newChannels = await fetchPlaylistEntry(active);
+    const newChannels = await fetchPlaylistWithRetry(active);
     saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
     sortChannels(newChannels);
     channels = newChannels;
@@ -968,14 +965,25 @@ async function refreshChannelsInBackground() {
     // instead of stranding the user on the brand screen. Working playback
     // is never touched.
     if (!playbackStarted && !tuneSucceeded && lastIntent) {
-      const at = channels.findIndex((ch) => ch && ch.name === lastIntent.name &&
-        ((ch.group || 'Ungrouped') === lastIntent.group));
+      const at = findIntentIndex(channels, lastIntent);
       if (at >= 0) ui.selectChannel(at, true);
     }
-
+    return true;
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
+    return false;
   }
+}
+
+// Background refresh failed after retries: the cached list is still on
+// screen — say so (with its date) instead of failing silently.
+function showStaleCacheNotice() {
+  let when = '';
+  try {
+    const iso = getSettings().channelsFetched;
+    if (iso) when = ' from ' + new Date(iso).toLocaleDateString();
+  } catch {}
+  ui.showTransientNotice('Playlist update failed — using saved list' + when);
 }
 
 function registerTizenKeys() {
@@ -987,7 +995,7 @@ function registerTizenKeys() {
     'ChannelUp', 'ChannelDown',
   ];
   for (const key of keys) {
-    try { window.tizen.tvinputdevice.registerKey(key); } catch (e) { console.warn('Failed to register Tizen key:', key); }
+    try { window.tizen.tvinputdevice.registerKey(key); } catch { console.warn('Failed to register Tizen key:', key); }
   }
 }
 

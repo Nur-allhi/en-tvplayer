@@ -17,7 +17,7 @@ async function getJson(url, ms = 10000) {
       fetch(url),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
     ]);
-  } catch (e) {
+  } catch {
     throw new Error('Could not reach the Xtream server. Please check the host and your internet connection.');
   }
   if (!resp.ok) throw new Error('Server returned error ' + resp.status);
