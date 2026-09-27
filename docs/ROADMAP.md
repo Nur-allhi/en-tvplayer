@@ -5,7 +5,7 @@ Work items in execution order once approved; one fix branch per item.
 
 ## Reliability
 
-### 1. Backdrop logo never renders on TV — `proposed`
+### 1. Backdrop logo never renders on TV — `done`
 - Problem: `player/src/styles.css` uses absolute `url('/logo.svg')`, which resolves
   to `file:///logo.svg` (filesystem root) on-device. Every TV inspector log shows
   `ERR_ACCESS_DENIED` for it — the faint backdrop brand never appears.
@@ -13,7 +13,7 @@ Work items in execution order once approved; one fix branch per item.
 - Change: relative asset URL in CSS (`url('logo.svg')`), verify dist + WGT contain it.
 - Size: XS (one line + TV sideload check).
 
-### 2. Audit recovery counters for dead branches / unbounded loops — `proposed`
+### 2. Audit recovery counters for dead branches / unbounded loops — `done`
 - Problem: `loadChannel()` resets `lastResortAttempts` on every entry, so the
   "advance after 3 failed 401/403s" branch in `handlePlayerError` looks
   unreachable; the reconnect path there has no cap either.
@@ -21,14 +21,14 @@ Work items in execution order once approved; one fix branch per item.
   check (as done for the segment-404 budget), fix or remove dead branches.
 - Size: S (audit + targeted fixes, no behavior change on happy paths).
 
-### 3. Redact stream tokens from logs — `proposed`
+### 3. Redact stream tokens from logs — `done`
 - Problem: `logEvent` prints URL slices containing `?token=…`; users paste
   inspector logs publicly on GitHub. Against the project's privacy principle.
 - Change: one `redactUrl()` helper applied at all log sites; keep last-55-chars
   debug value of request tracking (host + path, no query).
 - Size: XS.
 
-### 4. Boot playlist fetch resilience — `proposed`
+### 4. Boot playlist fetch resilience — `done`
 - Problem: single 10s fetch; failure with no cache lands on a dead-end
   first-run screen, and background-refresh failures only `console.warn`.
 - Change: 1–2 backoff retries on boot fetch; when a stale cache exists, show
