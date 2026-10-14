@@ -9,6 +9,7 @@ import {
   tuneCountersReset,
   isStalePlayerEvent,
   shouldIgnoreVideoError,
+  hardReloadDecision,
 } from './logic.js';
 import * as avplay from './avplay.js';
 
@@ -35,6 +36,10 @@ let reconnectTimer = null;
 let reconnectPending = false;
 let reconnectAttempts = 0;
 let consecutiveErrors = 0;
+// Per-tune hard-reload count (stall-watchdog + consecutive-error reloads).
+// Budgeted by hardReloadDecision(): endless destroy/create loops pile hung
+// players and MSE buffers until the TV kills the app.
+let hardReloads = 0;
 let stallWatchdogTimer = null;
 let lastStallTime = 0;
 let lastStallCheck = 0;
@@ -514,6 +519,7 @@ export async function loadChannel(channel) {
     consecutiveErrors = 0;
     videoErrorCount = 0;
     lastVideoErrorTime = 0;
+    hardReloads = 0;
   }
 
   let url = withAuthQuery(channel.url, channel.authQuery);
@@ -650,6 +656,7 @@ export async function loadChannel(channel) {
     consecutiveErrors = 0;
     lastResortAttempts = 0;
     videoErrorCount = 0;
+    hardReloads = 0;
     startStallWatchdog();
     startBlackWatchdog();
     logEvent('INFO', 'Loaded: ' + (channel.name || channel.url.slice(0, 60)));
@@ -943,9 +950,16 @@ function handlePlayerError(error) {
   }
 
   if (isRecoverable(error)) {
-    // After 3 consecutive errors, force a hard reload (cache-bust + fresh edge)
+    // After 3 consecutive errors, force a hard reload (cache-bust + fresh edge).
+    // Budgeted per tune: without a cap this loops destroy/create forever and
+    // the TV eventually kills the app on endless buffering.
     if (consecutiveErrors >= 3) {
       consecutiveErrors = 0;
+      hardReloads++;
+      if (hardReloadDecision(hardReloads) === 'giveup') {
+        giveUpTune();
+        return;
+      }
       showReloadingMessage();
       loadChannel(currentChannel);
       return;
@@ -1121,6 +1135,13 @@ function startStallWatchdog() {
       logEvent('WARN', 'Stall detected (no progress for 15s)');
       if (consecutiveErrors >= 3) {
         consecutiveErrors = 0;
+        hardReloads++;
+        // Budgeted per tune — see handlePlayerError above. A channel that
+        // never produces frames must end on a message, not on an app kill.
+        if (hardReloadDecision(hardReloads) === 'giveup') {
+          giveUpTune();
+          return;
+        }
         logEvent('INFO', '3 stalls — hard reloading channel');
         showReloadingMessage();
         loadChannel(currentChannel);
@@ -1141,6 +1162,25 @@ function stopStallWatchdog() {
     clearInterval(stallWatchdogTimer);
     stallWatchdogTimer = null;
   }
+}
+
+// Terminal give-up for a tune that never produces frames: tear everything
+// down and say so — then STOP. No timers, no reloads. Retrying forever is
+// what wedged the app on endless buffering until the TV killed it. The user
+// can still tune away (keys work again) or hit reload for a fresh budget.
+function giveUpTune() {
+  stopStallWatchdog();
+  stopBlackWatchdog();
+  clearTimeout(reconnectTimer);
+  reconnectPending = false;
+  consecutiveErrors = 0;
+  initialLoadPending = false;
+  if (bufferingCallback) bufferingCallback(false);
+  const el = videoElement;
+  const label = currentChannel ? currentChannel.name || currentChannel.url.slice(0, 60) : '?';
+  destroyPlayer(el).catch(() => {});
+  logEvent('ERROR', 'Giving up tune after 3 hard reloads — ' + label);
+  showError('This channel stopped responding. Try another channel, or reload to try again.');
 }
 
 // BUG-020: zero presented frames while data is present means the browser
@@ -1245,6 +1285,7 @@ async function loadViaAvplay(channel, myToken) {
   reconnectAttempts = 0;
   consecutiveErrors = 0;
   lastResortAttempts = 0;
+  hardReloads = 0;
   logEvent('INFO', 'Playing natively: ' + (channel.name || channel.url.slice(0, 60)));
   return true;
 }
@@ -1280,6 +1321,7 @@ export function reloadChannel() {
     consecutiveErrors = 0;
     advancePending = false;
     lastResortAttempts = 0;
+    hardReloads = 0;
     loadChannel(ch);
     return;
   }
@@ -1287,6 +1329,7 @@ export function reloadChannel() {
   consecutiveErrors = 0;
   advancePending = false;
   lastResortAttempts = 0;
+  hardReloads = 0;
   clearTimeout(reconnectTimer);
   reconnectPending = false;
   loadChannel(currentChannel);

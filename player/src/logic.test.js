@@ -10,6 +10,7 @@ import {
   tuneCountersReset,
   isStalePlayerEvent,
   shouldIgnoreVideoError,
+  hardReloadDecision,
 } from './logic.js';
 
 const CHANNELS = [
@@ -147,5 +148,16 @@ describe('shouldIgnoreVideoError', () => {
   it('counts genuine decode/network errors', () => {
     expect(shouldIgnoreVideoError({ code: 3, message: 'decode error', srcEmpty: false })).toBe(false);
     expect(shouldIgnoreVideoError({ code: 4, message: 'not supported', srcEmpty: false })).toBe(false);
+  });
+});
+
+describe('hardReloadDecision', () => {
+  // User report: endless destroy/reload loop never stops buffering and the
+  // TV eventually kills the app. Hard reloads get a per-tune budget of 3,
+  // then the tune is given up with a terminal message.
+  it('allows 3 hard reloads per tune, then gives up', () => {
+    expect([0, 1, 2].map(hardReloadDecision)).toEqual(['reload', 'reload', 'reload']);
+    expect(hardReloadDecision(3)).toBe('giveup');
+    expect(hardReloadDecision(99)).toBe('giveup');
   });
 });

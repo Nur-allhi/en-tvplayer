@@ -89,3 +89,11 @@ export function shouldIgnoreVideoError({ code, message, srcEmpty } = {}) {
   if (code !== 4 || !srcEmpty) return false;
   return /empty src/i.test(message || '');
 }
+
+// Per-tune hard-reload budget (freeze/crash report): `reloads` counts hard
+// reloads already done for this tune (stall-watchdog + consecutive-error).
+// Three full destroy/create cycles, then give up with a terminal message —
+// an endless loop piles hung players and MSE buffers until the TV kills us.
+export function hardReloadDecision(reloads) {
+  return reloads < 3 ? 'reload' : 'giveup';
+}
