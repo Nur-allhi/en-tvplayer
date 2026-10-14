@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tizen](https://img.shields.io/badge/Tizen-5.0+-red?logo=samsung)]()
 
-> **Current version: v3.1.0** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
+> **Current version: v3.2.0** — [see what's new](CHANGELOG.md) · [download](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
 >
 > **Looking for** a Samsung Tizen IPTV player — an M3U/M3U8 playlist player for Samsung Smart TV, sideloaded as a `.wgt` file, that plays DRM-protected (ClearKey / PlayReady) channels? That's this app.
 
@@ -61,6 +61,18 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 ---
 
+## ⚠️ Limitations
+
+Samsung TVs are closed hardware with real limits — here is what the app can and cannot do about them:
+
+- **DRM systems:** ClearKey and PlayReady channels are supported. Channels using any other protection system will not play — there is no workaround for that.
+- **Picture quality:** Auto quality stays at FHD or below, because higher variants stall on most Tizen hardware and connections. You can still pick a higher quality manually from the menu if your TV and line handle it.
+- **Odd codecs:** Streams the TV browser cannot decode are retried through the TV's built-in player. A few exotic formats will not play in either — try a native player app for those.
+- **Fast switching on protected channels:** the TV has a limited number of decoder key sessions. After very rapid zapping a channel can miss its start — just select it again from the list.
+- **Slow servers:** if the relay itself is slow, channels buffer no matter the app. The status line tells you what is happening; waiting or picking another channel are the only fixes.
+
+---
+
 ## 🎮 Remote Control
 
 | Key | Action |
@@ -97,7 +109,15 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 ---
 
+## 🌱 Improvements
+
+EN TV Player gets better with every release, driven by real reports from TV owners — see the [changelog](CHANGELOG.md) for what's already fixed. Got an idea? Open a ticket under [Bugs & Feature Requests](#-bugs--feature-requests).
+
+---
+
 ## 💬 Contact
+
+> **A hobby project:** EN TV Player is built and maintained by one person in their spare time. There are no ETAs and no guaranteed fixes — clear, reproducible reports (see below) always get attention first. Thank you for understanding! 🙏
 
 Questions, broken channels, or just want to say hi? Join the channel: **[@eniptvplayer](https://t.me/eniptvplayer)**
 
@@ -107,7 +127,13 @@ Questions, broken channels, or just want to say hi? Join the channel: **[@eniptv
 
 Prefer GitHub? Open a ticket on [GitHub Issues](https://github.com/Nur-allhi/en-tvplayer/issues).
 
-**Rules:** search first · one issue per ticket · be specific (TV model, Tizen version, app version, steps to reproduce) · stay respectful.
+**Rules:** search first · one issue per ticket · stay respectful — and describe it properly so it can actually be fixed:
+
+- **What** happened vs. what you expected
+- **When** it happens — every time, only after fast switching, only some channels (which ones?)
+- **Versions** — app version, TV model, Tizen version, playlist type (M3U or Xtream)
+- **Logs** — inspector console lines around the moment, if you can grab them
+- **Privacy** — never post playlist passwords or private stream links
 
 ---
 

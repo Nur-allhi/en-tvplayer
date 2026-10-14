@@ -2,7 +2,7 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
-## [Unreleased]
+## [3.2.0] - 2026-10-14
 
 ### Fixed
 - Raw TS-style stream links now play via the TV's built-in player instead of looping the browser player (fixes Shaka 3016 hang loop on direct-media URLs).
