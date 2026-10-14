@@ -5,7 +5,7 @@ import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
 import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
-import { filterDisplayChannels, findResumeIndex, findIntentIndex } from './logic.js';
+import { filterDisplayChannels, findResumeIndex, findIntentIndex, tuneSuperseded } from './logic.js';
 
 let currentIndex = 0;
 let channels;
@@ -20,6 +20,9 @@ let cleanupListeners = [];
 let playbackStarted = false;
 let tuneSucceeded = false;
 let lastIntent = null;
+// Fast-zap sequence: overlapping tune bodies from a burst of presses share
+// one video element — only the latest press may touch the player.
+let tuneSeq = 0;
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
 function applyResponsiveScale() {
@@ -160,6 +163,9 @@ const CHANGELOG = [
           'Expired links refetch a fresh URL instead of retrying forever',
           'Dead channels stop with a message instead of freezing the app',
           'Smoother auto quality on slow relays',
+          'Fast channel switching plays the final channel reliably',
+          'Stuck channels resume on their own; slow relays restart less',
+          'Channels start playing sooner',
         ],
       },
     ],
@@ -980,6 +986,7 @@ async function handleChannelSelect(channel) {
   // Record the tune intent FIRST (before the paint-delay await below): the
   // background refresh may land while this tune is still yielding, and it
   // needs the latest intent to decide on a fresh-URL re-tune.
+  const mySeq = ++tuneSeq;
   currentIndex = channels.indexOf(channel);
   // Latest tune intent (name+group survive token rotation; URLs don't).
   lastIntent = { name: channel.name, group: channel.group || 'Ungrouped' };
@@ -1012,6 +1019,10 @@ async function handleChannelSelect(channel) {
     }
     setTimeout(finish, 350); // safety: never stall tuning
   });
+  // Fast-zap burst: a newer press arrived while the veil was painting — the
+  // player belongs to it now, so bail before touching anything. The UI above
+  // already shows the latest channel; only the load is skipped.
+  if (tuneSuperseded(mySeq, tuneSeq)) return;
   // Stamp the active playlist so Channel Source cards can show "last played".
   try {
     const s = getSettings();

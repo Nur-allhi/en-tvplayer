@@ -11,6 +11,9 @@ import {
   isStalePlayerEvent,
   shouldIgnoreVideoError,
   hardReloadDecision,
+  tuneSuperseded,
+  shouldResumePlayback,
+  isNetworkActive,
 } from './logic.js';
 
 const CHANNELS = [
@@ -159,5 +162,42 @@ describe('hardReloadDecision', () => {
     expect([0, 1, 2].map(hardReloadDecision)).toEqual(['reload', 'reload', 'reload']);
     expect(hardReloadDecision(3)).toBe('giveup');
     expect(hardReloadDecision(99)).toBe('giveup');
+  });
+});
+
+describe('tuneSuperseded', () => {
+  // TV report: fast zapping (15 → 20) plays nothing while one-by-one works.
+  // Intermediate tunes of a burst must yield to the latest press.
+  it('skips burst tunes superseded by a newer press', () => {
+    expect(tuneSuperseded(7, 9)).toBe(true);
+    expect(tuneSuperseded(8, 9)).toBe(true);
+  });
+
+  it('runs the latest tune and lone tunes', () => {
+    expect(tuneSuperseded(9, 9)).toBe(false);
+  });
+});
+
+describe('shouldResumePlayback', () => {
+  // TV report: buffering toast gone, channel name centered, nothing playing.
+  // A stale teardown paused the video behind the winner's back — resume it.
+  it('resumes an unexpected pause', () => {
+    expect(shouldResumePlayback({ paused: true, ended: false, userPaused: false })).toBe(true);
+  });
+
+  it('leaves user pauses, ended streams, and playing video alone', () => {
+    expect(shouldResumePlayback({ paused: true, ended: false, userPaused: true })).toBe(false);
+    expect(shouldResumePlayback({ paused: true, ended: true, userPaused: false })).toBe(false);
+    expect(shouldResumePlayback({ paused: false, ended: false, userPaused: false })).toBe(false);
+  });
+});
+
+describe('isNetworkActive', () => {
+  // Flaky-relay report: frozen picture while segments still flow is slow,
+  // not stuck — the watchdog must wait it out instead of restarting the tune.
+  it('treats recent Shaka request/response activity as alive', () => {
+    expect(isNetworkActive(9000, 10000)).toBe(true);
+    expect(isNetworkActive(0, 10000)).toBe(false);
+    expect(isNetworkActive(0, 10000, 15000)).toBe(true);
   });
 });

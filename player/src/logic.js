@@ -97,3 +97,30 @@ export function shouldIgnoreVideoError({ code, message, srcEmpty } = {}) {
 export function hardReloadDecision(reloads) {
   return reloads < 3 ? 'reload' : 'giveup';
 }
+
+// Fast-zap guard (tune race): every remote press runs a full tune body, so a
+// burst of presses overlaps N destroy/create cycles on one shared video
+// element — a late stale destroy wipes the winner's fresh load (silent
+// black). Each tune takes a sequence number; anything superseded by a newer
+// press must return before touching the player.
+export function tuneSuperseded(mySeq, latestSeq) {
+  return mySeq !== latestSeq;
+}
+
+// Unexpected-pause resume (fast-zap stuck state): load resolved and the pill
+// went away, yet nothing plays — a late stale teardown paused (or wiped) the
+// shared video element. Resume unless the pause is the user's own intent or
+// playback actually ended. A wiped src fails play() and falls through to the
+// normal stall → reload path instead of sitting stuck forever.
+export function shouldResumePlayback({ paused, ended, userPaused } = {}) {
+  return !!paused && !ended && !userPaused;
+}
+
+// Stall-watchdog patience (flaky-relay report): a frozen clock alone is not
+// proof of stuck — segments may still be flowing while the decoder waits
+// (slow relay, transmux backlog) or Shaka may be mid-retry-cycle. Escalate
+// only when the network is idle too; otherwise re-baseline and keep waiting
+// instead of trampling a recovery that was already in flight.
+export function isNetworkActive(lastActivityAt, now = Date.now(), quietMs = 10000) {
+  return now - lastActivityAt < quietMs;
+}

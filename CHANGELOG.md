@@ -12,6 +12,10 @@ All notable changes to EN TV Player will be documented in this file.
 - An expired mid-playback token (403) refetches the playlist for a fresh link instead of retrying the dead URL forever; 403 retries back off instead of hammering.
 - A channel that never recovers stops retrying after 3 hard reloads with a clear message instead of buffering forever until the TV kills the app; a dead tune's retries no longer spill into the next channel.
 - Smoother auto quality on slow relays: quality is re-picked every 8s (was 3s) with a smaller startup buffer, so playback stops flapping between qualities shortly after tuning.
+- Fast channel zapping tunes only the final channel instead of stacking overlapping loads that left nothing playing.
+- Recover when a channel loads but never starts: unexpected pauses are resumed automatically instead of sitting stuck on the channel name.
+- Channels start playing sooner on slow relays (smaller resume buffer); tune logs now show destroy/init/load timings to chase startup delays.
+- Fewer false "reloading channel" restarts on slow relays: the stall watchdog waits while stream data is still flowing instead of interrupting a recovery already in flight.
 
 ## [3.1.0] - 2026-09-26
 

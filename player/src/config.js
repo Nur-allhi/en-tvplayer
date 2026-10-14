@@ -100,7 +100,10 @@ export default {
       // chews — and re-evaluating ABR every 3s churns variants on jittery
       // relays (play → buffer seconds later → repeat). Calm both.
       bufferingGoal: 10,
-      rebufferingGoal: 5,
+      // Upstream default: start/resume playback after 2s of buffer instead
+      // of 5s — on slow relays the old value added seconds of black before
+      // the first frame with no reliability gain (ABR still ramps from low).
+      rebufferingGoal: 2,
       bufferBehind: 30,
       // BUG-021: relay servers rate-limit aggressive clients (403 storms).
       // Fewer parallel/prefetch requests and fewer retries stay under the ban.

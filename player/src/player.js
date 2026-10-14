@@ -10,6 +10,8 @@ import {
   isStalePlayerEvent,
   shouldIgnoreVideoError,
   hardReloadDecision,
+  shouldResumePlayback,
+  isNetworkActive,
 } from './logic.js';
 import * as avplay from './avplay.js';
 
@@ -45,6 +47,9 @@ let lastStallTime = 0;
 let lastStallCheck = 0;
 let lastResortAttempts = 0;
 let advancePending = false;
+// Pause intent: the stall watchdog must tell a user pause (leave alone)
+// apart from a stale teardown pausing the video behind our back (resume).
+let userPaused = false;
 
 // Live-segment-404 reload budget, keyed by URL with a 5-minute window: an
 // incident burst gets 3 edge re-syncs, then the link is condemned; a new URL
@@ -507,6 +512,7 @@ export async function loadChannel(channel) {
   hideError();
   showLoading(true);
   advancePending = false;
+  userPaused = false;
   // 401/403 retry budget survives same-URL reloads (mid-playback token
   // refresh calls loadChannel directly) — reset only on channel switch or
   // explicit reload, so the "advance after 3 failed retries" branch below
@@ -560,8 +566,10 @@ export async function loadChannel(channel) {
     // On Tizen, Shaka's unload/load can hang forever when stuck on a failed
     // network request. Destroy+recreate guarantees a clean slate.
     const el = videoElement;
+    const tDestroy = Date.now();
     await destroyPlayer(el);
     if (myToken !== loadToken) return false;
+    const tInit = Date.now();
 
     if (el) {
       const ok = await initPlayer(el);
@@ -637,6 +645,7 @@ export async function loadChannel(channel) {
     // Look the probe up by clean channel URL: `url` may carry a `?_t` cache
     // buster (BUG-017) while the probe is stored under the original URL.
     const mimeType = sniffedMimeUrls.get(channel.url) || detectMimeType(url);
+    const tLoad = Date.now();
     if (mimeType) {
       logEvent('INFO', 'Detected MIME type: ' + mimeType + ' for ' + url.slice(0, 80));
       await player.load(url, undefined, mimeType);
@@ -657,9 +666,23 @@ export async function loadChannel(channel) {
     lastResortAttempts = 0;
     videoErrorCount = 0;
     hardReloads = 0;
+    // Autoplay miss: make sure the fresh load actually plays instead of
+    // sitting paused with the channel name on screen.
+    if (videoElement && videoElement.paused && !userPaused) tryResumeVideo();
     startStallWatchdog();
     startBlackWatchdog();
-    logEvent('INFO', 'Loaded: ' + (channel.name || channel.url.slice(0, 60)));
+    logEvent(
+      'INFO',
+      'Loaded: ' +
+        (channel.name || channel.url.slice(0, 60)) +
+        ' (destroy ' +
+        (tInit - tDestroy) +
+        'ms, init ' +
+        (tLoad - tInit) +
+        'ms, load ' +
+        (Date.now() - tLoad) +
+        'ms)',
+    );
     return true;
   } catch (error) {
     clearInterval(loadingTimeout);
@@ -795,14 +818,16 @@ async function destroyPlayer(keepElement) {
   clearTimeout(stalledTimer);
   reconnectPending = false;
   if (player) {
+    const t0 = Date.now();
     try {
       // destroy() hanging forever == eternal spinner, so force on after 5s.
       await Promise.race([
         player.destroy(),
         new Promise((_, rej) => setTimeout(() => rej(new Error('destroy-timeout')), 5000)),
       ]);
+      logEvent('INFO', 'Player destroy took ' + (Date.now() - t0) + 'ms');
     } catch {
-      logEvent('WARN', 'Player destroy hung — continuing anyway');
+      logEvent('WARN', 'Player destroy hung (' + (Date.now() - t0) + 'ms) — continuing anyway');
     }
     player = null;
   }
@@ -1128,9 +1153,31 @@ function startStallWatchdog() {
   lastStallTime = videoElement ? videoElement.currentTime : 0;
   lastStallCheck = Date.now();
   stallWatchdogTimer = setInterval(() => {
-    if (!videoElement || videoElement.paused) return;
+    if (!videoElement || videoElement.ended) return;
+    if (
+      shouldResumePlayback({
+        paused: videoElement.paused,
+        ended: videoElement.ended,
+        userPaused,
+      })
+    ) {
+      // Late stale teardown (or autoplay miss) paused the video behind our
+      // back — resume it. If the src was wiped too, play() fails and the
+      // frozen clock below escalates to a reload instead of sitting stuck.
+      tryResumeVideo();
+      return;
+    }
+    if (videoElement.paused) return; // user's own pause — leave alone
     const now = videoElement.currentTime;
     if (now === lastStallTime && Date.now() - lastStallCheck > 15000) {
+      // Slow, not stuck: Shaka fetched recently (segments flowing, decoder
+      // waiting, or its own retry cycle running) — re-baseline and keep
+      // waiting instead of trampling a recovery already in flight.
+      if (isNetworkActive(lastShakaActivity, Date.now())) {
+        lastStallTime = now;
+        lastStallCheck = Date.now();
+        return;
+      }
       consecutiveErrors++;
       logEvent('WARN', 'Stall detected (no progress for 15s)');
       if (consecutiveErrors >= 3) {
@@ -1162,6 +1209,16 @@ function stopStallWatchdog() {
     clearInterval(stallWatchdogTimer);
     stallWatchdogTimer = null;
   }
+}
+
+// play() as a statement: swallows the rejection a paused-early element
+// raises, and tolerates old engines where play() returns undefined.
+function tryResumeVideo() {
+  try {
+    if (!videoElement) return;
+    const pending = videoElement.play();
+    if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+  } catch {}
 }
 
 // Terminal give-up for a tune that never produces frames: tear everything
@@ -1337,6 +1394,7 @@ export function reloadChannel() {
 
 export function stop() {
   avplay.stop();
+  userPaused = false;
   if (videoElement) videoElement.classList.remove('hidden');
   destroyPlayer().catch(() => {});
   showLoading(false);
@@ -1360,8 +1418,10 @@ export function togglePlay() {
   if (!videoElement) return;
 
   if (videoElement.paused) {
-    videoElement.play();
+    userPaused = false;
+    tryResumeVideo();
   } else {
+    userPaused = true;
     videoElement.pause();
   }
 }
