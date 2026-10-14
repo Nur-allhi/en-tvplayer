@@ -1,17 +1,19 @@
 {
   "name": "@en-iptv/player",
-  "version": "3.1.0",
+  "version": "3.2.0-beta.3",
   "type": "module",
   "description": "EN IPTV — Shaka-powered player SPA",
   "scripts": {
     "dev": "vite --port 5173 --host",
     "build": "vite build",
-    "preview": "vite preview --port 4173 --host"
+    "preview": "vite preview --port 4173 --host",
+    "test": "vitest run"
   },
   "dependencies": {
     "shaka-player": "^5.2.0"
   },
   "devDependencies": {
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^5.0.2"
   }
 }

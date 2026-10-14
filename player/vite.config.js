@@ -16,6 +16,13 @@ export default defineConfig({
   },
   root: '.',
   base: '/enplayer/',
+  // Vitest (node env, no jsdom): unit tests cover DOM-free logic only —
+  // see AGENTS.md § Test Process. The __APP_VERSION__ define keeps
+  // config.js importable under test.
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js'],
+  },
   resolve: {
     alias: {
       '@root': path.resolve(__dirname, '..', '..'),

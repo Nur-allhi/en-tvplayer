@@ -1,20 +1,52 @@
 {
   "name": "en-tvplayer",
-  "version": "3.1.0",
+  "version": "3.2.0-beta.3",
   "description": "Samsung Tizen TV IPTV Player — install on any Tizen 5.0+ TV",
   "type": "module",
   "scripts": {
     "dev": "npm run dev -w player",
     "build": "npm run build -w player",
+    "test": "npm run test -w player",
+    "lint": "eslint player/src scripts",
+    "format": "prettier --write player/src scripts",
+    "format:check": "prettier --check player/src scripts",
+    "release": "node scripts/release.mjs",
     "tizen": "cd tizen && node package.mjs",
-    "proxy": "npm start -w proxy"
+    "proxy": "npm start -w proxy",
+    "prepare": "husky"
   },
   "workspaces": [
     "player",
     "tizen",
     "proxy"
   ],
-  "keywords": ["tizen", "iptv", "samsung", "tv", "player"],
+  "keywords": [
+    "tizen",
+    "iptv",
+    "samsung",
+    "tv",
+    "player"
+  ],
   "author": "Nur-allhi",
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    "player/src/**/*.js": [
+      "eslint --max-warnings=0",
+      "prettier --write"
+    ],
+    "player/src/**/*.css": [
+      "prettier --write"
+    ],
+    "scripts/**/*.mjs": [
+      "eslint --max-warnings=0",
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9"
+  }
 }

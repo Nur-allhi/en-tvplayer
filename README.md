@@ -90,6 +90,7 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 | Problem | Solution |
 |---------|----------|
 | Channel won't play | Check the playlist URL, try a fixed quality from the menu, or another channel |
+| Channel doesn't start after fast switching | Open the channel list and select the same channel again — the first attempt can lose a race on slow servers |
 | "Update available" badge | Reinstall via Apps2Samsung — settings are kept |
 | Channel list empty | Re-paste your M3U URL in Settings → Channel Source |
 | App missing from My Apps | Restart the TV, verify Developer Mode is still on |

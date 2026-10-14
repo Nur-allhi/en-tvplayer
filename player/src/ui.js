@@ -1,5 +1,6 @@
 import { escapeHtml } from './utils.js';
 import { getHiddenGroups } from './config.js';
+import { filterDisplayChannels, slowHintFor, attemptSuffix } from './logic.js';
 
 let channels = [];
 let currentIndex = -1;
@@ -98,22 +99,21 @@ export function init(channelList, callback) {
 
 export function extractGroups(channelList) {
   const hidden = getHiddenGroups();
-  const visible = (channelList || []).filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
+  const visible = (channelList || []).filter((ch) => !hidden.includes((ch && ch.group) || 'Ungrouped'));
   const groupMap = {};
   for (const ch of visible) {
     const g = ch.group || 'Ungrouped';
     if (!groupMap[g]) groupMap[g] = [];
     groupMap[g].push(ch);
   }
-  const realGroups = Object.keys(groupMap).sort().map(name => ({
-    name,
-    count: groupMap[name].length,
-    channels: groupMap[name],
-  }));
-  groups = [
-    { name: 'All Channels', count: visible.length, channels: visible },
-    ...realGroups,
-  ];
+  const realGroups = Object.keys(groupMap)
+    .sort()
+    .map((name) => ({
+      name,
+      count: groupMap[name].length,
+      channels: groupMap[name],
+    }));
+  groups = [{ name: 'All Channels', count: visible.length, channels: visible }, ...realGroups];
 }
 
 export function getSidebarMode() {
@@ -165,8 +165,12 @@ export function renderGroupList() {
     item.className = 'group-item';
     item.dataset.index = index;
     item.innerHTML =
-      '<span class="group-name">' + escapeHtml(group.name) + '</span>' +
-      '<span class="group-count">(' + group.count + ')</span>';
+      '<span class="group-name">' +
+      escapeHtml(group.name) +
+      '</span>' +
+      '<span class="group-count">(' +
+      group.count +
+      ')</span>';
     item.addEventListener('click', () => {
       showGroupChannels(group.name);
     });
@@ -232,9 +236,8 @@ function computeSearchResults() {
   const q = searchQuery.trim().toLowerCase();
   if (!q) return [];
   const hidden = getHiddenGroups();
-  return channels.filter(ch =>
-    !hidden.includes(((ch && ch.group) || 'Ungrouped')) &&
-    (ch.name || '').toLowerCase().includes(q)
+  return channels.filter(
+    (ch) => !hidden.includes((ch && ch.group) || 'Ungrouped') && (ch.name || '').toLowerCase().includes(q),
   );
 }
 
@@ -314,8 +317,12 @@ function renderSearchResults() {
     const item = document.createElement('div');
     item.className = 'channel-item search-item';
     item.innerHTML =
-      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(ch.name) + '</span></span>' +
-      '<span class="group-count">' + escapeHtml(ch.group || 'Ungrouped') + '</span>';
+      '<span class="channel-name"><span class="channel-name-text">' +
+      escapeHtml(ch.name) +
+      '</span></span>' +
+      '<span class="group-count">' +
+      escapeHtml(ch.group || 'Ungrouped') +
+      '</span>';
     item.addEventListener('click', () => {
       searchFocus = i;
       updateSearchFocus();
@@ -428,7 +435,7 @@ export function renderChannelList() {
   if (selectedGroup === 'all' || !selectedGroup) {
     displayChannels = channels;
   } else {
-    displayChannels = channels.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+    displayChannels = channels.filter((ch) => (ch.group || 'Ungrouped') === selectedGroup);
   }
 
   const total = displayChannels.length;
@@ -452,8 +459,12 @@ export function renderChannelList() {
     item.dataset.index = displayIndex;
 
     item.innerHTML =
-      '<span class="channel-number">' + (displayIndex + 1) + '</span>' +
-      '<span class="channel-name"><span class="channel-name-text">' + escapeHtml(channel.name) + '</span></span>';
+      '<span class="channel-number">' +
+      (displayIndex + 1) +
+      '</span>' +
+      '<span class="channel-name"><span class="channel-name-text">' +
+      escapeHtml(channel.name) +
+      '</span></span>';
 
     item.addEventListener('click', () => {
       selectChannel(originalIndex);
@@ -467,13 +478,13 @@ export function renderChannelList() {
   const stride = channelRowStride(container);
   if (stride > 0) {
     const top = document.createElement('div');
-    top.style.height = (virtualStart * stride) + 'px';
+    top.style.height = virtualStart * stride + 'px';
     container.prepend(top);
     const bottom = document.createElement('div');
-    bottom.style.height = (Math.max(0, total - virtualEnd) * stride) + 'px';
+    bottom.style.height = Math.max(0, total - virtualEnd) * stride + 'px';
     container.appendChild(bottom);
-    const target = virtualStart * stride +
-      ((focusedIndex - virtualStart) * stride) - ((container.clientHeight - stride) / 2);
+    const target =
+      virtualStart * stride + (focusedIndex - virtualStart) * stride - (container.clientHeight - stride) / 2;
     container.scrollTop = Math.max(0, target);
   }
   container.dataset.virtualStart = virtualStart;
@@ -555,17 +566,12 @@ export function selectFocused() {
 }
 
 export function getDisplayChannels() {
-  const hidden = getHiddenGroups();
-  const visible = channels.filter(ch => !hidden.includes((ch && ch.group) || 'Ungrouped'));
-  if (selectedGroup === 'all' || !selectedGroup) {
-    return visible;
-  }
-  return visible.filter(ch => (ch.group || 'Ungrouped') === selectedGroup);
+  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
 }
 
 export function jumpToNumber(num, skipFullscreen) {
   const displayChannels = getDisplayChannels();
-  const channel = displayChannels.find(ch => ch.channelNumber === num);
+  const channel = displayChannels.find((ch) => ch.channelNumber === num);
   if (channel) {
     selectChannel(channels.indexOf(channel), skipFullscreen);
   }
@@ -716,7 +722,8 @@ function resetInactivity() {
 
 function autoCloseOverlays() {
   const sidebarHasFocus = sidebarOpen && document.querySelector('#sidebar .focused, #sidebar [data-focused]');
-  const rightHasFocus = rightSidebarOpen && document.querySelector('#right-sidebar .focused, #right-sidebar [data-focused]');
+  const rightHasFocus =
+    rightSidebarOpen && document.querySelector('#right-sidebar .focused, #right-sidebar [data-focused]');
   if (sidebarHasFocus || rightHasFocus) {
     resetInactivity();
     return;
@@ -881,7 +888,7 @@ export function setAudioTracks(tracks) {
   rightAudios = tracks || [];
   if (rightSelectedAudioId == null || !rightAudios.some((t) => t.id === rightSelectedAudioId)) {
     const active = rightAudios.find((t) => t.active);
-    rightSelectedAudioId = active ? active.id : (rightAudios[0] ? rightAudios[0].id : null);
+    rightSelectedAudioId = active ? active.id : rightAudios[0] ? rightAudios[0].id : null;
   }
   renderAudioList();
   if (rightSidebarOpen) {
@@ -1098,9 +1105,7 @@ function doRightSelect() {
     // Focus is on a header or button, not a quality option - do nothing
     return;
   }
-  const options = rightItems
-    .map((it, idx) => ({ it, idx }))
-    .filter(({ it }) => it.type === 'resolution');
+  const options = rightItems.map((it, idx) => ({ it, idx })).filter(({ it }) => it.type === 'resolution');
   const optIndex = options.findIndex(({ idx }) => idx === rightFocus);
   if (optIndex < 0 || optIndex >= rightResolutions.length) return;
   const value = rightResolutions[optIndex];
@@ -1149,18 +1154,27 @@ export function showChannelOsd(channel) {
 
 /* First-run hint: same OSD home, longer stay, plain guidance text */
 export function showFirstRunHint() {
+  showOsdText('No playlist yet — choose Settings from the menu', 5000);
+}
+
+/* Transient notice: same OSD home, custom text (e.g. stale-cache fallback) */
+export function showTransientNotice(text, ms = 5000) {
+  showOsdText(text, ms);
+}
+
+function showOsdText(text, ms) {
   const el = document.getElementById('channel-osd');
   if (!el) return;
   clearTimeout(osdTimer);
   el.classList.remove('fade');
   el.classList.remove('hidden');
-  el.textContent = 'No playlist yet — choose Settings from the menu';
+  el.textContent = text;
   osdTimer = setTimeout(() => {
     el.classList.add('fade');
     setTimeout(() => {
       el.classList.add('hidden');
     }, 300);
-  }, 5000);
+  }, ms);
 }
 
 export function getChannels() {
@@ -1177,16 +1191,15 @@ export function getCurrentChannel() {
 export function refreshChannelList(newChannels) {
   // Preserve the playing mark across playlist refreshes: match by URL
   // (stable across re-fetch/re-sort); resets when the channel is gone.
-  const playingUrl = currentIndex >= 0 && currentIndex < channels.length && channels[currentIndex]
-    ? channels[currentIndex].url
-    : null;
+  const playingUrl =
+    currentIndex >= 0 && currentIndex < channels.length && channels[currentIndex] ? channels[currentIndex].url : null;
   channels = newChannels;
   currentIndex = playingUrl ? newChannels.findIndex((ch) => ch && ch.url === playingUrl) : -1;
   focusedIndex = 0;
   extractGroups(channels);
   if (selectedGroup === 'all') {
     sidebarMode = 'channels';
-  } else if (selectedGroup && !groups.find(g => g.name === selectedGroup)) {
+  } else if (selectedGroup && !groups.find((g) => g.name === selectedGroup)) {
     selectedGroup = null;
     sidebarMode = 'groups';
   } else if (groups.length <= 1) {
@@ -1232,17 +1245,20 @@ function startMarquee(textEl) {
   const offset = overflow + 20;
   marqueeNameEl = textEl;
   textEl.classList.add('marquee');
-  marqueeAnimation = textEl.animate([
-    { transform: 'translateX(0)' },
-    { transform: 'translateX(0)', offset: 0.15 },
-    { transform: 'translateX(-' + offset + 'px)', offset: 0.45 },
-    { transform: 'translateX(-' + offset + 'px)', offset: 0.55 },
-    { transform: 'translateX(0)', offset: 0.85 },
-    { transform: 'translateX(0)' },
-  ], {
-    duration: 4000,
-    iterations: Infinity,
-  });
+  marqueeAnimation = textEl.animate(
+    [
+      { transform: 'translateX(0)' },
+      { transform: 'translateX(0)', offset: 0.15 },
+      { transform: 'translateX(-' + offset + 'px)', offset: 0.45 },
+      { transform: 'translateX(-' + offset + 'px)', offset: 0.55 },
+      { transform: 'translateX(0)', offset: 0.85 },
+      { transform: 'translateX(0)' },
+    ],
+    {
+      duration: 4000,
+      iterations: Infinity,
+    },
+  );
 }
 
 function stopMarquee() {
@@ -1285,15 +1301,46 @@ function scrollToFocused() {
 let bufferingChannelName = '';
 let bufferingStart = 0;
 let bufferingHintTimer = null;
-const BUFFERING_HINTS = [
-  [4000, 'Slow server — holding on…'],
-  [9000, 'Taking longer than usual — you can wait or try another channel'],
-];
+// Single-narrative tune UX: one bottom line owns the whole tune story —
+// connecting → buffering → playing/error. Retries stay silent except for a
+// light " • try N" suffix once they begin.
+let tuneStage = 'idle'; // idle | connecting | buffering
+let tuneAttempt = 1;
 
 export function setBufferingChannel(name) {
   bufferingChannelName = name || '';
   const nameEl = document.getElementById('loading-name');
   if (nameEl) nameEl.textContent = bufferingChannelName || 'Loading';
+}
+
+// Synchronous hard reset for every channel select (slow or fast-tapped):
+// veil + spinner + name, bottom line on "Connecting…", everything else
+// hidden — so a previous tune's late callbacks have no stale text to land on.
+export function resetTuneStatus(name) {
+  hideBuffering();
+  hideEmptyLogo();
+  const err = document.getElementById('error');
+  if (err) err.classList.add('hidden');
+  tuneStage = 'connecting';
+  tuneAttempt = 1;
+  setBufferingChannel(name);
+  showChannelToast();
+  renderTuneLine();
+}
+
+// Silent-retry counter from the player: re-renders the current bottom line
+// with the light attempt suffix. Never shows text of its own.
+export function setTuneAttempt(n) {
+  tuneAttempt = n > 0 ? n : 1;
+  renderTuneLine();
+}
+
+function renderTuneLine() {
+  if (tuneStage !== 'connecting') return;
+  const hint = document.getElementById('buffering-hint');
+  if (!hint) return;
+  hint.textContent = 'Connecting…' + attemptSuffix(tuneAttempt);
+  hint.classList.remove('hidden');
 }
 
 // Phase 1 of channel select: full veil with spinner + centered name, so the
@@ -1308,6 +1355,7 @@ export function showChannelToast() {
 export function showBuffering(percent) {
   const el = document.getElementById('buffering-indicator');
   if (!el) return;
+  tuneStage = 'buffering';
   el.classList.remove('hidden');
   setBufferingPercent(percent);
   bufferingStart = Date.now();
@@ -1319,11 +1367,7 @@ export function showBuffering(percent) {
 function updateBufferingHint() {
   const el = document.getElementById('buffering-hint');
   if (!el) return;
-  const elapsed = Date.now() - bufferingStart;
-  let hint = '';
-  for (const [after, text] of BUFFERING_HINTS) {
-    if (elapsed >= after) hint = text;
-  }
+  const hint = slowHintFor(Date.now() - bufferingStart);
   el.textContent = hint;
   el.classList.toggle('hidden', hint.length === 0);
 }
@@ -1336,6 +1380,7 @@ export function updateBuffering(percent) {
 }
 
 export function hideBuffering() {
+  tuneStage = 'idle';
   const el = document.getElementById('buffering-indicator');
   if (el) el.classList.add('hidden');
   const veil = document.getElementById('loading');
@@ -1351,7 +1396,7 @@ export function hideBuffering() {
 
 function setBufferingPercent(percent) {
   const p = document.getElementById('buffering-percent');
-  if (p) p.textContent = (typeof percent === 'number' ? percent : 0) + '%';
+  if (p) p.textContent = (typeof percent === 'number' ? percent : 0) + '%' + attemptSuffix(tuneAttempt);
 }
 
 /* Update badge on the Settings menu button (gentle, non-blocking) */

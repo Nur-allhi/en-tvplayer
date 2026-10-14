@@ -34,7 +34,9 @@ export function getSettings() {
       s.playlists = [{ name: 'Playlist 1', url: s.playlistUrl }];
       s.activePlaylistIndex = 0;
       delete s.playlistUrl;
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      } catch {}
     }
     // Backfill per-playlist dates for entries saved before date tracking.
     if (Array.isArray(s.playlists) && s.playlists.length > 0) {
@@ -42,11 +44,19 @@ export function getSettings() {
       const fallback = s.channelsFetched || null;
       for (const p of s.playlists) {
         if (!p || typeof p !== 'object') continue;
-        if (!p.addedAt) { p.addedAt = fallback || new Date().toISOString(); dirty = true; }
-        if (!('lastPlayedAt' in p)) { p.lastPlayedAt = null; dirty = true; }
+        if (!p.addedAt) {
+          p.addedAt = fallback || new Date().toISOString();
+          dirty = true;
+        }
+        if (!('lastPlayedAt' in p)) {
+          p.lastPlayedAt = null;
+          dirty = true;
+        }
       }
       if (dirty) {
-        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+        } catch {}
       }
     }
     return s;
@@ -85,8 +95,15 @@ export function saveSettings(partial) {
 export default {
   player: {
     streaming: {
-      bufferingGoal: 15,
-      rebufferingGoal: 5,
+      // Upstream defaults (10/8): a bigger goal piles a heavier transmux
+      // burst onto the TV's main thread per tune — keys look dead while it
+      // chews — and re-evaluating ABR every 3s churns variants on jittery
+      // relays (play → buffer seconds later → repeat). Calm both.
+      bufferingGoal: 10,
+      // Upstream default: start/resume playback after 2s of buffer instead
+      // of 5s — on slow relays the old value added seconds of black before
+      // the first frame with no reliability gain (ABR still ramps from low).
+      rebufferingGoal: 2,
       bufferBehind: 30,
       // BUG-021: relay servers rate-limit aggressive clients (403 storms).
       // Fewer parallel/prefetch requests and fewer retries stay under the ban.
@@ -101,7 +118,9 @@ export default {
     },
     abr: {
       enabled: true,
-      switchInterval: 3,
+      // Upstream default: re-pick at most every 8s so a jittery relay does
+      // not flap between variants (each switch rebuffers + retransmuxes).
+      switchInterval: 8,
       // Upgrade math (SimpleAbrManager): climbs when estimate > nextRung /
       // upgradeTarget, drops when estimate < current / downgradeTarget. So a
       // HIGHER upgradeTarget climbs easier, a HIGHER downgradeTarget drops

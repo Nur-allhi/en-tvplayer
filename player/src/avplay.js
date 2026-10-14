@@ -1,7 +1,9 @@
 // Native playback via Samsung AVPlay (webapis.avplay).
-// Used ONLY as a fallback for streams the browser decoder cannot render
-// (e.g. interlaced MBAFF H264 — buffering completes, zero frames painted,
-// no Shaka error). The native pipeline handles those fine (same as ibocast).
+// Fallback for (a) streams the browser decoder cannot render (e.g. interlaced
+// MBAFF H264 — buffering completes, zero frames painted, no Shaka error) and
+// (b) loads the browser stack cannot complete (e.g. CORS-blocked relays — the
+// native pipeline ignores CORS, same as standalone players). The native path
+// is tried once per URL; failures are recorded so it never loops.
 // Absent outside Tizen (desktop dev) — every function guards and no-ops.
 
 let avObject = null;
