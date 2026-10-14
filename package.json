@@ -1,6 +1,6 @@
 {
   "name": "en-tvplayer",
-  "version": "3.2.0",
+  "version": "3.2.0-beta.2",
   "description": "Samsung Tizen TV IPTV Player — install on any Tizen 5.0+ TV",
   "type": "module",
   "scripts": {
@@ -30,9 +30,17 @@
   "author": "Nur-allhi",
   "license": "MIT",
   "lint-staged": {
-    "player/src/**/*.js": ["eslint --max-warnings=0", "prettier --write"],
-    "player/src/**/*.css": ["prettier --write"],
-    "scripts/**/*.mjs": ["eslint --max-warnings=0", "prettier --write"]
+    "player/src/**/*.js": [
+      "eslint --max-warnings=0",
+      "prettier --write"
+    ],
+    "player/src/**/*.css": [
+      "prettier --write"
+    ],
+    "scripts/**/*.mjs": [
+      "eslint --max-warnings=0",
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "eslint": "^10.11.0",
