@@ -124,3 +124,31 @@ export function shouldResumePlayback({ paused, ended, userPaused } = {}) {
 export function isNetworkActive(lastActivityAt, now = Date.now(), quietMs = 10000) {
   return now - lastActivityAt < quietMs;
 }
+
+// Bounded patience: a frozen picture with a live network gets a few extra
+// windows (chatty playlist, starved segments) — then we restart the tune
+// anyway instead of waiting forever on a stream that never becomes playable.
+export function stallPatienceExceeded(deferrals, maxDeferrals = 4) {
+  return deferrals >= maxDeferrals;
+}
+
+// Single-narrative tune UX: one bottom line owns "taking too long"
+// messaging (thresholds kept: whisper at 4s, plain talk at 9s).
+const SLOW_HINTS = [
+  [4000, 'Slow server — holding on…'],
+  [9000, 'Taking longer than usual — you can wait or try another channel'],
+];
+
+export function slowHintFor(elapsedMs) {
+  let hint = '';
+  for (const [after, text] of SLOW_HINTS) {
+    if (elapsedMs >= after) hint = text;
+  }
+  return hint;
+}
+
+// Light attempt indicator for the status line: silent on the first try,
+// " • try N" once silent retries begin (user asked to see it, subtly).
+export function attemptSuffix(attempt) {
+  return attempt > 1 ? ' • try ' + attempt : '';
+}

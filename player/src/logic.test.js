@@ -14,6 +14,9 @@ import {
   tuneSuperseded,
   shouldResumePlayback,
   isNetworkActive,
+  slowHintFor,
+  attemptSuffix,
+  stallPatienceExceeded,
 } from './logic.js';
 
 const CHANNELS = [
@@ -199,5 +202,35 @@ describe('isNetworkActive', () => {
     expect(isNetworkActive(9000, 10000)).toBe(true);
     expect(isNetworkActive(0, 10000)).toBe(false);
     expect(isNetworkActive(0, 10000, 15000)).toBe(true);
+  });
+});
+
+describe('slowHintFor', () => {
+  // Single-narrative tune UX: one bottom line, whisper at 4s, plain talk at 9s.
+  it('escalates the slow hint with elapsed buffering time', () => {
+    expect(slowHintFor(0)).toBe('');
+    expect(slowHintFor(3999)).toBe('');
+    expect(slowHintFor(4000)).toBe('Slow server — holding on…');
+    expect(slowHintFor(8999)).toBe('Slow server — holding on…');
+    expect(slowHintFor(9000)).toBe('Taking longer than usual — you can wait or try another channel');
+    expect(slowHintFor(60000)).toBe('Taking longer than usual — you can wait or try another channel');
+  });
+});
+
+describe('attemptSuffix', () => {
+  it('stays silent on the first try, shows a light counter after', () => {
+    expect(attemptSuffix(1)).toBe('');
+    expect(attemptSuffix(2)).toBe(' • try 2');
+    expect(attemptSuffix(5)).toBe(' • try 5');
+  });
+});
+
+describe('stallPatienceExceeded', () => {
+  // Frozen picture + live network: grant a few extra windows, then restart
+  // the tune instead of deferring forever on an unplayable stream.
+  it('defers 4 times, then escalates', () => {
+    expect([0, 1, 2, 3].map((d) => stallPatienceExceeded(d))).toEqual([false, false, false, false]);
+    expect(stallPatienceExceeded(4)).toBe(true);
+    expect(stallPatienceExceeded(99)).toBe(true);
   });
 });

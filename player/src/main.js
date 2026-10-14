@@ -163,6 +163,7 @@ const CHANGELOG = [
           'Expired links refetch a fresh URL instead of retrying forever',
           'Dead channels stop with a message instead of freezing the app',
           'Smoother auto quality on slow relays',
+          'Cleaner tune screen: one status line, instant cut on switch',
           'Fast channel switching plays the final channel reliably',
           'Stuck channels resume on their own; slow relays restart less',
           'Channels start playing sooner',
@@ -781,6 +782,10 @@ function startPlayer() {
       ui.hideBuffering();
     }
   });
+  // Silent-retry counter for the single-narrative status line.
+  player.onTuneAttempt((n) => {
+    ui.setTuneAttempt(n);
+  });
   bufferingInterval = setInterval(() => {
     if (bufferingActive) {
       ui.updateBuffering(player.getBufferingPercent());
@@ -990,8 +995,10 @@ async function handleChannelSelect(channel) {
   currentIndex = channels.indexOf(channel);
   // Latest tune intent (name+group survive token rotation; URLs don't).
   lastIntent = { name: channel.name, group: channel.group || 'Ungrouped' };
-  ui.setBufferingChannel(channel && channel.name);
-  ui.showChannelToast();
+  // Hard visual reset FIRST: one clean narrative (name + Connecting…),
+  // every stale pill/error/progress from the previous tune hidden at once.
+  ui.resetTuneStatus(channel && channel.name);
+  hideProgress();
   ui.setAudioTracks([]);
   // Force the veil + name through layout before the teardown/load below
   // runs — on Tizen the first paint can otherwise stall until load

@@ -16,6 +16,11 @@ All notable changes to EN TV Player will be documented in this file.
 - Recover when a channel loads but never starts: unexpected pauses are resumed automatically instead of sitting stuck on the channel name.
 - Channels start playing sooner on slow relays (smaller resume buffer); tune logs now show destroy/init/load timings to chase startup delays.
 - Fewer false "reloading channel" restarts on slow relays: the stall watchdog waits while stream data is still flowing instead of interrupting a recovery already in flight.
+- Cleaner tune sequence: one status line (Connecting… → Buffering N% → playing) instead of competing connection/reloading messages; silent retries show only a light "try N" counter.
+- Switching channels cuts the previous picture and sound instantly and resets the screen before connecting the new one.
+- A frozen picture with a chatty-but-starved stream restarts after ~60s instead of sitting stuck forever; resume failures are now logged.
+- DRM channel teardown unloads before destroying, so fast switching leaks fewer decoder key sessions (fixes intermittent "sometimes plays, sometimes not" on protected channels).
+- Player setup gives up after 8s with a clear message instead of sitting stuck on the channel name when the video element is still busy from the previous tune.
 
 ## [3.1.0] - 2026-09-26
 
