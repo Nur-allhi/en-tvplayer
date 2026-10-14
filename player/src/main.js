@@ -164,6 +164,7 @@ const CHANGELOG = [
           'Dead channels stop with a message instead of freezing the app',
           'Smoother auto quality on slow relays',
           'Cleaner tune screen: one status line, instant cut on switch',
+          'Tip: if a channel misses after fast switching, select it again',
           'Fast channel switching plays the final channel reliably',
           'Stuck channels resume on their own; slow relays restart less',
           'Channels start playing sooner',
