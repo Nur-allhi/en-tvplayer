@@ -26,7 +26,7 @@ function applyResponsiveScale() {
   const sw = screen.width || 1920;
   const sh = screen.height || 1080;
   const scale = Math.max(sw / 1920, sh / 1080, 1.35);
-  document.documentElement.style.setProperty("--tv-scale", scale);
+  document.documentElement.style.setProperty('--tv-scale', scale);
 }
 applyResponsiveScale();
 
@@ -59,18 +59,31 @@ function showBootSplash(statusText) {
   if (verEl) verEl.textContent = 'v' + APP_VERSION;
   // Reset animation state
   const titleEl = document.getElementById('boot-logo-text');
-  if (titleEl) { titleEl.textContent = ''; titleEl.classList.add('typing'); }
-  if (typeEl) { typeEl.textContent = ''; typeEl.classList.remove('done'); }
-  if (loadingEl) { loadingEl.style.animation = 'none'; loadingEl.offsetHeight; loadingEl.style.animation = ''; }
+  if (titleEl) {
+    titleEl.textContent = '';
+    titleEl.classList.add('typing');
+  }
+  if (typeEl) {
+    typeEl.textContent = '';
+    typeEl.classList.remove('done');
+  }
+  if (loadingEl) {
+    loadingEl.style.animation = 'none';
+    loadingEl.offsetHeight;
+    loadingEl.style.animation = '';
+  }
   const logo = document.getElementById('boot-logo');
   if (logo) logo.classList.remove('zoom-in');
   el.classList.remove('hidden', 'fade-out', 'zooming');
   bootShownAt = Date.now();
   // Stage 1: icon is already visible — type the title, then the tagline.
   clearTimeout(bootTypewriterTimer);
-  bootTypewriterEnd = bootShownAt + BOOT_TITLE_DELAY
-    + BOOT_TITLE.length * BOOT_TITLE_CHAR
-    + BOOT_TAGLINE_GAP + BOOT_TAGLINE.length * BOOT_TAGLINE_CHAR;
+  bootTypewriterEnd =
+    bootShownAt +
+    BOOT_TITLE_DELAY +
+    BOOT_TITLE.length * BOOT_TITLE_CHAR +
+    BOOT_TAGLINE_GAP +
+    BOOT_TAGLINE.length * BOOT_TAGLINE_CHAR;
   startTypewriter(titleEl, BOOT_TITLE, BOOT_TITLE_CHAR, BOOT_TITLE_DELAY, () => {
     // Colorize "IPTV" once typing finishes, drop the caret.
     if (titleEl) {
@@ -82,7 +95,10 @@ function showBootSplash(statusText) {
 }
 
 function startTypewriter(el, text, charDelay, startDelay, onDone) {
-  if (!el) { if (onDone) onDone(); return; }
+  if (!el) {
+    if (onDone) onDone();
+    return;
+  }
   let i = 0;
   bootTypewriterTimer = setTimeout(function tick() {
     if (i < text.length) {
@@ -98,29 +114,34 @@ function startTypewriter(el, text, charDelay, startDelay, onDone) {
 
 function hideBootSplash(holdAfterTypeMs = 0, onDone = null) {
   const el = document.getElementById('boot-splash');
-  const finish = () => { if (typeof onDone === 'function') onDone(); };
-  if (!el || el.classList.contains('hidden')) { finish(); return; }
+  const finish = () => {
+    if (typeof onDone === 'function') onDone();
+  };
+  if (!el || el.classList.contains('hidden')) {
+    finish();
+    return;
+  }
   // Hold the logo for a beat AND until the tagline finishes typing
   // (plus an optional extra hold for the idle/no-fetch path),
   // then fly into it before fading the overlay.
   const waitMin = Math.max(0, BOOT_MIN_MS - (Date.now() - bootShownAt));
   const waitType = Math.max(0, bootTypewriterEnd - Date.now()) + holdAfterTypeMs;
   const wait = Math.max(waitMin, waitType) + BOOT_READ_MS;
+  setTimeout(() => {
+    clearTimeout(bootTypewriterTimer);
+    el.classList.add('zooming');
+    const logo = document.getElementById('boot-logo');
+    if (logo) logo.classList.add('zoom-in');
     setTimeout(() => {
-      clearTimeout(bootTypewriterTimer);
-      el.classList.add('zooming');
-      const logo = document.getElementById('boot-logo');
-      if (logo) logo.classList.add('zoom-in');
+      el.classList.add('fade-out');
       setTimeout(() => {
-        el.classList.add('fade-out');
-        setTimeout(() => {
-          el.classList.add('hidden');
-          el.classList.remove('fade-out', 'zooming');
-          if (logo) logo.classList.remove('zoom-in');
-          finish();
-        }, 500);
-      }, BOOT_ZOOM_MS);
-    }, wait);
+        el.classList.add('hidden');
+        el.classList.remove('fade-out', 'zooming');
+        if (logo) logo.classList.remove('zoom-in');
+        finish();
+      }, 500);
+    }, BOOT_ZOOM_MS);
+  }, wait);
 }
 
 const LAST_SEEN_KEY = 'en_last_seen_version';
@@ -129,20 +150,42 @@ const CHANGELOG = [
   {
     version: '3.2.0',
     sections: [
-      { type: 'fixed', items: ['Raw TS links play via the TV built-in player instead of looping', 'CORS-blocked relays fall back to native playback', 'Expired live segments re-sync instead of stopping playback', 'Clear messages for undecodable or over-quality channels'] },
+      {
+        type: 'fixed',
+        items: [
+          'Raw TS links play via the TV built-in player instead of looping',
+          'CORS-blocked relays fall back to native playback',
+          'Expired live segments re-sync instead of stopping playback',
+          'Clear messages for undecodable or over-quality channels',
+        ],
+      },
     ],
   },
   {
     version: '3.1.0',
     sections: [
-      { type: 'added', items: ['Remembers your last group and channel — reopening the app replays what you were watching'] },
-      { type: 'fixed', items: ['Channel list focus stays visible while scrolling with the button held', 'Reload no longer strands you on the logo when stream links went stale — the last channel is retried with fresh links'] },
+      {
+        type: 'added',
+        items: ['Remembers your last group and channel — reopening the app replays what you were watching'],
+      },
+      {
+        type: 'fixed',
+        items: [
+          'Channel list focus stays visible while scrolling with the button held',
+          'Reload no longer strands you on the logo when stream links went stale — the last channel is retried with fresh links',
+        ],
+      },
     ],
   },
   {
     version: '3.0.4',
     sections: [
-      { type: 'fixed', items: ['Protected channels with cookie login (Star Plus HD and similar) play again — channel key loading fixed'] },
+      {
+        type: 'fixed',
+        items: [
+          'Protected channels with cookie login (Star Plus HD and similar) play again — channel key loading fixed',
+        ],
+      },
     ],
   },
   {
@@ -162,89 +205,193 @@ const CHANGELOG = [
   },
   {
     version: '3.0.1',
-    sections: [
-      { type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] },
-    ],
+    sections: [{ type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] }],
   },
   {
     version: '3.0.0',
     sections: [
-      { type: 'added', items: ['Xtream login source with Test Login', 'First-run source picker for new installs', 'Channel Up/Down buttons switch to the next/previous channel'] },
+      {
+        type: 'added',
+        items: [
+          'Xtream login source with Test Login',
+          'First-run source picker for new installs',
+          'Channel Up/Down buttons switch to the next/previous channel',
+        ],
+      },
     ],
   },
   {
     version: '2.3.0',
     sections: [
-      { type: 'added', items: ['Provider-order channel listing by default, A–Z stays optional', 'Hide groups from Settings, cross-group channel search from the group list'] },
+      {
+        type: 'added',
+        items: [
+          'Provider-order channel listing by default, A–Z stays optional',
+          'Hide groups from Settings, cross-group channel search from the group list',
+        ],
+      },
     ],
   },
   {
     version: '2.2.0',
     sections: [
-      { type: 'added', items: ['Channel Source revamp: 3 playlists max, side-by-side cards with added and last-played dates', 'OK on a card loads it immediately, Left/Right moves across cards', 'TV keyboard opens from playlist inputs, fetch button relabeled Active', 'Display toggles: App logo and Quality badge can be shown or hidden'] },
+      {
+        type: 'added',
+        items: [
+          'Channel Source revamp: 3 playlists max, side-by-side cards with added and last-played dates',
+          'OK on a card loads it immediately, Left/Right moves across cards',
+          'TV keyboard opens from playlist inputs, fetch button relabeled Active',
+          'Display toggles: App logo and Quality badge can be shown or hidden',
+        ],
+      },
       { type: 'fixed', items: ['Settings side-nav spacing, header to top, bigger white title'] },
     ],
   },
   {
     version: '2.1.0',
     sections: [
-      { type: 'added', items: ['Custom stream headers via #KODIPROP (User-Agent, Referer, Authorization)', 'Multi-key DRM decryption for protected channels'] },
+      {
+        type: 'added',
+        items: [
+          'Custom stream headers via #KODIPROP (User-Agent, Referer, Authorization)',
+          'Multi-key DRM decryption for protected channels',
+        ],
+      },
       { type: 'fixed', items: ['Update checker now actually runs — opt in once, get notified of new versions'] },
     ],
   },
   {
     version: '2.0.0',
     sections: [
-      { type: 'added', items: ['Slide-in watermark once the sidebar hides', 'Stream type in the quality badge (e.g. M3U8, MPD)', 'Rounded rows and white focus rings everywhere'] },
-      { type: 'changed', items: ['New tune sequence: spinner + name, then bottom status pill', 'Deep lists scroll without jumping', 'Streamlined Settings, staged splash'] },
+      {
+        type: 'added',
+        items: [
+          'Slide-in watermark once the sidebar hides',
+          'Stream type in the quality badge (e.g. M3U8, MPD)',
+          'Rounded rows and white focus rings everywhere',
+        ],
+      },
+      {
+        type: 'changed',
+        items: [
+          'New tune sequence: spinner + name, then bottom status pill',
+          'Deep lists scroll without jumping',
+          'Streamlined Settings, staged splash',
+        ],
+      },
       { type: 'fixed', items: ['Playing row stays marked on reopen', 'Upstream blips no longer restart playback'] },
     ],
   },
   {
     version: '1.10.1',
     sections: [
-      { type: 'fixed', items: ['Empty fresh install no longer strands you on a dead page', 'Resolution badge always shows the true quality', 'Interlaced channels play via native fallback', 'Flaky relays recover instead of dying (fresh-token retries)'] },
-      { type: 'changed', items: ['Staged loading: spinner, first frame, then buffering', 'Channel + buffering toasts with wait hints', 'Boot logo flies toward you on launch'] },
+      {
+        type: 'fixed',
+        items: [
+          'Empty fresh install no longer strands you on a dead page',
+          'Resolution badge always shows the true quality',
+          'Interlaced channels play via native fallback',
+          'Flaky relays recover instead of dying (fresh-token retries)',
+        ],
+      },
+      {
+        type: 'changed',
+        items: [
+          'Staged loading: spinner, first frame, then buffering',
+          'Channel + buffering toasts with wait hints',
+          'Boot logo flies toward you on launch',
+        ],
+      },
     ],
   },
   {
     version: '1.10.0',
     sections: [
-      { type: 'added', items: ['Optional update checker — opt in once, get notified of new versions', 'Contact and download stats refreshed'] },
+      {
+        type: 'added',
+        items: [
+          'Optional update checker — opt in once, get notified of new versions',
+          'Contact and download stats refreshed',
+        ],
+      },
     ],
   },
   {
     version: '1.9.0',
     sections: [
-      { type: 'fixed', items: ['Tokenized live playlists now play without dropping after the first frame', 'Access-denied channels retry with a fresh link before giving up', 'Clearer messages when a live stream breaks up'] },
+      {
+        type: 'fixed',
+        items: [
+          'Tokenized live playlists now play without dropping after the first frame',
+          'Access-denied channels retry with a fresh link before giving up',
+          'Clearer messages when a live stream breaks up',
+        ],
+      },
     ],
   },
   {
     version: '1.8.0',
     sections: [
-      { type: 'fixed', items: ['Settings changes via remote now save — playlist edits and toggles stick', 'Enter inside Settings text boxes now saves on TV', 'Crashing channels retry automatically in compatibility mode', 'Unrecognized channel links are now identified and retried correctly', 'Channel error messages are now accurate (including access-denied detection)'] },
+      {
+        type: 'fixed',
+        items: [
+          'Settings changes via remote now save — playlist edits and toggles stick',
+          'Enter inside Settings text boxes now saves on TV',
+          'Crashing channels retry automatically in compatibility mode',
+          'Unrecognized channel links are now identified and retried correctly',
+          'Channel error messages are now accurate (including access-denied detection)',
+        ],
+      },
       { type: 'changed', items: ['Proxy hint position fixed to bottom center', 'Settings back button spacing fixed'] },
     ],
   },
   {
     version: '1.7.0',
     sections: [
-      { type: 'fixed', items: ['Black screen on some IPTV channels — now detects stream format automatically', 'HLS streams that need date-time sync now work correctly', 'Raw TS/MP4 stream URLs now play correctly on Samsung Tizen', 'Video errors from the TV are now caught and shown to you', 'Streams that will never work now fail in 15 seconds instead of 30'] },
-      { type: 'changed', items: ['All error messages are now in plain English — no more technical jargon', 'Better error hints (try Proxy, check internet, channel may be offline)'] },
+      {
+        type: 'fixed',
+        items: [
+          'Black screen on some IPTV channels — now detects stream format automatically',
+          'HLS streams that need date-time sync now work correctly',
+          'Raw TS/MP4 stream URLs now play correctly on Samsung Tizen',
+          'Video errors from the TV are now caught and shown to you',
+          'Streams that will never work now fail in 15 seconds instead of 30',
+        ],
+      },
+      {
+        type: 'changed',
+        items: [
+          'All error messages are now in plain English — no more technical jargon',
+          'Better error hints (try Proxy, check internet, channel may be offline)',
+        ],
+      },
     ],
   },
   {
     version: '1.6.0',
     sections: [
-      { type: 'added', items: ['Boot splash with logo animation, typewriter tagline, and spinner', 'App version displayed on splash screen', 'What\u2019s New modal shown once after each update', 'Auto-refresh playlist on app launch — toggle in Settings → Playback'] },
-      { type: 'fixed', items: ['Fetch Active intermittent error during stream playback', 'Relay fallback now shows meaningful error messages', 'Fetch Active button disables during loading'] },
+      {
+        type: 'added',
+        items: [
+          'Boot splash with logo animation, typewriter tagline, and spinner',
+          'App version displayed on splash screen',
+          'What\u2019s New modal shown once after each update',
+          'Auto-refresh playlist on app launch — toggle in Settings → Playback',
+        ],
+      },
+      {
+        type: 'fixed',
+        items: [
+          'Fetch Active intermittent error during stream playback',
+          'Relay fallback now shows meaningful error messages',
+          'Fetch Active button disables during loading',
+        ],
+      },
     ],
   },
   {
     version: '1.5.0',
-    sections: [
-      { type: 'changed', items: ['Updated app logo with new design'] },
-    ],
+    sections: [{ type: 'changed', items: ['Updated app logo with new design'] }],
   },
   {
     version: '1.4.0',
@@ -255,9 +402,7 @@ const CHANGELOG = [
   },
   {
     version: '1.3.0',
-    sections: [
-      { type: 'added', items: ['Responsive TV scaling for all screen sizes'] },
-    ],
+    sections: [{ type: 'added', items: ['Responsive TV scaling for all screen sizes'] }],
   },
 ];
 
@@ -266,11 +411,15 @@ function checkWhatsNew() {
     const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
     if (lastSeen === APP_VERSION) return false;
     return true;
-  } catch { return true; }
+  } catch {
+    return true;
+  }
 }
 
 function markVersionSeen() {
-  try { localStorage.setItem(LAST_SEEN_KEY, APP_VERSION); } catch {}
+  try {
+    localStorage.setItem(LAST_SEEN_KEY, APP_VERSION);
+  } catch {}
 }
 
 function showWhatsNew() {
@@ -286,7 +435,8 @@ function showWhatsNew() {
   if (pendingUpdate) {
     html += '<div class="wn-section">';
     html += '<div class="wn-section-title">Update available: v' + pendingUpdate.latest + '</div>';
-    html += '<div class="wn-item"><span class="wn-icon added">\u2192</span><span>Reinstall via Apps2Samsung to update.</span></div>';
+    html +=
+      '<div class="wn-item"><span class="wn-icon added">\u2192</span><span>Reinstall via Apps2Samsung to update.</span></div>';
     html += '</div>';
   }
   for (const entry of CHANGELOG) {
@@ -296,7 +446,8 @@ function showWhatsNew() {
     for (const sec of entry.sections) {
       const [icon, cls] = iconMap[sec.type] || ['\u2022', 'added'];
       for (const item of sec.items) {
-        html += '<div class="wn-item"><span class="wn-icon ' + cls + '">' + icon + '</span><span>' + item + '</span></div>';
+        html +=
+          '<div class="wn-item"><span class="wn-icon ' + cls + '">' + icon + '</span><span>' + item + '</span></div>';
       }
     }
     html += '</div>';
@@ -350,8 +501,6 @@ async function init() {
   }
 
   remote.init(handleRemoteAction);
-  
-
 
   registerTizenKeys();
 
@@ -422,8 +571,6 @@ async function init() {
   } else {
     showFirstRun();
   }
-
-
 }
 
 function cleanupEventListeners() {
@@ -451,7 +598,10 @@ function addCleanupListener(element, event, handler) {
 // Settings closes (settings.hide() never fires the onClose callback).
 function refreshProxyMenu() {
   const host = (typeof window !== 'undefined' && window.location.hostname) || '';
-  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' ||
+  const isLocalhost =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
     host.endsWith('.local') ||
     /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
   const show = isLocalhost && getSettings().showProxyMenu === true;
@@ -638,6 +788,10 @@ function startPlayer() {
     ui.selectChannel(next);
   });
 
+  player.onTokenExpired((deadChannel) => {
+    handleStaleToken(deadChannel);
+  });
+
   if (channels.length === 0) {
     showEmptyState();
     return;
@@ -676,9 +830,11 @@ function restoreLastSession() {
 function showEmptyState() {
   showPlayer();
   const active = getActivePlaylist();
-  ui.showEmptyLogo(!active || !active.url
-    ? 'No playlist yet — open Settings to add one and start watching'
-    : 'This playlist has no channels — check the URL or try another');
+  ui.showEmptyLogo(
+    !active || !active.url
+      ? 'No playlist yet — open Settings to add one and start watching'
+      : 'This playlist has no channels — check the URL or try another',
+  );
   const nameEl = document.getElementById('channel-name');
   if (nameEl) nameEl.textContent = 'No channels';
   const infoEl = document.getElementById('channel-info');
@@ -701,10 +857,13 @@ function runUpdateCheck() {
 function scheduleUpdateCheck() {
   setTimeout(() => {
     if (!consentAsked()) {
-      ui.showConfirmDialog('Check for app updates on launch? Anonymous version check only — no personal data.', (ok) => {
-        setConsented(ok === true);
-        if (ok === true) runUpdateCheck();
-      });
+      ui.showConfirmDialog(
+        'Check for app updates on launch? Anonymous version check only — no personal data.',
+        (ok) => {
+          setConsented(ok === true);
+          if (ok === true) runUpdateCheck();
+        },
+      );
     } else if (hasConsented()) {
       runUpdateCheck();
     }
@@ -820,7 +979,7 @@ async function handleChannelSelect(channel) {
   // needs the latest intent to decide on a fresh-URL re-tune.
   currentIndex = channels.indexOf(channel);
   // Latest tune intent (name+group survive token rotation; URLs don't).
-  lastIntent = { name: channel.name, group: (channel.group || 'Ungrouped') };
+  lastIntent = { name: channel.name, group: channel.group || 'Ungrouped' };
   ui.setBufferingChannel(channel && channel.name);
   ui.showChannelToast();
   ui.setAudioTracks([]);
@@ -837,10 +996,17 @@ async function handleChannelSelect(channel) {
   // so users see black instead of the spinner + name.
   await new Promise((resolve) => {
     let done = false;
-    const finish = () => { if (!done) { done = true; resolve(); } };
+    const finish = () => {
+      if (!done) {
+        done = true;
+        resolve();
+      }
+    };
     try {
       requestAnimationFrame(() => setTimeout(finish, 30));
-    } catch { finish(); }
+    } catch {
+      finish();
+    }
     setTimeout(finish, 350); // safety: never stall tuning
   });
   // Stamp the active playlist so Channel Source cards can show "last played".
@@ -857,7 +1023,7 @@ async function handleChannelSelect(channel) {
     selectedGroup = ui.getSelectedGroup();
     saveSettings({ lastChannelUrl: channel.url, lastGroup: selectedGroup });
   } catch {}
-  ui.setProxyToggleLabel(!!((getSettings().proxyChannels || {})[channel.url]));
+  ui.setProxyToggleLabel(!!(getSettings().proxyChannels || {})[channel.url]);
   const ok = await player.loadChannel(channel);
   tuneSucceeded = ok === true;
   if (!ok) {
@@ -956,10 +1122,7 @@ async function refreshChannelsInBackground() {
   if (!active || !active.url) return true;
   try {
     const newChannels = await fetchPlaylistWithRetry(active);
-    saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
-    sortChannels(newChannels);
-    channels = newChannels;
-    ui.refreshChannelList(channels);
+    applyFreshChannels(newChannels);
     // The boot tune ran on pre-refresh (possibly stale-token) URLs. If it
     // never got anywhere, re-tune the same channel with its fresh URL
     // instead of stranding the user on the brand screen. Working playback
@@ -972,6 +1135,45 @@ async function refreshChannelsInBackground() {
   } catch (e) {
     console.warn('Background playlist refresh failed:', e.message);
     return false;
+  }
+}
+
+// Swap in a freshly fetched channel list (persist + sort + repaint).
+function applyFreshChannels(newChannels) {
+  saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
+  sortChannels(newChannels);
+  channels = newChannels;
+  ui.refreshChannelList(channels);
+}
+
+// Expired-token recovery: the player retried the frozen channel URL and the
+// server still says 403/401, so mint a fresh link via the playlist instead.
+// Re-tunes by name+group (URLs rotate); falls back to one last same-URL
+// load (no budget reset) so the normal advance path ends it if the link is
+// truly dead. Never yanks the user back if they already moved on.
+async function handleStaleToken(deadChannel) {
+  try {
+    if (!deadChannel || !lastIntent) return;
+    const deadGroup = deadChannel.group || 'Ungrouped';
+    if (deadChannel.name !== lastIntent.name || deadGroup !== lastIntent.group) return;
+    let fresh = null;
+    try {
+      const active = getActivePlaylist();
+      if (active && active.url) fresh = await fetchPlaylistWithRetry(active);
+    } catch (e) {
+      console.warn('Stale-token playlist refetch failed:', e.message);
+    }
+    if (fresh) {
+      applyFreshChannels(fresh);
+      const at = findIntentIndex(channels, lastIntent);
+      if (at >= 0 && channels[at].url !== deadChannel.url) {
+        ui.selectChannel(at, true);
+        return;
+      }
+    }
+    player.loadChannel(deadChannel);
+  } catch (e) {
+    console.warn('Stale-token recovery failed:', e.message);
   }
 }
 
@@ -989,13 +1191,27 @@ function showStaleCacheNotice() {
 function registerTizenKeys() {
   if (!window.tizen || !window.tizen.tvinputdevice) return;
   const keys = [
-    'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
-    'MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop',
-    'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious',
-    'ChannelUp', 'ChannelDown',
+    'ColorF0Red',
+    'ColorF1Green',
+    'ColorF2Yellow',
+    'ColorF3Blue',
+    'MediaPlayPause',
+    'MediaPlay',
+    'MediaPause',
+    'MediaStop',
+    'MediaFastForward',
+    'MediaRewind',
+    'MediaTrackNext',
+    'MediaTrackPrevious',
+    'ChannelUp',
+    'ChannelDown',
   ];
   for (const key of keys) {
-    try { window.tizen.tvinputdevice.registerKey(key); } catch { console.warn('Failed to register Tizen key:', key); }
+    try {
+      window.tizen.tvinputdevice.registerKey(key);
+    } catch {
+      console.warn('Failed to register Tizen key:', key);
+    }
   }
 }
 
@@ -1267,7 +1483,9 @@ function handleRemoteAction(action, value) {
       ui.showConfirmDialog('Exit the app?', (confirmed) => {
         if (confirmed) {
           if (window.tizen && window.tizen.application) {
-            try { window.tizen.application.getCurrentApplication().exit(); } catch {}
+            try {
+              window.tizen.application.getCurrentApplication().exit();
+            } catch {}
           } else {
             window.close();
           }
@@ -1334,14 +1552,11 @@ export async function refreshChannels() {
       sortChannels(newChannels);
       channels = newChannels;
       ui.refreshChannelList(channels);
-
     } catch (e) {
       console.warn('Failed to refresh from playlist:', e.message);
     }
   }
 }
-
-
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);

@@ -5,6 +5,11 @@ import {
   findIntentIndex,
   segment404Decision,
   lastResortDecision,
+  tokenRecoveryDecision,
+  forbiddenRetryDelay,
+  tuneCountersReset,
+  isStalePlayerEvent,
+  shouldIgnoreVideoError,
 } from './logic.js';
 
 const CHANNELS = [
@@ -81,5 +86,66 @@ describe('lastResortDecision', () => {
   it('retries 3 times, then advances', () => {
     expect([1, 2, 3].map(lastResortDecision)).toEqual(['retry', 'retry', 'retry']);
     expect(lastResortDecision(4)).toBe('advance');
+  });
+});
+
+describe('tokenRecoveryDecision', () => {
+  // Same dead token URL reloaded forever 403s: two fast grace reloads,
+  // then a playlist refetch for a fresh token, then give up the channel.
+  it('reloads twice, refetches the playlist once, then advances', () => {
+    expect([1, 2].map(tokenRecoveryDecision)).toEqual(['reload', 'reload']);
+    expect(tokenRecoveryDecision(3)).toBe('refresh');
+    expect(tokenRecoveryDecision(4)).toBe('advance');
+    expect(tokenRecoveryDecision(99)).toBe('advance');
+  });
+});
+
+describe('forbiddenRetryDelay', () => {
+  it('backs off exponentially with a cap instead of hammering', () => {
+    expect(forbiddenRetryDelay(1)).toBe(4000);
+    expect(forbiddenRetryDelay(2)).toBe(8000);
+    expect(forbiddenRetryDelay(3)).toBe(16000);
+    expect(forbiddenRetryDelay(10)).toBe(16000);
+  });
+});
+
+describe('tuneCountersReset', () => {
+  // #16: a dead channel's error/retry counters must not poison the next tune.
+  it('resets counters when switching to a different channel URL', () => {
+    expect(tuneCountersReset('https://x.example.com/dead', 'https://x.example.com/good')).toBe(true);
+  });
+
+  it('keeps budgets on same-URL reload (mid-playback token refresh)', () => {
+    expect(tuneCountersReset('https://x.example.com/live', 'https://x.example.com/live')).toBe(false);
+  });
+
+  it('resets on first tune (no previous URL)', () => {
+    expect(tuneCountersReset(null, 'https://x.example.com/live')).toBe(true);
+  });
+});
+
+describe('isStalePlayerEvent', () => {
+  // #16: events from a destroy-hung previous player must not act on the new tune.
+  it('ignores events from an older player generation', () => {
+    expect(isStalePlayerEvent(4, 5)).toBe(true);
+  });
+
+  it('accepts events from the current generation', () => {
+    expect(isStalePlayerEvent(5, 5)).toBe(false);
+  });
+});
+
+describe('shouldIgnoreVideoError', () => {
+  // #16: our own teardown (src='' + load()) fires code 4 "Empty src" —
+  // that is not a real channel failure.
+  it('ignores empty-src errors from teardown clearing', () => {
+    expect(
+      shouldIgnoreVideoError({ code: 4, message: 'MEDIA_ELEMENT_ERROR: Empty src attribute', srcEmpty: true }),
+    ).toBe(true);
+  });
+
+  it('counts genuine decode/network errors', () => {
+    expect(shouldIgnoreVideoError({ code: 3, message: 'decode error', srcEmpty: false })).toBe(false);
+    expect(shouldIgnoreVideoError({ code: 4, message: 'not supported', srcEmpty: false })).toBe(false);
   });
 });

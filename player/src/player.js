@@ -1,7 +1,15 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
 import { withAuthQuery, redactUrl } from './utils.js';
-import { segment404Decision, lastResortDecision } from './logic.js';
+import {
+  segment404Decision,
+  lastResortDecision,
+  tokenRecoveryDecision,
+  forbiddenRetryDelay,
+  tuneCountersReset,
+  isStalePlayerEvent,
+  shouldIgnoreVideoError,
+} from './logic.js';
 import * as avplay from './avplay.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
@@ -9,9 +17,7 @@ import * as avplay from './avplay.js';
 function logEvent(level, message) {
   try {
     if (typeof console !== 'undefined' && console.debug) {
-      const safe = typeof message === 'string'
-        ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1')
-        : message;
+      const safe = typeof message === 'string' ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1') : message;
       console.debug('[app][' + level + ']', safe);
     }
   } catch {}
@@ -123,7 +129,7 @@ function toProxied(url) {
 
 function isProxyEnabledFor(url) {
   try {
-    return !!((getSettings().proxyChannels || {})[url]);
+    return !!(getSettings().proxyChannels || {})[url];
   } catch {
     return false;
   }
@@ -131,6 +137,9 @@ function isProxyEnabledFor(url) {
 
 export async function initPlayer(videoEl) {
   videoElement = videoEl;
+  // #16: generation guard — a previous instance whose destroy() hung can
+  // still fire events after a channel switch; those must not touch the new tune.
+  const gen = loadToken;
 
   shaka.polyfill.installAll();
 
@@ -146,7 +155,8 @@ export async function initPlayer(videoEl) {
     // Track Shaka request activity for the load watchdog below.
     networkingEngine.registerRequestFilter((type, request) => {
       try {
-        lastShakaReq = 't' + type + ' ' + (request.uris && request.uris[0] ? redactUrl(request.uris[0]).slice(-55) : '?');
+        lastShakaReq =
+          't' + type + ' ' + (request.uris && request.uris[0] ? redactUrl(request.uris[0]).slice(-55) : '?');
         lastShakaActivity = Date.now();
       } catch {}
     });
@@ -202,10 +212,12 @@ export async function initPlayer(videoEl) {
   player.configure(playerConfig);
 
   player.addEventListener('error', (event) => {
+    if (isStalePlayerEvent(gen, loadToken)) return;
     handlePlayerError(event.detail);
   });
 
   player.addEventListener('buffering', (event) => {
+    if (isStalePlayerEvent(gen, loadToken)) return;
     isBuffering = event.buffering;
     if (initialLoadPending) return;
     showLoading(event.buffering);
@@ -213,6 +225,7 @@ export async function initPlayer(videoEl) {
   });
 
   player.addEventListener('variantchanged', (event) => {
+    if (isStalePlayerEvent(gen, loadToken)) return;
     const newTrack = event.detail && event.detail.newTrack;
     if (trackCallback && newTrack) {
       trackCallback({ height: newTrack.height, bandwidth: newTrack.bandwidth });
@@ -222,6 +235,7 @@ export async function initPlayer(videoEl) {
   // BUG-019: ABR switches fire 'adaptation', not 'variantchanged' — without
   // this the badge freezes on the initial (optimistic) pick and lies.
   player.addEventListener('adaptation', () => {
+    if (isStalePlayerEvent(gen, loadToken)) return;
     lastAdaptationAt = Date.now();
     const active = getActiveTrack();
     if (trackCallback && active) {
@@ -264,11 +278,16 @@ function onPauseEvent() {
 
 let videoErrorCount = 0;
 let lastVideoErrorTime = 0;
+let tokenExpiredCallback = null;
 
 function onVideoError() {
   if (!videoElement) return;
   const err = videoElement.error;
   if (!err) return;
+  // #16: ignore our own teardown clearing (src='' + load() fires code 4).
+  try {
+    if (shouldIgnoreVideoError({ code: err.code, message: err.message, srcEmpty: !videoElement.src })) return;
+  } catch {}
   const now = Date.now();
   // Debounce: ignore duplicate errors within 3s
   if (now - lastVideoErrorTime < 3000) return;
@@ -280,11 +299,14 @@ function onVideoError() {
     3: 'The video could not be decoded — unsupported codec or corrupt stream',
     4: 'Video source not supported on this device — try a different quality',
   };
-  const msg = mediaErrorMessages[err.code] || ('Video error (code ' + err.code + ')');
+  const msg = mediaErrorMessages[err.code] || 'Video error (code ' + err.code + ')';
   logEvent('ERROR', 'Video element error: ' + msg + ' (code=' + err.code + ', mediaErr=' + (err.message || '') + ')');
   if (videoErrorCount >= 2 && currentChannel) {
     // 2+ native errors in a row — this stream format is likely unsupported
-    logEvent('ERROR', 'Channel appears unsupported on this device: ' + (currentChannel.name || currentChannel.url.slice(0, 60)));
+    logEvent(
+      'ERROR',
+      'Channel appears unsupported on this device: ' + (currentChannel.name || currentChannel.url.slice(0, 60)),
+    );
     showError('This channel could not play. Pick a different channel.');
     videoErrorCount = 0;
   }
@@ -319,6 +341,10 @@ export function onTrackChange(callback) {
 
 export function onChannelAdvance(callback) {
   channelAdvanceCallback = callback;
+}
+
+export function onTokenExpired(callback) {
+  tokenExpiredCallback = callback;
 }
 
 export function getActiveTrack() {
@@ -403,7 +429,9 @@ async function probeChannelFormat(channel) {
         bytes = next;
       }
     }
-    try { await reader.cancel(); } catch {}
+    try {
+      await reader.cancel();
+    } catch {}
     clearTimeout(timer);
     if (bytes.length < 8) return null;
 
@@ -423,8 +451,12 @@ async function probeChannelFormat(channel) {
 
     // MPEG-TS: sync byte 0x47 repeating every 188 bytes.
     for (let start = 0; start < 4 && start + 564 < bytes.length; start++) {
-      if (bytes[start] === 0x47 && bytes[start + 188] === 0x47 &&
-          bytes[start + 376] === 0x47 && bytes[start + 564] === 0x47) {
+      if (
+        bytes[start] === 0x47 &&
+        bytes[start + 188] === 0x47 &&
+        bytes[start + 376] === 0x47 &&
+        bytes[start + 564] === 0x47
+      ) {
         return 'video/mp2t';
       }
     }
@@ -441,11 +473,16 @@ export async function loadChannel(channel) {
   if (channel.drm && !isEmeSupported()) {
     // EME is secure-context-gated: localhost works, http://<lan-ip> does not.
     const insecure = typeof window !== 'undefined' && window.isSecureContext === false;
-    logEvent('ERROR', 'DRM not available — EME is not supported in this browser/context' +
-      (insecure ? ' (insecure context — open the player via http://localhost:5173, not a LAN IP)' : ''));
-    showError(insecure
-      ? 'Protected channels need a secure page. Open via localhost instead of LAN IP.'
-      : 'This channel is protected and cannot play here. Try a different channel.');
+    logEvent(
+      'ERROR',
+      'DRM not available — EME is not supported in this browser/context' +
+        (insecure ? ' (insecure context — open the player via http://localhost:5173, not a LAN IP)' : ''),
+    );
+    showError(
+      insecure
+        ? 'Protected channels need a secure page. Open via localhost instead of LAN IP.'
+        : 'This channel is protected and cannot play here. Try a different channel.',
+    );
     return false;
   }
 
@@ -458,7 +495,8 @@ export async function loadChannel(channel) {
   stopBlackWatchdog();
 
   clearTimeout(reconnectTimer);
-  clearTimeout(loadingTimeout);
+  clearInterval(loadingTimeout);
+  loadingTimeout = null;
   reconnectPending = false;
   stopStallWatchdog();
   hideError();
@@ -468,8 +506,14 @@ export async function loadChannel(channel) {
   // refresh calls loadChannel directly) — reset only on channel switch or
   // explicit reload, so the "advance after 3 failed retries" branch below
   // is reachable. Unconditional reset here made that branch dead code.
-  if (prevUrl !== channel.url) {
+  // #16: the same applies to every per-tune counter — a dead channel's
+  // errors/retries must not poison the next tune.
+  if (tuneCountersReset(prevUrl, channel.url)) {
     lastResortAttempts = 0;
+    reconnectAttempts = 0;
+    consecutiveErrors = 0;
+    videoErrorCount = 0;
+    lastVideoErrorTime = 0;
   }
 
   let url = withAuthQuery(channel.url, channel.authQuery);
@@ -479,7 +523,12 @@ export async function loadChannel(channel) {
   }
 
   // Channels already known to need native playback skip Shaka entirely.
+  // #16: still destroy the previous Shaka instance first — otherwise its
+  // network requests and error events stay alive behind the native playback.
   if (avplayPreferredUrls.has(channel.url) && avplay.isAvailable()) {
+    await destroyPlayer(videoElement);
+    if (myToken !== loadToken) return false;
+    currentChannel = channel;
     return loadViaAvplay(channel, myToken);
   }
 
@@ -488,8 +537,10 @@ export async function loadChannel(channel) {
   // attempt just hangs until the watchdog kills it. DRM stays on Shaka (CDM).
   // On native failure (recorded, never retried) the Shaka path below runs as
   // a second chance. Desktop has no native stack — unchanged behavior.
-  if (!channel.drm && avplay.isAvailable() &&
-      !avplayFailedUrls.has(channel.url) && detectMimeType(url)) {
+  if (!channel.drm && avplay.isAvailable() && !avplayFailedUrls.has(channel.url) && detectMimeType(url)) {
+    await destroyPlayer(videoElement);
+    if (myToken !== loadToken) return false;
+    currentChannel = channel;
     const okNative = await loadViaAvplay(channel, myToken);
     if (myToken !== loadToken) return false;
     if (okNative) {
@@ -516,8 +567,7 @@ export async function loadChannel(channel) {
 
     if (channel.drm) {
       // T-034: prefer the multi-key map; fall back to the legacy single pair.
-      const clearKeys = channel.drm.clearKeys ||
-        (channel.drm.keyId ? { [channel.drm.keyId]: channel.drm.key } : {});
+      const clearKeys = channel.drm.clearKeys || (channel.drm.keyId ? { [channel.drm.keyId]: channel.drm.key } : {});
       player.configure({ drm: { clearKeys } });
     } else {
       player.configure({ drm: { clearKeys: {} } });
@@ -547,9 +597,23 @@ export async function loadChannel(channel) {
       if (idleFor >= 15000 || Date.now() - loadStart > 60000) {
         clearInterval(loadingTimeout);
         loadingTimeout = null;
-        logEvent('WARN', 'Load stalled (idle ' + Math.round(idleFor / 1000) + 's, lastREQ=' + lastShakaReq + ', lastRESP=' + lastShakaResp + ')');
+        logEvent(
+          'WARN',
+          'Load stalled (idle ' +
+            Math.round(idleFor / 1000) +
+            's, lastREQ=' +
+            lastShakaReq +
+            ', lastRESP=' +
+            lastShakaResp +
+            ')',
+        );
         showError('This channel is not responding. It may be turned off right now.');
+        // #16: drop our reference once the destroy is kicked off — the
+        // pending load() rejects from here and its catch recreates the
+        // player if this tune is still current. Without this the next
+        // switch double-destroys a dead instance (the "destroy hung" loop).
         if (player) player.destroy().catch(() => {});
+        player = null;
         if (videoElement) {
           videoElement.src = '';
           videoElement.load();
@@ -573,7 +637,7 @@ export async function loadChannel(channel) {
     } else {
       await player.load(url);
     }
-    clearTimeout(loadingTimeout);
+    clearInterval(loadingTimeout);
     loadingTimeout = null;
 
     if (myToken !== loadToken) return false;
@@ -591,7 +655,7 @@ export async function loadChannel(channel) {
     logEvent('INFO', 'Loaded: ' + (channel.name || channel.url.slice(0, 60)));
     return true;
   } catch (error) {
-    clearTimeout(loadingTimeout);
+    clearInterval(loadingTimeout);
     loadingTimeout = null;
     if (myToken !== loadToken) return false;
 
@@ -610,9 +674,10 @@ export async function loadChannel(channel) {
       if (el && myToken === loadToken) {
         await initPlayer(el);
       }
-      if (reconnectAttempts < 3) {
+      // #16: only the still-current tune may schedule its own retry.
+      if (myToken === loadToken && reconnectAttempts < 3) {
         scheduleReconnect();
-      } else {
+      } else if (myToken === loadToken) {
         showError('Could not load this channel after several tries. It may be turned off or not available on your TV.');
         logEvent('ERROR', 'Reconnect limit reached — ' + (channel.name || channel.url.slice(0, 60)));
       }
@@ -635,7 +700,10 @@ export async function loadChannel(channel) {
           return;
         }
         sniffedMimeUrls.set(crashedChannel.url, mime);
-        logEvent('INFO', 'Identified channel format: ' + mime + ' for ' + crashedChannel.url.slice(0, 80) + ' — retrying');
+        logEvent(
+          'INFO',
+          'Identified channel format: ' + mime + ' for ' + crashedChannel.url.slice(0, 80) + ' — retrying',
+        );
         loadChannel(crashedChannel);
       });
       return false;
@@ -677,19 +745,30 @@ export async function loadChannel(channel) {
       pdtFallbackUrls.add(currentChannel.url);
       const crashedChannel = currentChannel;
       const tokenAtCatch = loadToken;
-      logEvent('WARN', 'Native crash loading channel — retrying without PDT sync: ' +
-          (crashedChannel.name || crashedChannel.url.slice(0, 80)));
+      logEvent(
+        'WARN',
+        'Native crash loading channel — retrying without PDT sync: ' +
+          (crashedChannel.name || crashedChannel.url.slice(0, 80)),
+      );
       showCustomMessage('Retrying with compatibility mode...');
-      setTimeout(() => { if (tokenAtCatch === loadToken) loadChannel(crashedChannel); }, 1200);
+      setTimeout(() => {
+        if (tokenAtCatch === loadToken) loadChannel(crashedChannel);
+      }, 1200);
       return false;
     }
 
     if (isNativeLoadCrash(error)) {
-      logEvent('ERROR', 'Channel failed to load (native crash): ' +
+      logEvent(
+        'ERROR',
+        'Channel failed to load (native crash): ' +
           (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
-          ' — ' + (error.message || ''));
+          ' — ' +
+          (error.message || ''),
+      );
       if (typeof console !== 'undefined') console.error('Channel load crashed inside Shaka:', error, error.stack);
-      showError('This channel could not start — it uses a stream format this player could not handle. Try another channel.');
+      showError(
+        'This channel could not start — it uses a stream format this player could not handle. Try another channel.',
+      );
       return false;
     }
 
@@ -704,7 +783,8 @@ async function destroyPlayer(keepElement) {
   stopBlackWatchdog();
   useAvplay = false;
   clearTimeout(reconnectTimer);
-  clearTimeout(loadingTimeout);
+  clearInterval(loadingTimeout);
+  loadingTimeout = null;
   clearTimeout(stalledTimer);
   reconnectPending = false;
   if (player) {
@@ -743,9 +823,32 @@ function isTransientBlip(error) {
 
 function isRenderingFrames() {
   try {
-    return !!videoElement && !videoElement.paused && !videoElement.ended &&
-      videoElement.readyState >= 3 && videoElement.currentTime > 0;
-  } catch { return false; }
+    return (
+      !!videoElement &&
+      !videoElement.paused &&
+      !videoElement.ended &&
+      videoElement.readyState >= 3 &&
+      videoElement.currentTime > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Same-URL grace reload for 401/403: backs off instead of hammering, and
+// is generation-guarded — a newer tune must not be clobbered by a stale
+// timer, which previously caused duplicate reloads and bogus "retry 0/3"
+// logs after a successful recovery.
+function scheduleForbiddenReload(status, attempt) {
+  reconnectAttempts = Math.max(reconnectAttempts, 1);
+  showReconnectMessage('Trying again (' + attempt + '/3)...');
+  const tokenAtSchedule = loadToken;
+  const channelAtSchedule = currentChannel;
+  setTimeout(() => {
+    if (tokenAtSchedule !== loadToken) return;
+    logEvent('INFO', status + ' retry ' + attempt + '/3 — reloading channel');
+    if (channelAtSchedule) loadChannel(channelAtSchedule);
+  }, forbiddenRetryDelay(attempt));
 }
 
 function handlePlayerError(error) {
@@ -756,7 +859,10 @@ function handlePlayerError(error) {
 
   try {
     const sinceAdapt = lastAdaptationAt ? Math.round((Date.now() - lastAdaptationAt) / 1000) + 's' : 'n/a';
-    logEvent('ERROR', 'Shaka error code=' + error.code + ' height=' + (getActiveHeight() || '?') + ' sinceAdapt=' + sinceAdapt);
+    logEvent(
+      'ERROR',
+      'Shaka error code=' + error.code + ' height=' + (getActiveHeight() || '?') + ' sinceAdapt=' + sinceAdapt,
+    );
   } catch {}
 
   console.error('Shaka error:', error);
@@ -782,39 +888,57 @@ function handlePlayerError(error) {
   if (isNativeLoadCrash(error) && !loadingTimeout) {
     if (currentChannel && !pdtFallbackUrls.has(currentChannel.url)) {
       pdtFallbackUrls.add(currentChannel.url);
-      logEvent('WARN', 'Native crash during playback — reloading without PDT sync: ' +
-          (currentChannel.name || currentChannel.url.slice(0, 80)));
+      logEvent(
+        'WARN',
+        'Native crash during playback — reloading without PDT sync: ' +
+          (currentChannel.name || currentChannel.url.slice(0, 80)),
+      );
       showReloadingMessage();
       loadChannel(currentChannel);
       return;
     }
-    logEvent('ERROR', 'Playback crashed (native): ' +
+    logEvent(
+      'ERROR',
+      'Playback crashed (native): ' +
         (currentChannel ? currentChannel.name + ' | ' + currentChannel.url.slice(0, 100) : '?') +
-        ' — ' + (error.message || ''));
+        ' — ' +
+        (error.message || ''),
+    );
     if (typeof console !== 'undefined') console.error('Shaka runtime crash:', error, error.stack);
-    showError('This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel.');
+    showError(
+      'This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel.',
+    );
     return;
   }
 
   // 401/403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment:
-  // retry up to 3 times with a 4s cool-down (BUG-021: hammering a
-  // rate-limiting server gets the IP banned; back off instead). BUG-021
-  // follow-up: tokenized servers also answer 401 mid-playback when the token
-  // dies — same fresh-token recovery, not a terminal login error.
+  // same-URL reloads only win inside the server grace window (the token is
+  // frozen into the channel object), so two fast grace reloads with backoff,
+  // then ONE playlist refetch for a fresh link (see onTokenExpired), then
+  // the terminal advance below. BUG-021 follow-up: tokenized servers also
+  // answer 401 mid-playback when the token dies — same recovery, not a
+  // terminal login error.
   if (error.code === 1001 && currentChannel) {
     const status = error.data && error.data[1];
     if (status === 403 || status === 401) {
       lastResortAttempts++;
-      logEvent('WARN', status + ' on segment — retry ' + lastResortAttempts + '/3');
-      if (lastResortDecision(lastResortAttempts) === 'retry') {
-        reconnectAttempts = Math.max(reconnectAttempts, 1);
-        showReconnectMessage('Trying again (' + lastResortAttempts + '/3)...');
-        setTimeout(() => {
-          logEvent('INFO', status + ' retry ' + lastResortAttempts + '/3 — reloading channel');
-          loadChannel(currentChannel);
-        }, 4000);
+      const policy = tokenRecoveryDecision(lastResortAttempts);
+      if (policy === 'reload') {
+        logEvent('WARN', status + ' on segment — retry ' + lastResortAttempts + '/3');
+        scheduleForbiddenReload(status, lastResortAttempts);
         return;
       }
+      if (policy === 'refresh') {
+        logEvent('WARN', status + ' persists after reloads — refetching playlist for a fresh link');
+        showCustomMessage('Getting a fresh link…');
+        if (tokenExpiredCallback) {
+          tokenExpiredCallback(currentChannel);
+        } else {
+          scheduleForbiddenReload(status, lastResortAttempts);
+        }
+        return;
+      }
+      // 'advance': falls through to the terminal handling below.
     }
   }
 
@@ -836,26 +960,38 @@ function handlePlayerError(error) {
   // the link. Budgeted per URL (see segment404* above): persistent 404s still
   // end on the terminal error below. An initial-load 404 (initialLoadPending)
   // means the link itself is dead.
-  if (error.code === 1001 && currentChannel && !initialLoadPending &&
-      error.data && error.data[1] === 404) {
+  if (error.code === 1001 && currentChannel && !initialLoadPending && error.data && error.data[1] === 404) {
     const decision = segment404Decision(
       segment404Url ? { url: segment404Url, attempts: segment404Attempts, lastAt: segment404LastAt } : null,
       currentChannel.url,
-      Date.now()
+      Date.now(),
     );
     segment404Url = decision.state.url;
     segment404Attempts = decision.state.attempts;
     segment404LastAt = decision.state.lastAt;
     if (decision.retry) {
-      logEvent('WARN', 'Live segment 404 — reload ' + segment404Attempts + '/3 for a fresh edge: ' +
-          (currentChannel.name || currentChannel.url.slice(0, 80)));
+      logEvent(
+        'WARN',
+        'Live segment 404 — reload ' +
+          segment404Attempts +
+          '/3 for a fresh edge: ' +
+          (currentChannel.name || currentChannel.url.slice(0, 80)),
+      );
       showReloadingMessage();
       loadChannel(currentChannel);
       return;
     }
   }
 
-  logEvent('ERROR', 'Unrecoverable error ' + error.code + ' (' + (currentChannel && currentChannel.name ? currentChannel.name : 'unknown') + ') — ' + getErrorMessage(error));
+  logEvent(
+    'ERROR',
+    'Unrecoverable error ' +
+      error.code +
+      ' (' +
+      (currentChannel && currentChannel.name ? currentChannel.name : 'unknown') +
+      ') — ' +
+      getErrorMessage(error),
+  );
   showError(getErrorMessage(error));
 
   // Auto-advance to next channel after 3 failed 401/403 retries
@@ -865,7 +1001,10 @@ function handlePlayerError(error) {
       advancePending = true;
       logEvent('INFO', '3 retries exhausted — advancing to next channel');
       showError('This channel link has expired. Moving to the next channel...');
+      const advanceToken = loadToken;
       setTimeout(() => {
+        // #16: never yank the user away from a channel they picked meanwhile.
+        if (advanceToken !== loadToken) return;
         advancePending = false;
         logEvent('INFO', 'Advancing channel');
         channelAdvanceCallback();
@@ -918,6 +1057,8 @@ function scheduleReconnect() {
   if (reconnectPending || !currentChannel) return;
   reconnectPending = true;
   reconnectAttempts++;
+  const tokenAtSchedule = loadToken;
+  const channelAtSchedule = currentChannel;
   logEvent('WARN', 'Reconnecting (attempt ' + reconnectAttempts + ')');
   // Live recovery: fast initial retry, cap at 10s
   const delay = Math.min(1000 * reconnectAttempts, 10000);
@@ -925,7 +1066,10 @@ function scheduleReconnect() {
 
   reconnectTimer = setTimeout(() => {
     reconnectPending = false;
-    if (currentChannel) {
+    // #16: a dead channel's pending retry must not clobber the next tune —
+    // only fire when nothing switched channels meanwhile.
+    if (tokenAtSchedule !== loadToken) return;
+    if (currentChannel && currentChannel === channelAtSchedule) {
       loadChannel(currentChannel);
     }
   }, delay);
@@ -1015,7 +1159,9 @@ function startBlackWatchdog() {
     if (typeof videoElement.requestVideoFrameCallback === 'function') {
       let painted = false;
       try {
-        videoElement.requestVideoFrameCallback(() => { painted = true; });
+        videoElement.requestVideoFrameCallback(() => {
+          painted = true;
+        });
       } catch {
         return;
       }
@@ -1109,11 +1255,12 @@ async function switchToAvplay() {
   if (!channel || !avplay.isAvailable()) return false;
   stopBlackWatchdog();
   stopStallWatchdog();
-  logEvent('WARN', 'No frames rendered — switching to native playback: ' +
-      (channel.name || channel.url.slice(0, 80)));
+  logEvent('WARN', 'No frames rendered — switching to native playback: ' + (channel.name || channel.url.slice(0, 80)));
   showCustomMessage('Switching to native playback...');
   if (player) {
-    try { await player.destroy(); } catch {}
+    try {
+      await player.destroy();
+    } catch {}
     player = null;
   }
   if (tokenAtSwitch !== loadToken) return false;
@@ -1190,8 +1337,7 @@ export function getBufferingPercent() {
   const buffered = videoElement.buffered;
   let end = 0;
   for (let i = 0; i < buffered.length; i++) {
-    if (buffered.start(i) <= videoElement.currentTime &&
-        videoElement.currentTime <= buffered.end(i)) {
+    if (buffered.start(i) <= videoElement.currentTime && videoElement.currentTime <= buffered.end(i)) {
       end = buffered.end(i);
     }
   }
@@ -1202,9 +1348,7 @@ export function getBufferingPercent() {
 export function getResolutions() {
   if (useAvplay || !player) return [];
   const tracks = player.getVariantTracks();
-  const heights = [...new Set(tracks.map((t) => t.height))]
-    .filter(Boolean)
-    .sort((a, b) => a - b);
+  const heights = [...new Set(tracks.map((t) => t.height))].filter(Boolean).sort((a, b) => a - b);
   return heights;
 }
 
@@ -1338,10 +1482,13 @@ function getErrorMessage(error) {
   if (code === 1001) {
     const status = error.data && error.data[1];
     if (status === 403) return 'This channel is not allowed to play. You may need a subscription or different access.';
-    if (status === 401) return 'This channel is not allowing access right now. Its link may have expired — try again in a bit.';
+    if (status === 401)
+      return 'This channel is not allowing access right now. Its link may have expired — try again in a bit.';
     if (status === 404) return 'This channel was not found. The link may have changed.';
-    if (typeof status === 'number' && status >= 500) return 'The channel server is having problems. Please try again later.';
-    if (typeof status === 'number' && status) return 'Channel returned an error (code ' + status + '). Please try again.';
+    if (typeof status === 'number' && status >= 500)
+      return 'The channel server is having problems. Please try again later.';
+    if (typeof status === 'number' && status)
+      return 'Channel returned an error (code ' + status + '). Please try again.';
     if (status) return 'Could not load this channel. Please try again.';
     return 'The channel server rejected the request. It may be blocking this app right now.';
   }

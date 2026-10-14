@@ -18,7 +18,7 @@ export function findResumeIndex(channels, lastChannelUrl, hiddenGroups) {
   if (!lastChannelUrl) return -1;
   const at = (channels || []).findIndex((ch) => ch && ch.url === lastChannelUrl);
   if (at < 0) return -1;
-  const group = ((channels[at] && channels[at].group) || 'Ungrouped');
+  const group = (channels[at] && channels[at].group) || 'Ungrouped';
   if ((hiddenGroups || []).includes(group)) return -1;
   return at;
 }
@@ -27,8 +27,9 @@ export function findResumeIndex(channels, lastChannelUrl, hiddenGroups) {
 // URLs don't. Returns the index of the same channel, or -1.
 export function findIntentIndex(channels, intent) {
   if (!intent) return -1;
-  return (channels || []).findIndex((ch) => ch && ch.name === intent.name &&
-    (((ch && ch.group) || 'Ungrouped') === intent.group));
+  return (channels || []).findIndex(
+    (ch) => ch && ch.name === intent.name && ((ch && ch.group) || 'Ungrouped') === intent.group,
+  );
 }
 
 // Live-segment-404 reload budget: 3 edge re-syncs per URL inside a
@@ -50,4 +51,41 @@ export function segment404Decision(prevState, url, now = Date.now()) {
 // incrementing. Three fresh-token retries, then advance channels.
 export function lastResortDecision(attempts) {
   return attempts <= 3 ? 'retry' : 'advance';
+}
+
+// Expired-token recovery policy: the dead token URL is frozen into the
+// channel object, so same-URL reloads only win inside the server grace
+// window. Two fast reloads, then ONE playlist refetch for a fresh token
+// (the caller owns the refetch), then give up the channel.
+export function tokenRecoveryDecision(attempts) {
+  if (attempts <= 2) return 'reload';
+  if (attempts === 3) return 'refresh';
+  return 'advance';
+}
+
+// 403 retry cool-down: exponential backoff, capped — a fixed short delay
+// hammers rate-limiting relays into banning the IP (BUG-021).
+export function forbiddenRetryDelay(attempts) {
+  return Math.min(4000 * 2 ** (attempts - 1), 16000);
+}
+
+// Channel-switch counter hygiene (#16): a dead channel's error/retry
+// counters must not poison the next tune — reset them when the URL changes,
+// keep them on same-URL reloads (mid-playback token refresh owns that path).
+export function tuneCountersReset(prevUrl, nextUrl) {
+  return prevUrl !== nextUrl;
+}
+
+// Player-generation guard (#16): a previous Shaka instance whose destroy()
+// hung can still fire error/buffering/adaptation events after the switch —
+// events from any older generation must be ignored.
+export function isStalePlayerEvent(eventGen, currentGen) {
+  return eventGen !== currentGen;
+}
+
+// Teardown-src filter (#16): our own teardown (video.src='' + load())
+// fires a code-4 "Empty src" video error — not a real channel failure.
+export function shouldIgnoreVideoError({ code, message, srcEmpty } = {}) {
+  if (code !== 4 || !srcEmpty) return false;
+  return /empty src/i.test(message || '');
 }

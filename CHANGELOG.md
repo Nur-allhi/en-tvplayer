@@ -9,6 +9,7 @@ All notable changes to EN TV Player will be documented in this file.
 - Channels blocked by CORS-restricted relays fall back to native playback once the browser attempts are exhausted.
 - A live segment that expired (404) re-syncs to the live edge instead of killing playback with "link may have changed".
 - Undecodable (3016) and over-quality (3017) failures now show plain-language messages instead of raw error codes.
+- An expired mid-playback token (403) refetches the playlist for a fresh link instead of retrying the dead URL forever; 403 retries back off instead of hammering.
 
 ## [3.1.0] - 2026-09-26
 
