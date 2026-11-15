@@ -12,6 +12,7 @@
     "format:check": "prettier --check player/src scripts",
     "validate": "node scripts/validate-modularity.mjs",
     "validate:strict": "node scripts/validate-modularity.mjs --strict",
+    "lint:commits": "node scripts/check-commit-msg.mjs --audit",
     "metrics": "node scripts/metrics.mjs",
     "release": "node scripts/release.mjs",
     "tizen": "cd tizen && node package.mjs",

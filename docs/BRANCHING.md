@@ -123,11 +123,22 @@ npm run build         # must pass
 npm run validate      # must pass (modularity guard)
 
 git add -A
-git commit -m "feat(ui): add favorites toggle to red key"
+git commit -m "feat(ui): add favourites toggle on the red key (T-201)
+
+The red key was documented as a favourite toggle but did nothing.
+
+Closes: T-201"
 ```
 
-The pre-commit hook runs ESLint + Prettier on staged files. It blocks on
-errors.
+Two hooks run on every commit:
+
+| Hook | Checks |
+|------|--------|
+| `pre-commit` | ESLint + Prettier on staged files — blocks on errors |
+| `commit-msg` | the commit message format (`docs/COMMIT_STYLE.md`) — blocks on a bad message |
+
+The message format is **enforced**, not advisory. `npm run lint:commits`
+audits the existing history against the same rules.
 
 ### 3.3 Merge to `dev`
 

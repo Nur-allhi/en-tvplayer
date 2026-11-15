@@ -79,6 +79,7 @@ releases/          published .wgt files
 | `AGENTS.md` | Always — the agent brief and house rules |
 | `docs/v4.PLAN.md` | Planning the current work |
 | `docs/BRANCHING.md` | Branching, commits, versioning, releases |
+| `docs/COMMIT_STYLE.md` | Commit message format — enforced by a hook |
 | `docs/TICKETS.md` | Picking up work |
 | `docs/SESSION_LOG.md` | Where the work stands · **append when you finish** |
 | `docs/TIZEN_COMPAT.md` | Touching platform-specific code |
@@ -123,22 +124,55 @@ npm test && npm run lint && npm run build && npm run validate
 ### 5.3 Commit
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <subject> (T-<ticket>)
 
-Types:  feat | fix | refactor | docs | test | chore | style | perf
-Scopes: player | ui | settings | app | lib | tizen | proxy | release | docs
+<body — why the change was needed>
 ```
+
+Full rules and examples: `docs/COMMIT_STYLE.md`.
+
+| Type | Use for |
+|------|---------|
+| `feat` | a new user-facing capability |
+| `fix` | a bug fix |
+| `refactor` | restructuring, no behaviour change |
+| `perf` | a performance change |
+| `docs` | documentation only |
+| `test` | tests only |
+| `chore` | tooling, deps, config, housekeeping |
+| `build` | build system and packaging |
+| `style` | formatting only, no semantics |
+| `merge` | a merge commit — no scope, no ticket |
+
+Scopes are a **closed list**: `player`, `ui`, `settings`, `remote`, `config`,
+`lib`, `app`, `tizen`, `proxy`, `release`, `tooling`, `ci`, `docs`, `session`,
+`roadmap`, `readme`, `agents`, `stats`, `repo`.
+
+`feat`, `fix`, `refactor` and `perf` **must** carry a ticket reference and a
+body explaining why.
 
 Examples:
 
 ```
-feat(ui): add favorites toggle on red key
-fix(player): reset segment-404 budget on new URL
-refactor(ui): extract dialogs into ui/dialogs.js
-docs(v4): record measured Tizen compatibility matrix
+feat(ui): add favourites toggle on the red key (T-201)
+
+The red key was documented as a favourite toggle but did nothing.
+
+Closes: T-201
 ```
 
-One logical change per commit. Bodies explain **why**.
+```
+fix(player): bound the segment-404 reload budget (T-120)
+
+A live segment that fell off the edge returned 404, and the budget reset
+on every load, so the same dead link reloaded forever.
+
+Closes: T-120
+```
+
+**The format is enforced** by the `commit-msg` hook — a non-conforming
+message is rejected with the reason. `npm run lint:commits` audits the
+history.
 
 ### 5.4 Merge to `dev`
 

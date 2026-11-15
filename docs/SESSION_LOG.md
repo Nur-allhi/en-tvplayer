@@ -44,6 +44,72 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-15 — commit message format, enforced by hook — @maintainer
+
+**Ticket:** T-209 ✅
+**Branch:** `dev`
+**Status:** ✅ done
+
+**What changed**
+- **`scripts/check-commit-msg.mjs`** — validates the commit header format, a
+  closed list of types and scopes, the ticket reference, the body, subject
+  rules (lowercase start, no trailing period, no double spaces, no
+  WIP/TODO/FIXME, no junk subjects), the 72-character header limit and the
+  trailers (`Closes:`, `Refs:`, `BREAKING CHANGE:`).
+- **`.husky/commit-msg`** — wires it in, so a non-conforming message is
+  rejected at commit time rather than discovered later.
+- **`docs/COMMIT_STYLE.md`** — the rules, the type/scope tables and worked
+  examples, including a table of rejected messages with the reason each was
+  rejected.
+- `npm run lint:commits` — audits the existing history against the same
+  rules.
+- `scripts/release.mjs` — its own two commits now conform
+  (`chore(release): publish vX.Y.Z`, `docs(stats): refresh download stats
+  for vX.Y.Z`), so a release cannot trip its own hook.
+- `AGENTS.md` and `docs/BRANCHING.md` updated to point at the style guide.
+
+**Verified**
+- Every rejection path tested and confirmed to fire: missing scope, unknown
+  type, unknown scope, missing ticket, missing body, trailing period,
+  uppercase subject, junk subject, over-long header, bad footer, `!` without
+  a `BREAKING CHANGE:` footer.
+- Valid messages accepted: `feat` with ticket and body, `chore` without a
+  ticket, `merge` without a scope, a breaking change with its footer.
+- **The hook was tested with real commits**: a bad message was rejected
+  (exit 1), a good message committed cleanly (exit 0), with the `pre-commit`
+  hook running alongside it.
+- `npm run lint:commits` reports the real history: 191 commits checked, 171
+  pre-date the convention.
+
+**Decisions**
+- **The scope list is closed.** Free-form scopes are how `misc`, `stuff` and
+  `session`/`roadmap`/`readme` creep in. Every scope in the list is one
+  worth grepping for, and adding one is a deliberate act.
+- **The ticket reference lives in the subject**, not the body — so both
+  `git log --oneline` and `git log --grep=T-123` find it. In the body it
+  would only be found by the second.
+- **Only behaviour-changing types require a body.** Forcing a body on every
+  `docs` or `chore` commit trains people to write filler.
+- **The old history is not rewritten.** Rewriting would change every SHA and
+  break the release tags, for no benefit. The audit shows where the
+  convention starts instead.
+- The `merge` type exists so merge commits fit the format without needing a
+  scope or a ticket; git's own "Merge branch…" messages are exempt.
+
+**Watch out**
+- The first commit after this lands must itself conform — the hook is live
+  from this commit onward.
+- `scripts/release.mjs` now depends on the hook accepting
+  `chore(release): …` and `docs(stats): …`. If the scope list is edited
+  later, keep those two or the release script breaks.
+
+**Next**
+- Phase 0 remainder: enable "require status checks" on `dev` (T-100); fix the
+  audit findings (T-106); resolve `docs/FILE_SPLIT_PLAN.md`.
+- Phase 1: extract `lib/` modules with tests (T-110…T-114).
+
+---
+
 ## 2026-11-15 — release signing key restored, packager now guards it — @maintainer
 
 **Ticket:** T-104 ✅, T-208 ✅

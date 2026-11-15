@@ -459,6 +459,25 @@ A ticket is only `done` when it meets the **Definition of Done**
 
 ---
 
+### T-209 — Enforced commit message format
+- **Type:** chore · **Priority:** P0 · **Size:** M (~250 LOC)
+- **Spec:** a commit-message convention that is machine-checked, not just
+  written down. `scripts/check-commit-msg.mjs` validates the header format,
+  a closed list of types and scopes, the ticket reference, the body, the
+  subject rules and the trailers. Wired in as a `commit-msg` husky hook so a
+  non-conforming message is rejected at commit time.
+- **Acceptance:** a bad message is rejected with an actionable reason (bad
+  type, unknown scope, missing ticket, missing body, trailing period,
+  uppercase start, junk subject, over-long header). `feat`/`fix`/`refactor`/
+  `perf` require both a ticket reference and a body. The release script's own
+  commits conform. `npm run lint:commits` audits the history.
+- **Status:** ✅ done 2026-11-15
+- **Note:** the pre-2026-11-15 history is not rewritten — rewriting would
+  change every SHA and break the release tags. The audit reports where the
+  convention starts.
+
+---
+
 ## Backlog (unprioritised)
 
 | # | Feature | Size | Notes |

@@ -149,7 +149,7 @@ writeFileSync(notesPath, notes + '\n');
 
 // ── Commit, tag, push, publish ──────────────────────────────────────
 run('git add -A');
-run(`git commit -m "${beta ? `chore(beta): prepare ${version}` : `release: ${tag}`}"`);
+run(`git commit -m "${beta ? `chore(release): prepare ${version}` : `chore(release): publish ${tag}`}"`);
 run(`git tag -a ${tag} -m "Release ${tag}"`);
 if (!(await ask(`push commit + ${tag} to origin`))) fail('aborted before push');
 run('git push');
@@ -174,7 +174,7 @@ if (!beta) {
     statsDoc.eol,
   );
   run('git add docs/STATS.md');
-  run(`git commit -m "docs: refresh download stats for ${tag}"`);
+  run(`git commit -m "docs(stats): refresh download stats for ${tag}"`);
   run('git push');
 }
 

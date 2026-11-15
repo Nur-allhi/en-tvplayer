@@ -26,6 +26,7 @@
 |-----|--------------|
 | `docs/v4.PLAN.md` | **Start here.** Master plan: architecture, phases, gates, risks |
 | `docs/BRANCHING.md` | Branching, commits, versioning, release process |
+| `docs/COMMIT_STYLE.md` | Commit message format — enforced by the `commit-msg` hook |
 | `docs/TICKETS.md` | Picking up work · one ticket = one branch = one merge to `dev` |
 | `docs/SESSION_LOG.md` | Where the work stands · append an entry when you finish |
 | `docs/CONTRIBUTING.md` | How to work on this repo from any machine |
@@ -85,12 +86,20 @@ en-tvplayer/
 - Write code only to spec. Minimum, not maximum. One simple solution.
 - No dead code, no speculative abstractions, no unused imports/variables.
 
-**Commit Convention**
-- Format: `<type>(<scope>): <description>`
-- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `style`, `perf`
-- Example: `feat(player): preserve playlist channel numbers`
-- One logical change per commit.
-- Include the ticket ID in the commit body: `feat(ui): add favorites toggle (T-201)`
+**Commit Convention** — full rules: `docs/COMMIT_STYLE.md`
+- Format: `<type>(<scope>): <subject> (T-<ticket>)`
+- Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`,
+  `style`, `merge`
+- Scopes (closed list): `player`, `ui`, `settings`, `remote`, `config`,
+  `lib`, `app`, `tizen`, `proxy`, `release`, `tooling`, `ci`, `docs`,
+  `session`, `roadmap`, `readme`, `agents`, `stats`, `repo`
+- Example: `fix(player): bound the segment-404 reload budget (T-120)`
+- One logical change per commit. The **body explains why**, not what.
+- `feat`, `fix`, `refactor` and `perf` **must** carry a ticket reference and
+  a body.
+- **Enforced** by the `commit-msg` hook (`scripts/check-commit-msg.mjs`) —
+  a non-conforming message is rejected. `npm run lint:commits` audits the
+  history.
 
 **Branch Strategy** — full policy in `docs/BRANCHING.md`
 - `main` — released, always releasable. **Never commit here directly** — only
