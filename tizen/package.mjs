@@ -43,9 +43,12 @@ function findSDB() {
     'TizenSdb_v1.1.0.exe',
     '"C:\\Program Files\\TizenSDB\\TizenSdb_v1.1.0.exe"',
   ];
+  // `2>nul` is a Windows shell redirect; on Linux/POSIX it creates a file
+  // literally named "nul" in the working directory.
+  const nullRedirect = process.platform === 'win32' ? '2>nul' : '2>/dev/null';
   for (const cmd of candidates) {
     try {
-      execSync(`${cmd} 2>nul`, { stdio: 'pipe' });
+      execSync(`${cmd} ${nullRedirect}`, { stdio: 'pipe' });
       return cmd;
     } catch {
       try {
