@@ -44,6 +44,88 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-15 — v4 groundwork committed and CI-verified — @maintainer
+
+**Ticket:** T-100, T-101, T-102, T-103, T-105, T-107
+**Branch:** `chore/v4-planning` → merged into `dev` → pushed
+**Status:** ✅ merged to `dev` (`cd809e6`)
+
+**What changed**
+- Committed the v4 groundwork as four logical commits on `chore/v4-planning`,
+  merged `--no-ff` into `dev`, deleted the branch, pushed to `origin/dev`.
+  - `fix(tooling)` — the two Linux portability fixes (proxy SHA-1, `nul` file)
+  - `chore(lint)` — extended ESLint to `proxy/` and `tizen/`; this surfaced a
+    dead `renameSync` import in `tizen/package.mjs`, now removed
+  - `feat(tooling)` — CI workflow + the three guard scripts + the ratchet
+    baseline
+  - `docs(v4)` — the document set and the rewired existing docs
+- Simplified the whole workflow for a **solo maintainer**: no pull requests, no
+  reviewers. Direct merges into `dev`; `main` still only receives a tested
+  release. Added an `experiment/` branch type for throwaway spikes and explicit
+  AI-agent collaboration rules (branch, never `main`, never mint a signing key,
+  always append to this log).
+- Added a self-review checklist to `docs/BRANCHING.md` §6 — with no second
+  pair of eyes, it is the gate that stands between a bad merge and users.
+- Fixed AGENTS.md section numbering (two sections both numbered 4, no section
+  11) — now runs 1–13 cleanly — and the stale `AGENTS.md §8` reference in
+  `docs/ROADMAP.md`.
+- Switched the `origin` remote from HTTPS to SSH. The HTTPS push failed with
+  `could not read Username`; the SSH key was already present and working.
+
+**Verified**
+- `npm test` → 61 passed · `npm run lint` → clean · `npm run validate` → 0 new
+  violations · `npm run build` → 953 KB · `npm run tizen` → signed WGT
+- **CI ran on the real push and passed**: every step green —
+  Unit tests · Lint · Modularity guard · Build · Bundle size gate ·
+  Formatting check · WGT packaging + artifact upload
+- The only non-zero step is `Formatting check`, which carries
+  `continue-on-error: true` on purpose for the 8 known legacy files
+- Working tree clean; `dev` is 8 commits ahead of `main`, `main` is 0 ahead of
+  `dev` (nothing lost)
+
+**Decisions**
+- **CI runs on `push`, not only on pull requests.** With no PRs in this
+  workflow, a `pull_request`-only workflow would never have run. The
+  `pull_request` trigger is kept for the community-fork case.
+- **The remote moved to SSH.** HTTPS push was broken in this environment;
+  SSH worked immediately with the existing key. The remote URL is a local
+  config change, not a repo change — nothing in the repo depends on it.
+- **The self-review checklist is mandatory, not advisory.** Item 4 of the
+  Definition of Done (`docs/v4.PLAN.md` §11) now requires it, and the merge
+  rule states that a branch merges into `dev` only after items 1–4 are green.
+
+**Watch out**
+- **`tizen/author-key.pem` on this machine is still NOT the release key.**
+  Minted locally 2026-11-11 by a test build; the released v3.2.0 WGT used a
+  key from 2026-08-28 — SHA-256
+  `40:71:40:30:04:D9:49:25:55:68:FF:44:B8:36:47:35:22:52:89:61:E6:0F:BE:57:3A:9B:28:5B:7D:B7:51:43`.
+  **Restore it from the off-machine backup before any release** — a different
+  key makes the TV treat the update as a new app and wipe every user's
+  settings. Procedure: `docs/v4.PLAN.md` §8, ticket T-104.
+- `main` has not received anything yet — that is correct. The next release
+  merges `dev` → `main` and then runs `npm run release` from `main`.
+- Branch protection is **not** enabled on `dev`. Without reviewers, enable
+  only "require status checks to pass" — CI is green and ready to gate merges.
+  Ticket T-100.
+- `npm run format:check` still fails on 8 legacy files (pre-existing,
+  deliberate). CI tolerates it; the pre-commit hook formats them on touch.
+- `npm audit`: 2 high (vite ≤6.4.3, source-map-js) + 5 moderate. Dev-server
+  only. Ticket T-106.
+- `docs/FILE_SPLIT_PLAN.md` still describes the old v1.3 split approach and is
+  superseded by `docs/v4.PLAN.md` M1–M5 — update or delete it so two plans
+  do not disagree.
+- `origin/fix/segment-404-reload` is a stale remote branch from an old fix —
+  safe to delete.
+
+**Next**
+- Phase 0 remainder: restore the signing key (T-104); enable "require status
+  checks" on `dev` (T-100); fix the audit findings (T-106); resolve
+  `docs/FILE_SPLIT_PLAN.md`.
+- Phase 1: extract `lib/` modules with tests (T-110…T-114) — `lib/m3u.js`
+  first, since it is the largest and the tests already exist.
+
+---
+
 ## 2026-11-15 — v4 plan, environment setup, CI + modularity guard — @maintainer
 
 **Ticket:** T-105 (docs), T-107 (toolchain fixes), T-100/T-101/T-102/T-103
