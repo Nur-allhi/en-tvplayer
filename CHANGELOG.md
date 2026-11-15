@@ -2,6 +2,15 @@
 
 All notable changes to EN TV Player will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Planning groundwork for v4.0.0: master plan, measured Tizen compatibility matrix, branching policy, session log, contributor guide, and the v4 ticket backlog.
+
+### Fixed
+- The desktop testing relay now starts on OpenSSL 4 (it failed on the SHA-1 default of its certificate generator).
+- The WGT packager no longer leaves a stray `nul` file in the repository when run on Linux or macOS.
+
 ## [3.2.0] - 2026-10-14
 
 ### Fixed
