@@ -19,7 +19,8 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.mjs', 'eslint.config.mjs'],
+    // Node-side tooling: scripts, the desktop relay, the WGT packager.
+    files: ['scripts/**/*.mjs', 'proxy/**/*.mjs', 'tizen/**/*.mjs', 'eslint.config.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

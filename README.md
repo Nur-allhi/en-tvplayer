@@ -4,6 +4,7 @@
 
 [![Downloads](https://img.shields.io/github/downloads/Nur-allhi/en-tvplayer/total)](https://github.com/Nur-allhi/en-tvplayer/releases)
 [![Latest release](https://img.shields.io/github/v/release/Nur-allhi/en-tvplayer)](https://github.com/Nur-allhi/en-tvplayer/releases/latest)
+[![CI](https://github.com/Nur-allhi/en-tvplayer/actions/workflows/ci.yml/badge.svg)](https://github.com/Nur-allhi/en-tvplayer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tizen](https://img.shields.io/badge/Tizen-5.0+-red?logo=samsung)]()
 
@@ -65,6 +66,7 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 
 Samsung TVs are closed hardware with real limits — here is what the app can and cannot do about them:
 
+- **TV models:** needs **Tizen 5.0 or newer** (2016 onwards). Tizen 4.0 TVs (2015) are not supported — the playback engine needs browser features those TVs lack. The details are in [`docs/TIZEN_COMPAT.md`](docs/TIZEN_COMPAT.md).
 - **DRM systems:** ClearKey and PlayReady channels are supported. Channels using any other protection system will not play — there is no workaround for that.
 - **Picture quality:** Auto quality stays at FHD or below, because higher variants stall on most Tizen hardware and connections. You can still pick a higher quality manually from the menu if your TV and line handle it.
 - **Odd codecs:** Streams the TV browser cannot decode are retried through the TV's built-in player. A few exotic formats will not play in either — try a native player app for those.

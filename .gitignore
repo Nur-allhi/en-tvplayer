@@ -42,3 +42,6 @@ Thumbs.db
 
 # Playwright MCP scratch files
 .playwright-mcp/
+
+# local opencode model preference (machine-specific)
+opencode.json

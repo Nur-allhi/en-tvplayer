@@ -117,7 +117,15 @@ async function ensureCert() {
   if (ip !== '127.0.0.1' && ip !== 'localhost') altNames.push({ type: 7, ip });
   const pems = await s.generate(
     [{ name: 'commonName', value: 'localhost' }, { name: 'organizationName', value: 'EN IPTV Proxy' }],
-    { days: 3650, keySize: 2048, extensions: [{ name: 'subjectAltName', altNames }] }
+    {
+      days: 3650,
+      keySize: 2048,
+      // selfsigned defaults to SHA-1, which OpenSSL 3+ rejects as an
+      // invalid digest — the proxy then dies at startup. SHA-256 works
+      // everywhere.
+      algorithm: 'sha256',
+      extensions: [{ name: 'subjectAltName', altNames }],
+    }
   );
   fs.writeFileSync(keyPath, pems.private);
   fs.writeFileSync(certPath, pems.cert);
