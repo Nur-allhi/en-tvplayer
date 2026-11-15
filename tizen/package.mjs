@@ -84,17 +84,65 @@ if (!existsSync(DIST)) {
 
 const KEY_FILE = join(TIZEN, 'author-key.pem');
 const CERT_FILE = join(TIZEN, 'author-cert.pem');
+// The expected signing certificate, committed to the repo. The key itself is
+// gitignored (it must stay off the machine), but its fingerprint is public
+// and is what proves a build carries the SAME identity as every previous
+// release. A new key = the TV treats the app as new = users lose settings.
+const EXPECTED_FP_FILE = join(TIZEN, 'author-cert.sha256');
+
+function certFingerprint() {
+  try {
+    const out = execSync(`${OPENSSL} x509 -in "${CERT_FILE}" -noout -fingerprint -sha256`, {
+      encoding: 'utf8',
+    });
+    const m = out.match(/=([0-9A-F:]+)/);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+function expectedFingerprint() {
+  try {
+    return readFileSync(EXPECTED_FP_FILE, 'utf8').trim().toUpperCase();
+  } catch {
+    return null;
+  }
+}
 
 if (!existsSync(KEY_FILE) || !existsSync(CERT_FILE)) {
-  console.log('\n Generating developer certificate...');
+  console.log('\n No signing key found — generating a NEW developer certificate.');
+  console.log(' WARNING: a different key makes the TV treat this build as a');
+  console.log(' different app and every user loses their settings.');
+  console.log(' If you have the release key, restore it instead of generating one.');
+  console.log(' See docs/v4.PLAN.md section 8.\n');
   execSync(`${OPENSSL} genrsa -out "${KEY_FILE}" 2048`, { stdio: 'inherit' });
   execSync(
     `${OPENSSL} req -new -x509 -key "${KEY_FILE}" -out "${CERT_FILE}" ` +
       `-days 36500 -subj "/CN=IPTVPlayer/O=Self/OU=Personal"`,
     { stdio: 'inherit' },
   );
+  const fp = certFingerprint();
+  if (fp) {
+    console.log(' New certificate fingerprint: ' + fp);
+    if (!existsSync(EXPECTED_FP_FILE)) {
+      writeFileSync(EXPECTED_FP_FILE, fp + '\n');
+      console.log(' Recorded in ' + EXPECTED_FP_FILE);
+    }
+  }
 } else {
-  console.log(' Certificate found');
+  const fp = certFingerprint();
+  const expected = expectedFingerprint();
+  if (expected && fp && fp !== expected) {
+    console.error('\n SIGNING KEY MISMATCH — refusing to build.');
+    console.error('   expected: ' + expected);
+    console.error('   found:    ' + fp);
+    console.error(' A different key makes the TV treat this build as a new app,');
+    console.error(' and every existing user loses their settings.');
+    console.error(' Restore the release key (docs/v4.PLAN.md section 8).\n');
+    process.exit(1);
+  }
+  console.log(' Certificate found' + (fp ? ' (' + fp.slice(0, 23) + '...)' : ''));
 }
 
 // ─── Step 4: Build and sign the WGT ──────────────────────────────────────
