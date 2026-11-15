@@ -89,7 +89,7 @@ Summary of the goals:
   exists only in chat history.
 - Change: `npm run release -- x.y.z` (+ `--beta`) covering bumps, changelog
   dating, build, WGT copies, commit/tag/push, `gh release`, community JSON;
-  document the beta procedure in `AGENTS.md` §8.
+  document the beta procedure in `AGENTS.md` §9.
 - Size: M.
 
 ## UX / support load
