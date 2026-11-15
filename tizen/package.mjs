@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync, renameSync } from 'fs';
+import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -39,10 +39,7 @@ function findOpenSSL() {
 }
 
 function findSDB() {
-  const candidates = [
-    'TizenSdb_v1.1.0.exe',
-    '"C:\\Program Files\\TizenSDB\\TizenSdb_v1.1.0.exe"',
-  ];
+  const candidates = ['TizenSdb_v1.1.0.exe', '"C:\\Program Files\\TizenSDB\\TizenSdb_v1.1.0.exe"'];
   // `2>nul` is a Windows shell redirect; on Linux/POSIX it creates a file
   // literally named "nul" in the working directory.
   const nullRedirect = process.platform === 'win32' ? '2>nul' : '2>/dev/null';
@@ -93,8 +90,8 @@ if (!existsSync(KEY_FILE) || !existsSync(CERT_FILE)) {
   execSync(`${OPENSSL} genrsa -out "${KEY_FILE}" 2048`, { stdio: 'inherit' });
   execSync(
     `${OPENSSL} req -new -x509 -key "${KEY_FILE}" -out "${CERT_FILE}" ` +
-    `-days 36500 -subj "/CN=IPTVPlayer/O=Self/OU=Personal"`,
-    { stdio: 'inherit' }
+      `-days 36500 -subj "/CN=IPTVPlayer/O=Self/OU=Personal"`,
+    { stdio: 'inherit' },
   );
 } else {
   console.log(' Certificate found');
@@ -167,8 +164,8 @@ console.log(' Signing...');
 const SIG_FILE = join(TEMP, 'signature.xml');
 execSync(
   `${OPENSSL} smime -sign -signer "${CERT_FILE}" -inkey "${KEY_FILE}" ` +
-  `-outform DER -binary -in "${UNSIGNED}" -out "${SIG_FILE}"`,
-  { stdio: 'inherit' }
+    `-outform DER -binary -in "${UNSIGNED}" -out "${SIG_FILE}"`,
+  { stdio: 'inherit' },
 );
 
 // Create signed ZIP with signature.xml LAST
