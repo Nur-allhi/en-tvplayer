@@ -78,7 +78,7 @@ en-tvplayer/
 └── README.md
 ```
 
-## 4. Workflow Rules
+## 5. Workflow Rules
 
 **Hard rules**
 - Every code file ≤ 300 LOC — split before it grows past the limit.
@@ -114,7 +114,7 @@ independently of your summary.
 TV treat the update as a new app and wipes every user's settings. Procedure:
 `docs/v4.PLAN.md` §8.
 
-## 5. Remote Control (Currently Supported)
+## 6. Remote Control (Currently Supported)
 
 | Key | Action |
 |-----|--------|
@@ -133,7 +133,7 @@ Tizen special keys are registered at boot via
 `window.tizen.tvinputdevice.registerKey()` — unregistered keys never fire
 (`docs/TIZEN_GUIDE.md` §3.2).
 
-## 6. Key Features
+## 7. Key Features
 
 - **Solves DRM issue** — Plays ClearKey and PlayReady channels on Tizen
 - No server required — fetches M3U8 playlists directly
@@ -147,12 +147,12 @@ measured and ruled out in `docs/TIZEN_COMPAT.md` §3.1 (Shaka Player 5.x
 requires `Proxy`, which Tizen 4's Chromium 47 lacks and which cannot be
 polyfilled).
 
-## 7. Installation Methods
+## 8. Installation Methods
 
 1. **Apps2Samsung** (recommended) — network install
 2. **Tizen Studio CLI** — `tizen install -n EN-IPTV_Player.wgt -s <TV_IP>`
 
-## 8. Release Process — MANDATORY STEPS
+## 9. Release Process — MANDATORY STEPS
 
 **Run `npm run release -- X.Y.Z [--beta]` — it performs ALL steps below. Manual fallback at the end.**
 
@@ -191,7 +191,7 @@ polyfilled).
 - `gh release create vX.Y.Z releases/EN-IPTV_Player_vX.Y.Z.wgt --title vX.Y.Z --notes-file <notes>` (`--prerelease` + `testbuild` name for betas)
 - Stable only: refresh `docs/STATS.md` via the `gh api` command in that file, commit + push.
 
-## 9. Community Packages Maintenance
+## 10. Community Packages Maintenance
 
 - **Repository:** `Apps2Samsung/tizen-community-packages`
 - **Your file:** `packages/Nur-allhi__en-tvplayer.json`
@@ -212,7 +212,7 @@ git commit -m "update: EN TV Player to vX.Y.Z"
 git push
 ```
 
-## 10. Test Process — MANDATORY FOR LOGIC CHANGES
+## 11. Test Process — MANDATORY FOR LOGIC CHANGES
 
 Vitest covers DOM-free logic only (node env, no jsdom — see `player/vite.config.js` → `test`).
 TV-specific behavior (Shaka/EME, AVPlay, remote, CSS, `file://` quirks) still needs sideload + inspector smoke tests.
