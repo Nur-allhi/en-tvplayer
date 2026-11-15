@@ -44,6 +44,65 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-15 — release signing key restored, packager now guards it — @maintainer
+
+**Ticket:** T-104 ✅, T-208 ✅
+**Branch:** `dev`
+**Status:** ✅ done — the release path is unblocked
+
+**What changed**
+- Restored the real signing key and certificate to `tizen/`. The certificate
+  is confirmed as the one that signed **every** released WGT (v3.0.2 →
+  v3.2.0), all with SHA-1 fingerprint
+  `8F:73:83:29:93:CC:1E:13:16:AE:89:00:E0:AA:BD:5B:50:80:90:23`.
+- **Added `tizen/author-cert.sha256`** — the expected certificate fingerprint,
+  committed to the repo. The key itself stays gitignored; the fingerprint is
+  public and proves a build carries the same app identity as every previous
+  release.
+- **`tizen/package.mjs` now refuses to build on a fingerprint mismatch** and
+  aborts with both fingerprints. Key generation prints a loud warning instead
+  of silently minting one.
+- Docs updated: `docs/v4.PLAN.md` §8 (resolved + the new guard),
+  `docs/TICKETS.md` T-104 and the new T-208.
+
+**Verified**
+- `openssl x509 -in tizen/author-cert.pem -noout -fingerprint -sha256` →
+  `40:71:40:30:04:D9:49:25:55:68:FF:44:B8:36:47:35:22:52:89:61:E6:0F:BE:57:3A:9B:28:5B:7D:B7:51:43`
+- The certificate matches all six released WGTs byte for byte.
+- `openssl rsa -check` → `RSA key ok`.
+- The private key's modulus matches the certificate's modulus (it is its pair),
+  and a signature made with it verifies against the certificate.
+- **A WGT built with the restored key carries a byte-identical signer
+  certificate to the released v3.2.0** (853 bytes, identical) — end-to-end
+  proof of the whole chain.
+- **Guard tested both ways:** with the correct certificate the build succeeds;
+  with a freshly generated wrong certificate `npm run tizen` exits **1** and
+  refuses to build. The correct key was restored afterwards and re-verified.
+
+**Decisions**
+- The certificate fingerprint is committed, the key is not. That gives the
+  repo a permanent, checkable statement of "which app identity is this" with
+  no secret in git.
+- The guard lives in the **packager**, not only in the release script, so it
+  catches the mistake at the earliest possible moment — including a manual
+  `npm run tizen` build.
+
+**Watch out**
+- The private key is on this machine and is gitignored. Keep the off-machine
+  encrypted backup — it is still the only copy outside this disk.
+- A private key can be damaged by a copy/paste slip. The copy that arrived
+  here had two transposed characters, which OpenSSL rejects with
+  `n does not equal p q`. If that ever happens: the certificate is still
+  good, and the key can be reconstructed from the certificate's modulus plus
+  the key's own primes — but the honest fix is to re-copy from the backup.
+
+**Next**
+- Phase 0 remainder: enable "require status checks" on `dev` (T-100); fix the
+  audit findings (T-106); resolve `docs/FILE_SPLIT_PLAN.md`.
+- Phase 1: extract `lib/` modules with tests (T-110…T-114).
+
+---
+
 ## 2026-11-15 — v4 groundwork committed and CI-verified — @maintainer
 
 **Ticket:** T-100, T-101, T-102, T-103, T-105, T-107

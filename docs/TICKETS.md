@@ -68,14 +68,31 @@ A ticket is only `done` when it meets the **Definition of Done**
 ### T-104 — Restore the release signing key
 - **Type:** chore · **Priority:** **P0 — release blocker** · **Size:** XS
 - **Spec:** restore `tizen/author-key.pem` + `author-cert.pem` from the
-  off-machine backup. Verify the SHA-256 fingerprint matches the key that
-  signed the released v3.2.0 WGT.
+  off-machine backup. Verify the certificate matches the one that signed
+  every released WGT.
 - **Acceptance:** `openssl x509 -in tizen/author-cert.pem -noout -fingerprint
   -sha256 -dates` prints
   `40:71:40:30:04:D9:49:25:55:68:FF:44:B8:36:47:35:22:52:89:61:E6:0F:BE:57:3A:9B:28:5B:7D:B7:51:43`
-  and `notBefore=Aug 28 06:55:23 2026 GMT`.
+  and `notBefore=Aug 28 06:55:23 2026 GMT`. The private key passes
+  `openssl rsa -check`, and its modulus matches the certificate's.
 - **Spec detail:** `docs/v4.PLAN.md` §8. **If the fingerprint does not match,
   stop** — do not ship.
+- **Status:** ✅ done 2026-11-15 — restored and verified end to end: a WGT
+  built with it carries a byte-identical signer certificate to the released
+  v3.2.0. The packager now refuses to build on a fingerprint mismatch
+  (T-208).
+
+### T-208 — Packager refuses to sign with the wrong key
+- **Type:** fix · **Priority:** **P0** · **Size:** S (~40 LOC)
+- **Spec:** `tizen/author-cert.sha256` records the expected signing
+  certificate fingerprint and is committed to the repo (the key itself stays
+  gitignored). `tizen/package.mjs` compares it against the certificate
+  actually present and **aborts the build** on mismatch. Key generation now
+  prints a loud warning instead of doing it silently.
+- **Acceptance:** with a non-matching certificate installed, `npm run tizen`
+  exits non-zero and prints the expected and found fingerprints. With the
+  correct certificate it builds normally.
+- **Status:** ✅ done 2026-11-15
 
 ### T-105 — Documentation set for v4
 - **Type:** docs · **Priority:** P0 · **Size:** M (docs only)

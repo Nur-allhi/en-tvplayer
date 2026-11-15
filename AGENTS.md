@@ -110,8 +110,11 @@ independently of your summary.
 **Definition of Done** — `docs/v4.PLAN.md` §11. All eight items apply.
 
 **Release Guard** — `npm run release` refuses to run without
-`tizen/author-key.pem`. **Never mint a fresh key** — a different key makes the
-TV treat the update as a new app and wipes every user's settings. Procedure:
+`tizen/author-key.pem`. **Never mint a new signing key** — a different key
+makes the TV treat the update as a new app and wipes every user's settings.
+`npm run tizen` additionally compares the installed certificate against the
+committed `tizen/author-cert.sha256` and **aborts the build** on a mismatch,
+so a wrong key cannot be shipped even by accident. Procedure:
 `docs/v4.PLAN.md` §8.
 
 ## 6. Remote Control (Currently Supported)
