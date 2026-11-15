@@ -95,6 +95,13 @@ first). Keep it short — the point is handover, not a diary.
   `n does not equal p q`. If that ever happens: the certificate is still
   good, and the key can be reconstructed from the certificate's modulus plus
   the key's own primes — but the honest fix is to re-copy from the backup.
+- **One-off build crash observed:** `vite build` exited **139** (SIGSEGV)
+  once, mid-transform, and then succeeded on every retry (3/3 clean runs
+  afterwards). Not caused by these changes — the bundle hash was identical
+  before and after. Almost certainly the esbuild binary crashing under
+  memory pressure (7.7 GB box, ~4.3 GB already in use at the time). If it
+  recurs, run the build again; if it becomes frequent, check free memory
+  before the build.
 
 **Next**
 - Phase 0 remainder: enable "require status checks" on `dev` (T-100); fix the
