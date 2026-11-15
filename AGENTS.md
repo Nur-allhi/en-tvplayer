@@ -93,7 +93,7 @@ en-tvplayer/
   `style`, `merge`
 - Scopes (closed list): `player`, `ui`, `settings`, `remote`, `config`,
   `lib`, `app`, `tizen`, `proxy`, `release`, `tooling`, `ci`, `docs`,
-  `session`, `roadmap`, `readme`, `agents`, `stats`, `repo`
+  `session`, `roadmap`, `migration`, `readme`, `agents`, `stats`, `repo`
 - Example: `fix(player): bound the segment-404 reload budget (T-120)`
 - One logical change per commit. The **body explains why**, not what.
 - `feat`, `fix`, `refactor` and `perf` **must** carry a ticket reference and
