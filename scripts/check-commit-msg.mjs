@@ -47,6 +47,7 @@ const SCOPES = [
   'docs', // documentation generally
   'session', // the session handover log
   'roadmap', // roadmap and plan documents
+  'migration', // the v4 restructure guide
   'readme', // README
   'agents', // AGENTS.md
   'stats', // download statistics
