@@ -27,6 +27,7 @@
 | `docs/v4.PLAN.md` | **Start here.** Master plan: architecture, phases, gates, risks |
 | `docs/BRANCHING.md` | Branching, commits, versioning, release process |
 | `docs/COMMIT_STYLE.md` | Commit message format — enforced by the `commit-msg` hook |
+| `docs/MIGRATION.md` | How the v4 restructure happens — what happens to the old large files |
 | `docs/TICKETS.md` | Picking up work · one ticket = one branch = one merge to `dev` |
 | `docs/SESSION_LOG.md` | Where the work stands · append an entry when you finish |
 | `docs/CONTRIBUTING.md` | How to work on this repo from any machine |

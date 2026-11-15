@@ -196,7 +196,21 @@ A ticket is only `done` when it meets the **Definition of Done**
 
 ## Phase 3 — `ui/` split (M3)
 
-### T-130 — `ui/state.js` (shared state holder)
+### T-129 — Extract `player/state.js` (shared module state)
+- **Type:** refactor · **Priority:** **P0** · **Size:** S (~120 LOC)
+- **Spec:** `player.js` holds ~20 module-level variables (`player`,
+  `currentChannel`, `loadToken`, `reconnectTimer`, `hardReloads`,
+  `segment404Url`, `pdtFallbackUrls`, `sniffedMimeUrls`, …) shared by every
+  function in the file. Extract them into `player/state.js` **before** the
+  file is sliced — otherwise each slice gets its own copy and the engine
+  silently stops working.
+- **Acceptance:** no behaviour change; the shared state is one exported
+  object; the player still tunes, retries and recovers exactly as before.
+- **Depends:** — · **Must land before T-120.**
+- **Notes:** `docs/MIGRATION.md` §4 Risk C. Same pattern applies to `ui.js`
+  (T-130) and `settings.js`.
+
+### T-130 — Extract `ui/state.js` (shared module state)
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~120 LOC)
 - **Spec:** move `ui.js`'s module-level state (`channels`, `currentIndex`,
   `focusedIndex`, `virtualStart/End`, `sidebarOpen`, `isFullscreen`,
@@ -205,8 +219,10 @@ A ticket is only `done` when it meets the **Definition of Done**
   `searchQuery`, `searchResults`, `searchFocus`) into one exported state
   object that each UI module imports.
 - **Acceptance:** no behavioural change. **Do not** convert to a reactive
-  store here — that is T-160.
+  store here — that is T-170, a separate ticket, so a failure has one cause.
+- **Must land before T-131.**
 - **Notes:** the shared-state coupling is the main hazard in this phase.
+  `docs/MIGRATION.md` §4 Risk C.
 
 ### T-131 — `ui/dialogs.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~100 LOC)
@@ -400,6 +416,31 @@ A ticket is only `done` when it meets the **Definition of Done**
   native AVPlay fallback. Add ClearKey support when the manifest declares it.
 - **Acceptance:** a movie plays end to end; DRM manifests play with ClearKey;
   an unplayable stream shows the existing plain-language error.
+
+---
+
+### T-153 — Release script follows the in-app changelog move
+- **Type:** fix · **Priority:** **P0** · **Size:** XS (~10 LOC)
+- **Spec:** `scripts/release.mjs` reads `player/src/main.js` and requires it
+  to contain `version: '<base>'` (the in-app "What's New" entry). M5 empties
+  `main.js` into `app/`, which would make the release abort. Move the
+  in-app changelog to `player/src/app/changelog.js` and point the script at
+  the new path.
+- **Acceptance:** `npm run release -- X.Y.Z --dry-run` gets past the
+  changelog guard with the changelog living in `app/changelog.js`.
+- **Depends:** T-152 — land in the same commit so the release path is never
+  broken in between.
+- **Notes:** `docs/MIGRATION.md` §4 Risk A.
+
+### T-181 — v4 settings schema migration
+- **Type:** feat · **Priority:** **P0** · **Size:** S (~60 LOC)
+- **Spec:** add a `schemaVersion` field and an additive migration in
+  `config.js`. v4 introduces `movies`, `favorites` and `features` keys.
+- **Acceptance:** a v3-shaped `en_settings` written into `localStorage`
+  loads under v4 with the new keys defaulted and **every existing key
+  preserved**; running the migration twice changes nothing (idempotent);
+  the `en_settings` key name is unchanged.
+- **Notes:** `docs/MIGRATION.md` §4 Risk B · `docs/BRANCHING.md` §5.
 
 ---
 

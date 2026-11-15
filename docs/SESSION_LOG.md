@@ -44,6 +44,82 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-15 — migration guide for the v4 restructure — @maintainer
+
+**Ticket:** T-105 (docs), plus new T-129 / T-153 / T-181
+**Branch:** `dev`
+**Status:** ✅ done — the plan now answers "what happens to the old files?"
+
+**What changed**
+- **`docs/MIGRATION.md`** (new) — the answer to "what happens with the
+  existing long files": each large file is *sliced*, the slices keep their
+  names, and a thin **re-export hub** preserves the old public API so every
+  call site keeps working untouched. No logic is rewritten during the move;
+  feature work happens afterwards in separate commits, where a regression is
+  easy to bisect.
+- **Found and documented three real risks** the plan had not covered:
+  - **A — the release script breaks.** `scripts/release.mjs` reads
+    `player/src/main.js` and requires the in-app "What's New" entry. M5
+    empties `main.js` into `app/`, which would abort the release. New ticket
+    T-153, landing in the same commit as the move.
+  - **B — user settings lost.** v4 adds `movies`, `favorites`, `features`
+    keys to `en_settings`. New ticket T-181: additive, idempotent migration
+    with a `schemaVersion` field, unit-tested, and the `en_settings` key
+    name never changed.
+  - **C — module state splits badly.** `ui.js` has 21 module-level
+    variables shared by every function; slice it naively and each slice
+    gets its own copy and the UI silently stops working. New ticket T-129
+    (player) and T-130 (ui) extract the shared state **before** the split.
+- **`scripts/validate-modularity.mjs`** — closed a loophole found while
+  writing the guide: a re-export hub (`export * from './x.js'`) counted as
+  **0 exports**, so a hub could hide a 74-export API past the limit. The
+  export rule now resolves the **public surface transitively**; pure hubs
+  are exempt, but the slices they point at are not. Verified with an
+  injected 40-export leaf (caught) and a pure hub (allowed).
+- `docs/TICKETS.md` — T-129, T-153, T-181 added; the reactive-store
+  cross-reference corrected from T-160 to T-170.
+- `AGENTS.md` and `docs/v4.PLAN.md` link the migration guide.
+
+**Verified**
+- Confirmed the coupling is real and bounded: `player/index.html` references
+  `/src/main.js` (the entry point stays), `scripts/release.mjs` references
+  `player/src/main.js` (the one path that must move, now ticket T-153),
+  `scripts/metrics.mjs` and the baseline reference paths generically.
+- Confirmed **only `main.js` has top-level side effects**
+  (`applyResponsiveScale()` and the `DOMContentLoaded` bootstrap) — every
+  other file is side-effect free at import time, so slicing cannot change
+  execution order.
+- Confirmed `main.js` exports exactly one symbol (`refreshChannels`).
+- The export-rule fix was tested with an injected violation and the files
+  restored afterwards.
+
+**Decisions**
+- **The hub re-exports; the slices own the names.** A name is declared in
+  exactly one slice and re-exported by the hub. Declaring it twice is a
+  silent shadowing bug, so the guard resolves surfaces transitively.
+- **`main.js` is never deleted** — it stays as the entry point, emptied to
+  ~40 LOC. Every other large file is deleted in the *same commit* that
+  creates its replacement, so a half-done split is never a possible state.
+- **The old history is not rewritten** (that rule already applied to commit
+  messages) — and the same reasoning applies to source files: the split
+  moves code, it does not reformat it, so a revert is clean.
+
+**Watch out**
+- The v4 restructure is **invisible to users**. The shipped WGT is still one
+  bundle with one entry point; only the source layout changes. The only
+  user-visible difference in v4.0.0 is the new features.
+- `npm run format:check` will start failing on the new slices until they are
+  formatted — that is expected during a phase, and the pre-commit hook
+  formats on commit.
+
+**Next**
+- Phase 0 remainder: enable "require status checks" on `dev` (T-100); fix the
+  audit findings (T-106); resolve `docs/FILE_SPLIT_PLAN.md`.
+- Phase 1: extract `lib/` modules with tests (T-110…T-114) — `lib/m3u.js`
+  first, since it is the largest and the tests already exist.
+
+---
+
 ## 2026-11-15 — commit message format, enforced by hook — @maintainer
 
 **Ticket:** T-209 ✅

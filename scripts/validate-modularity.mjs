@@ -66,9 +66,23 @@ function checkSize(files) {
 }
 
 // ── Rule 2: export count ─────────────────────────────────────────────────
-function checkExports(files) {
+// Counts the PUBLIC surface of a file: its own named exports plus every
+// name it re-exports via `export * from './x.js'` (transitively).
+//
+// The transitive part matters. A "re-export hub" (`ui/index.js` doing
+// `export * from './sidebar.js'`) looks like zero exports to a naive
+// regex, which would let a hub hide a 74-export API and defeat the rule.
+// Hubs are legitimate — they are how the v4 split preserves the old API —
+// so they are allowed, but only if the names they re-export are themselves
+// under the limit in their own file.
+function collectExports(files) {
+  const byPath = new Map();
   for (const f of files) {
-    const src = readFileSync(f, 'utf8');
+    byPath.set(f, readFileSync(f, 'utf8'));
+  }
+
+  const ownExports = new Map();
+  for (const [f, src] of byPath) {
     const names = new Set();
     for (const m of src.matchAll(/^export\s+(?:async\s+)?(?:function|const|let|class)\s+([A-Za-z0-9_$]+)/gm)) {
       names.add(m[1]);
@@ -82,8 +96,49 @@ function checkExports(files) {
         if (name) names.add(name.trim());
       }
     }
-    if (names.size > MAX_EXPORTS) {
-      errors.push({ rule: 'exports', id: rel(f), detail: `${names.size} exports exceeds ${MAX_EXPORTS}` });
+    ownExports.set(f, names);
+  }
+
+  // Resolve the public surface of each file, following `export * from`.
+  const resolved = new Map();
+  const resolving = new Set();
+
+  function surface(f) {
+    if (resolved.has(f)) return resolved.get(f);
+    if (resolving.has(f)) return ownExports.get(f); // cycle guard
+    resolving.add(f);
+    const out = new Set(ownExports.get(f));
+    const src = byPath.get(f);
+    for (const m of src.matchAll(/^export\s*\*\s*from\s*['"](\.[^'"]+)['"]/gm)) {
+      const target = join(dirname(f), m[1]);
+      if (byPath.has(target)) {
+        for (const n of surface(target)) out.add(n);
+      }
+    }
+    resolving.delete(f);
+    resolved.set(f, out);
+    return out;
+  }
+
+  for (const f of files) surface(f);
+  return { own: ownExports, surface: resolved };
+}
+
+function checkExports(files) {
+  const { own, surface } = collectExports(files);
+  for (const f of files) {
+    // A file that only re-exports is a hub: its surface is inherited, and
+    // the limit applies to the file that actually owns the names.
+    const isPureHub = own.get(f).size === 0 && /export\s*\*\s*from/.test(readFileSync(f, 'utf8'));
+    if (isPureHub) continue;
+
+    const count = surface.get(f).size;
+    if (count > MAX_EXPORTS) {
+      errors.push({
+        rule: 'exports',
+        id: rel(f),
+        detail: `${count} exports exceeds ${MAX_EXPORTS}`,
+      });
     }
   }
 }
