@@ -331,19 +331,84 @@ A ticket is only `done` when it meets the **Definition of Done**
     refresh-without-callback fallback logged nothing. Collapsing them would
     have added a log line to a path that never had one.
 
-### T-121 — `player/init.js` + `player/load.js`
-- **Type:** refactor · **Priority:** P0 · **Size:** L (~450 LOC combined)
-- **Spec:** split `player.js`. `init.js` = `initPlayer` + `destroyPlayer`;
+### T-121 — M2 engine split (RE-SCOPED 2026-11-17)
+- **Type:** refactor · **Priority:** P0 · **Size:** L — split into T-124…T-127
+- **Original spec:** `init.js` = `initPlayer` + `destroyPlayer`;
   `load.js` = `loadChannel` + `reloadChannel`.
-- **Acceptance:** `player/index.js` exports the same 24 names as the old
-  `player.js`; `npm run build` bundle size within ±2 % of before.
-- **Status:** ⛔ blocked 2026-11-16 — the literal shape is not implementable
-  as a pure move. `loadChannel` is **351 LOC** on its own (guard caps every
-  new file at 300), and `initPlayer → handlePlayerError → loadChannel →
-  initPlayer` is a **three-node import cycle** the guard forbids. A green
-  split needs an atomic M2 refactor (state-injected cross-slice calls plus
-  ~6 new modules); see the night-shift entry in `docs/SESSION_LOG.md`.
-  No code was changed, so no gate was run red.
+- **Why re-scoped:** the literal shape is not implementable as a pure move.
+  `loadChannel` is **351 LOC** (the guard caps every new file at 300), and
+  `initPlayer → handlePlayerError → loadChannel → initPlayer` is a
+  **three-node import cycle** the guard forbids. Compressing all of M2 into
+  one ticket, on playback code that cannot be smoke-tested on a TV, was the
+  wrong unit of work. The night-shift agent blocked it on 2026-11-16 with no
+  code changed and no gate run red — a correct conservative decision.
+- **Status:** ✅ re-scoped — superseded by **T-124, T-125, T-126, T-127**,
+  in that order. This ticket is now an umbrella; do not pick it up directly.
+
+### T-124 — `player/deps.js` — cross-slice dependency registry
+- **Type:** refactor · **Priority:** P0 · **Size:** XS (~70 LOC)
+- **Spec:** create `player/src/player/deps.js` exporting a single mutable
+  object of function slots that the M2 slices register into at boot:
+  `loadChannel`, `initPlayer`, `handlePlayerError`, `scheduleReconnect`,
+  `showError`, `logEvent`, `getErrorMessage`, `giveUpTune`,
+  `probeChannelFormat`, `startStallWatchdog`, `stopStallWatchdog`,
+  `startBlackWatchdog`, `stopBlackWatchdog`, `notifyBufferingProgress`,
+  `isRenderingFrames`. Every function that will move to a slice calls
+  through a slot; the hub registers the concrete implementations.
+- **Acceptance:** pure module, no imports from other slices, no DOM at import
+  time; ≥ 8 tests proving a registered slot is the one invoked and that an
+  unregistered slot fails loudly (never silently no-ops). No import cycle.
+- **Depends:** — · **Must land before T-125…T-127.**
+- **Notes:** this is the cycle breaker. `init → handleError → load → init`
+  becomes `init → deps.handleError` / `load → deps.init`, with only the hub
+  importing all three. Registering a slot is one line per function in
+  `player.js`, changed again when T-128 builds `player/index.js`.
+- **Status:** ready
+
+### T-125 — Pure helpers out of `loadChannel`
+- **Type:** refactor · **Priority:** P0 · **Size:** S (~120 LOC moved, ~30 new)
+- **Spec:** extract DOM-free helpers from `loadChannel` into
+  `lib/mime.js`/existing pure modules: `isNativeLoadCrash` (already in
+  `lib/drm.js`? check before duplicating), the format-sniffing decision in
+  `probeChannelFormat`, `detectMimeType`, and the counter-reset decision
+  (use `logic.js` `tuneCountersReset` instead of reimplementing). Keep the
+  fetch/AbortController part of `probeChannelFormat` in `player.js`.
+- **Acceptance:** ≥ 15 new tests on the extracted decisions; `player.js`
+  LOC drops by ≥ 80; behaviour identical (characterise first); no file > 300.
+- **Depends:** T-124
+- **Notes:** prerequisite to T-126 so the moved `loadChannel` fits under 300.
+- **Status:** ready
+
+### T-126 — `player/init.js` — init + destroy slice
+- **Type:** refactor · **Priority:** P0 · **Size:** M (~200 LOC)
+- **Spec:** move `initPlayer` and `destroyPlayer` into
+  `player/src/player/init.js`. Replace the direct `handlePlayerError` call
+  with `deps.handlePlayerError`. Keep `showLoading`, `getBufferingPercent`
+  and other cross-slice calls through `deps` slots. Register the two
+  concrete functions in `player.js`.
+- **Acceptance:** public 24-name surface unchanged; all gates green; bundle
+  change within ±2 %; no import cycle; `init.js` ≤ 300 LOC.
+- **Depends:** T-124, T-125 · **Must land before T-127.**
+- **Status:** ready
+
+### T-127 — `player/load.js` — load + reload slice
+- **Type:** refactor · **Priority:** P0 · **Size:** M (~280 LOC, may need a
+  second file `load-error.js` if the catch block pushes it over 300)
+- **Spec:** move `loadChannel`, `reloadChannel` and the load-error catch
+  block into `player/src/player/load.js`. Every cross-slice call
+  (`deps.initPlayer`, `deps.scheduleReconnect`, `deps.showError`,
+  `deps.giveUpTune`, watchdogs, `deps.probeChannelFormat`) goes through the
+  registry. Self-recursion stays local. Register `loadChannel` and
+  `reloadChannel` in `player.js`.
+- **Acceptance:** public 24-name surface unchanged; all gates green;
+  `init → handleError → load → init` resolved via registry with **zero
+  import cycles**; bundle within ±2 %; every new file ≤ 300 LOC.
+- **Depends:** T-126
+- **Notes:** if the catch block alone exceeds 300 LOC, split it into
+  `player/load-error.js` **in this same ticket** — do not defer. Both files
+  must be behaviour-identical; the load-error logic already calls
+  `logic.js` decisions, never reimplements them.
+- **Status:** ready
 
 ### T-122 — `player/events.js` + `player/stream.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~330 LOC combined)
@@ -364,7 +429,7 @@ A ticket is only `done` when it meets the **Definition of Done**
   every importer updated; full suite green.
 - **Status:** ⛔ blocked 2026-11-16 — still owns `initPlayer`, `loadChannel`,
   the recovery/watchdog paths and the DOM helpers that T-121 was meant to
-  extract. It cannot be deleted until T-121 is re-scoped and landed; the
+  extract. It cannot be deleted until **T-124 → T-127** land in order; the
   index hub cannot be the only entry while those functions live here.
   T-122 extracted only the events and stream slices.
 

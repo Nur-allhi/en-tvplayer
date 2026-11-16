@@ -88,45 +88,72 @@ with the exact gate output; agent skipped it.
 
 | Order | Ticket | Scope | State | Depends / note |
 |------:|--------|-------|-------|----------------|
-| 1 | T-121 | `player/init.js` + `player/load.js` | blocked | spec infeasible as written — needs atomic M2 re-scope |
+| 1 | T-121 | M2 engine split — now an umbrella | done | re-scoped 2026-11-17 into T-124…T-127; do not pick up |
 | 2 | T-122 | `player/events.js` + `player/stream.js` | done | merged + gated 2026-11-16 |
-| 3 | T-123 | delete `player.js`, `player/index.js` hub | blocked | needs T-121 re-scope; player.js still owns the engine |
-| 4 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
-| 5 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
-| 6 | T-132 | `ui/osd.js` | done | z-index contract intact (CSS untouched); merged + gated 2026-11-16 |
-| 7 | T-133 | `ui/sidebar.js` + `ui/search.js` | ready | |
-| 8 | T-134 | `ui/right-menu.js` | ready | |
-| 9 | T-135 | `ui/core.js` + delete `ui.js` | ready | last UI slice |
-| 10 | T-140 | `settings/nav.js` | ready | |
-| 11 | T-141 | `settings/render.js` + `settings/playlists.js` | ready | |
-| 12 | T-142 | `settings/playback.js` + delete `settings.js` | ready | last settings slice |
-| 13 | T-150 | `app/boot.js` | ready | |
-| 14 | T-151 | `app/remote.js` | ready | |
-| 15 | T-152 | `app/index.js` + `main.js` entry | ready | |
-| 16 | T-153 | release script follows changelog move | ready | **same commit as T-152** — release path must never break |
-| 17 | T-160 | design tokens | ready | |
-| 18 | T-161 | split `styles.css` | ready | |
-| 19 | T-162 | accessibility pass | ready | |
-| 20 | T-170 | `state/` store | ready | T-170 is the reactive store, not T-160 |
-| 21 | T-171 | `app/plugins.js` registry | ready | |
-| 22 | T-172 | migrate features to plugins | ready | |
-| 23 | T-173 | remote-action routing via plugins | ready | |
-| 24 | T-180 | VOD data model + storage | ready | |
-| 25 | T-181 | add media by URL / manifest | ready | the *first* T-181 (VOD), not the settings one |
-| 26 | T-182 | `ui/library.js` — movies & series | ready | |
-| 27 | T-183 | episode browsing + resume | ready | |
-| 28 | T-184 | audio / subtitle / quality pickers | needs-tv | hardware pickers |
-| 29 | T-185 | VOD playback integration | needs-tv | |
-| 30 | T-186 | v4 settings schema migration | ready | was T-181; additive + idempotent, never change `en_settings` key |
-| 31 | T-190 | `features/tizen-compat.js` | needs-tv | no TV here — gated code only |
-| 32 | T-191 | engine fallback messaging | needs-tv | |
-| 33 | T-192 | about panel: engine + platform info | ready | |
-| 34 | T-200 | log ring buffer + copy diagnostics | ready | |
-| 35 | T-201 | favorites feature | ready | |
-| 36 | T-202 | info bar with clock | ready | |
-| 37 | T-203 | GitHub issue templates | ready | |
-| 38 | T-209 | enforced commit message format | done | hook exists and is machine-checked |
+| 3 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
+| 4 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
+| 5 | T-132 | `ui/osd.js` | done | z-index contract intact (CSS untouched); merged + gated 2026-11-16 |
+| 6 | T-133 | `ui/sidebar.js` + `ui/search.js` | ready | **NEXT** — first unresolved row |
+| 7 | T-134 | `ui/right-menu.js` | ready | |
+| 8 | T-135 | `ui/core.js` + delete `ui.js` | ready | last UI slice |
+| 9 | T-124 | `player/deps.js` — dependency registry | ready | **M2 cycle breaker — land first** |
+| 10 | T-125 | pure helpers out of `loadChannel` | ready | after T-124; shrinks loadChannel below 300 LOC |
+| 11 | T-126 | `player/init.js` — init + destroy | ready | after T-125 |
+| 12 | T-127 | `player/load.js` — load + reload | ready | after T-126; may need `load-error.js` in same ticket |
+| 13 | T-123 | delete `player.js`, `player/index.js` hub | ready | after T-127 |
+| 14 | T-140 | `settings/nav.js` | ready | |
+| 15 | T-141 | `settings/render.js` + `settings/playlists.js` | ready | |
+| 16 | T-142 | `settings/playback.js` + delete `settings.js` | ready | last settings slice |
+| 17 | T-150 | `app/boot.js` | ready | |
+| 18 | T-151 | `app/remote.js` | ready | |
+| 19 | T-152 | `app/index.js` + `main.js` entry | ready | |
+| 20 | T-153 | release script follows changelog move | ready | **same commit as T-152** — release path must never break |
+| 21 | T-160 | design tokens | ready | |
+| 22 | T-161 | split `styles.css` | ready | |
+| 23 | T-162 | accessibility pass | ready | |
+| 24 | T-170 | `state/` store | ready | T-170 is the reactive store, not T-160 |
+| 25 | T-171 | `app/plugins.js` registry | ready | |
+| 26 | T-172 | migrate features to plugins | ready | |
+| 27 | T-173 | remote-action routing via plugins | ready | |
+| 28 | T-180 | VOD data model + storage | ready | |
+| 29 | T-181 | add media by URL / manifest | ready | the *first* T-181 (VOD), not the settings one |
+| 30 | T-182 | `ui/library.js` — movies & series | ready | |
+| 31 | T-183 | episode browsing + resume | ready | |
+| 32 | T-184 | audio / subtitle / quality pickers | needs-tv | hardware pickers |
+| 33 | T-185 | VOD playback integration | needs-tv | |
+| 34 | T-186 | v4 settings schema migration | ready | was T-181; additive + idempotent, never change `en_settings` key |
+| 35 | T-190 | `features/tizen-compat.js` | needs-tv | no TV here — gated code only |
+| 36 | T-191 | engine fallback messaging | needs-tv | |
+| 37 | T-192 | about panel: engine + platform info | ready | |
+| 38 | T-200 | log ring buffer + copy diagnostics | ready | |
+| 39 | T-201 | favorites feature | ready | |
+| 40 | T-202 | info bar with clock | ready | |
+| 41 | T-203 | GitHub issue templates | ready | |
+| 42 | T-209 | enforced commit message format | done | hook exists and is machine-checked |
 | — | T-100…T-115, T-120, T-129, T-208, T-210 | Phase 0–1 + recovery/state | done | see `docs/TICKETS.md` status lines |
+
+## M2 note — why the engine split is four tickets
+
+The original T-121 was one ticket: move `initPlayer` + `destroyPlayer` to
+`init.js` and `loadChannel` to `load.js`. It cannot be a pure move:
+
+- `loadChannel` is **351 LOC**; the guard caps new files at 300.
+- `initPlayer → handlePlayerError → loadChannel → initPlayer` is a
+  **three-node import cycle** — forbidden by `npm run validate`.
+
+The night-shift agent blocked it on 2026-11-16 with no code changed. The fix
+is four ordered tickets:
+
+1. **T-124** — `player/deps.js`, a registry of function slots. Slices call
+   `deps.handlePlayerError` / `deps.initPlayer` instead of importing each
+   other. Only the hub imports all slices, so the cycle becomes a wire-up.
+2. **T-125** — move DOM-free helpers out of `loadChannel` so it fits under 300.
+3. **T-126** — move `initPlayer` + `destroyPlayer` to `init.js`.
+4. **T-127** — move `loadChannel` + `reloadChannel` to `load.js` (plus
+   `load-error.js` in the same ticket if the catch block overflows 300).
+
+**T-123** (delete `player.js`, create the `player/index.js` hub) follows T-127.
+Do not reorder them — each one's acceptance depends on the previous.
 
 ## Known traps (read before starting)
 
