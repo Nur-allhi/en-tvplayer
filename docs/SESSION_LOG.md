@@ -44,6 +44,70 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Night shift: T-121 blocked, setup committed — @nightshift
+
+**Ticket:** T-121 ⛔ · **Branch:** `docs/t-121-block` → `dev`
+**Status:** ⛔ blocked — spec is not implementable as written; no code changed, no gate run red
+
+**What changed**
+- **First, a prerequisite:** the night-shift setup documented in the entry
+  below as "✅ done" was still **uncommitted** on `dev`. That dirty tree
+  would have blocked the one-branch-per-ticket workflow (and risked mixing
+  the setup into a ticket commit). Committed it on `chore/nightshift-autonomy`,
+  merged to `dev` (`e89c4be`) and pushed. `docs/REFINED_UX_REPORT.md` was
+  deliberately left untouched — pre-existing user work, as instructed.
+- **`docs/TICKETS.md`, `docs/AUTONOMY.md`** — T-121 marked `blocked`,
+  `NEXT` advanced to T-122, `LAST_RUN` set.
+- No `player/src` changes.
+
+**Verified**
+- Gates on `dev` after the setup merge: `npm test` → 243 passed (14 files),
+  `npm run lint` → clean, `npm run validate` → 33 files / 0 new violations,
+  `npm run format:check` → clean, `npm run build` → `index.B8n1RqJs.js`
+  963.24 kB (baseline for the T-121 ±2 % criterion).
+- CI on pushed `e89c4be`: both checks green (`WGT packaging`,
+  `Test · Lint · Build · Modularity`).
+- The block is a **design** finding, not a gate failure — derived by mapping
+  every call in the 1572-line `player.js`.
+
+**Decisions**
+- **Committed the setup before touching a ticket.** Its own session-log
+  entry says `chore/nightshift-autonomy → dev` and "✅ done", but git showed
+  it dirty and uncommitted. Committing it (hard policies deny release, tags,
+  main and signing-key operations — it only *adds* protection) restores the
+  clean tree an unattended run needs. The alternative — leaving it dirty —
+  would have made the T-121 docs edits conflict on merge.
+- **Blocked T-121 instead of improvising a 7-module rewrite.** Two hard
+  facts defeat the spec as a pure move: `loadChannel` is 351 LOC (the guard
+  caps new files at 300), and `initPlayer → handlePlayerError → loadChannel →
+  initPlayer` is a three-node import cycle the guard forbids. Breaking it
+  means state-injected cross-slice calls (~6 hooks) and ~6 new modules
+  (`shared`, `stream`, `events`, `init`, `load`, `load-error`), i.e. all of
+  M2 compressed into one ticket, on playback code that cannot be smoke-tested
+  on a TV from this machine. That is a human re-scoping decision, not an
+  unattended one.
+- **No TV verification claimed or attempted.**
+
+**Watch out**
+- The WGT asset name is content-hashed; after `e89c4be` the baseline bundle
+  is `index.B8n1RqJs.js` at 963.24 kB, so the T-121 ±2 % window is
+  **944.0–982.5 kB** measured against a *committed* tree.
+- `player.js` is still in the modularity baseline. Shrinking it does **not**
+  remove the baseline key (`rule:file`), so `--update` is not needed until a
+  file actually drops below 300 LOC or disappears.
+- `docs/REFINED_UX_REPORT.md` is still untracked. Never stage it.
+- GitHub reported "Bypassed rule violations ... 2 of 2 required status checks
+  are expected" on the push — the checks were not yet attached to the new
+  SHA at push time; both were green when checked afterwards.
+
+**Next**
+- T-121 needs a human re-scope: split M2 into an atomic refactor or add the
+  state-hook contract to the ticket before an agent retries it.
+- This run continues with **T-122** (`events.js` + `stream.js`), which is
+  independently feasible.
+
+---
+
 ## 2026-11-16 — Unattended night-shift setup — @maintainer
 
 **Ticket:** tooling · **Branch:** `chore/nightshift-autonomy` → `dev`

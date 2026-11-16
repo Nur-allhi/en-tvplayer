@@ -337,6 +337,13 @@ A ticket is only `done` when it meets the **Definition of Done**
   `load.js` = `loadChannel` + `reloadChannel`.
 - **Acceptance:** `player/index.js` exports the same 24 names as the old
   `player.js`; `npm run build` bundle size within ±2 % of before.
+- **Status:** ⛔ blocked 2026-11-16 — the literal shape is not implementable
+  as a pure move. `loadChannel` is **351 LOC** on its own (guard caps every
+  new file at 300), and `initPlayer → handlePlayerError → loadChannel →
+  initPlayer` is a **three-node import cycle** the guard forbids. A green
+  split needs an atomic M2 refactor (state-injected cross-slice calls plus
+  ~6 new modules); see the night-shift entry in `docs/SESSION_LOG.md`.
+  No code was changed, so no gate was run red.
 
 ### T-122 — `player/events.js` + `player/stream.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~330 LOC combined)
