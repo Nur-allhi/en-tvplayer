@@ -43,9 +43,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-131      # first unresolved row below
+NEXT        = T-132      # first unresolved row below
 MODE        = unattended # agent must not ask questions
-LAST_RUN    = 2026-11-16 # T-130 done (ui/state.js); batch in progress
+LAST_RUN    = 2026-11-16 # T-130 + T-131 done; batch in progress
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -90,7 +90,7 @@ with the exact gate output; agent skipped it.
 | 2 | T-122 | `player/events.js` + `player/stream.js` | done | merged + gated 2026-11-16 |
 | 3 | T-123 | delete `player.js`, `player/index.js` hub | blocked | needs T-121 re-scope; player.js still owns the engine |
 | 4 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
-| 5 | T-131 | `ui/dialogs.js` | ready | zero deps on other UI modules |
+| 5 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
 | 6 | T-132 | `ui/osd.js` | ready | z-index contract `TIZEN_GUIDE.md` §6.3 |
 | 7 | T-133 | `ui/sidebar.js` + `ui/search.js` | ready | |
 | 8 | T-134 | `ui/right-menu.js` | ready | |

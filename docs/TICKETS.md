@@ -436,6 +436,14 @@ A ticket is only `done` when it meets the **Definition of Done**
   `dialogNavigate`, `dialogSelect`.
 - **Acceptance:** zero dependencies on other UI modules; confirm dialog works
   for exit, delete playlist, and update notice.
+- **Status:** ✅ done 2026-11-16 — `player/src/ui/dialogs.js` (53 LOC), the
+  five named functions plus the private `updateDialogFocus`, with its four
+  module-local state vars. **Zero imports** — only `document`, as required.
+  `ui.js` re-exports the five names; AST export audit shows **74 before / 74
+  after**, none added or removed, so `ui.showConfirmDialog` callers (exit in
+  `main.js`, delete playlist in `settings.js`, update notice in `main.js`)
+  are untouched. `ui.js` 1456 → 1408 LOC. Bundle 966.89 → 966.90 kB.
+  All gates green, plus `npm run tizen`. No TV verification claimed.
 
 ### T-132 — `ui/osd.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~150 LOC)
