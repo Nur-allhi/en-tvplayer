@@ -44,6 +44,75 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-111 / T-112 test expansion closes the M1 loose ends — @maintainer
+
+**Ticket:** T-111 ✅ · T-112 ✅
+**Branch:** `chore/t-111-112-lib-tests` → `dev`
+**Status:** ✅ done — M1's five modules all have colocated suites
+
+**What changed**
+- **`lib/url.test.js` (152 LOC, 34 tests)** for `withAuthQuery`, `redactUrl`
+  and `extractAuthQuery`. Beyond the ≥20 bar, it pins: append-vs-merge into an
+  existing query string, fragment preservation and the case where the param
+  name appears only *inside* the fragment, prefix-collision avoidance
+  (`__hdnea__extra` must not satisfy `__hdnea__`), regex metacharacters in a
+  param name treated literally, the `data:` / `blob:` / `file:` non-network
+  pass-through (BUG-013 / v3.0.4), and duplicate-token suppression in cookies.
+- **`lib/drm.test.js` (102 LOC, 19 tests)** for `parseLicenseKeyValue`. All
+  three `license_key` forms, hex normalisation, dash stripping from UUID-style
+  keys, partial-dict recovery, and every rejection path.
+- **`utils.test.js` (148 → 97 LOC)** trimmed to the network layer only, and
+  extended while there: `{channels:[…]}` unwrapping, JSON with no channels
+  array, malformed JSON, a body that is neither JSON nor M3U, and the HTTP
+  status appearing in the error message.
+
+**Verified**
+- `npm test` → **133 passed**, 7 files (was 86)
+- `npm run lint` → clean
+- `npm run validate` → 21 files, 0 new violations, 7 baselined
+- `npm run format:check` → clean **after** `prettier --write` on the three
+  new/edited test files
+- `npm run build` → ok · size under budget
+- `npm run tizen` → WGT 468.5 KB, certificate `40:71:40:30:04:D9:49:25…`
+- All test files ≤ 300 LOC (102 / 123 / 152)
+
+**Decisions**
+- **Kept the m3u naming as `lib/m3u.test.js` and added two new files rather
+  than redistributing into one suite.** Each module owns its tests; a reader
+  looking at `lib/url.js` finds `lib/url.test.js` beside it.
+- **Two failing expectations were rewritten to match the code, not the
+  reverse.** See "Watch out" — this is the intended use of a characterisation
+  test.
+- **`utils.test.js` extended, not just trimmed.** Cutting the moved
+  assertions would have left the network layer thinner than before.
+
+**Watch out**
+- **The characterisation tests immediately caught two of my own wrong
+  assumptions**, which is exactly why they exist:
+  1. `parseLicenseKeyValue(`{nothex:KEY,KID:alsonothex}`)` returns **null**,
+     not an empty `clearKeys` object — the function returns null when no valid
+     pair survives. My first test asserted `.clearKeys` on a null.
+  2. An **unterminated** brace block `{KID:KEY` still parses, because the
+     non-JSON fallback strips a *leading* `{` and an *optional* trailing `}`.
+     This looks like a latent bug but is harmless in practice (Kodi never emits
+     it), so it is recorded as characterisation with a comment rather than
+     "fixed" — changing it would be a behaviour change with no ticket.
+- **The format ratchet bit my own new files.** `prettier --check` failed on
+  the three files I had just written; the gate is real and applies to new
+  code immediately. Worth expecting on every future commit.
+- **`utils.test.js` is now 97 LOC but was 148.** If someone later looks for
+  `withAuthQuery` tests and cannot find them there, they moved to
+  `lib/url.test.js` — not deleted.
+
+**Next**
+- **T-113 / T-114** to close M1: `lib/time.js` from `settings.js`
+  (`timeAgo`/`formatDate`) and a new `lib/capabilities.js`.
+- M1 completion then unblocks M2 (`player.js` split), where **T-129
+  (`player/state.js`) must land before T-120** — the migration guide's warning
+  about duplicated module state.
+
+---
+
 ## 2026-11-16 — formatting made enforceable, WGT gate added — @maintainer
 
 **Ticket:** T-210 (new — tooling hygiene)
