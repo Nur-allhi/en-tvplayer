@@ -27,4 +27,10 @@ export const deps = {
   stopBlackWatchdog: unwired('stopBlackWatchdog'),
   notifyBufferingProgress: unwired('notifyBufferingProgress'),
   isRenderingFrames: unwired('isRenderingFrames'),
+  // T-126: the init slice's calls back into the hub. Without slots these would
+  // be imports of player.js from init.js — the cycle the registry exists to break.
+  showLoading: unwired('showLoading'),
+  getBufferingPercent: unwired('getBufferingPercent'),
+  showPlayState: unwired('showPlayState'),
+  toProxied: unwired('toProxied'),
 };

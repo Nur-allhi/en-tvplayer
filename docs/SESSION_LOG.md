@@ -44,6 +44,56 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-126: extract the player init slice — @nightshift
+
+**Ticket:** T-126
+**Branch:** `feature/t-126-init-slice` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/player/init.js` (new, 273 LOC) — `initPlayer`, `destroyPlayer`
+  and the six video-element event handlers (`notifyBufferingProgress`,
+  `onPlay`, `onPause`, `onVideoError`, `onVideoStalled`, `onVideoWaiting`)
+  that only `initPlayer` attaches. Cross-slice calls now go through deps.
+- `player/deps.js` + `deps.test.js` — four new slots (`showLoading`,
+  `getBufferingPercent`, `showPlayState`, `toProxied`); the test's slot list
+  was updated to match.
+- `player.js` 1402 → 1148 LOC — imports the moved functions, re-exports
+  `initPlayer` (surface stays 24), registers the four new slots.
+
+**Verified**
+- Transitive export-surface audit mirroring the validator: **24 before /
+  24 after**, zero name diff.
+- `npm test` → 284 passed; `npm run lint`, `npm run validate` (51 files, 0 new
+  violations), `npm run format:check`, `npm run build` and `npm run tizen`
+  all green.
+- Bundle 968 971 → 969 355 B (+0.04 %), inside ±2 %.
+
+**Decisions**
+- Moved the six event handlers with `initPlayer` rather than leaving them in
+  the hub: they have no other callers, so this keeps them beside the attach
+  code and avoids six more deps slots. Only four slots were needed instead.
+- `getBufferingPercent` could have been a direct import (stream.js is a leaf),
+  but the ticket names it as a deps slot, so it is registered through the hub
+  for a single integration point.
+- `format:check` failed once on the new file (one long `deps.logEvent` line);
+  fixed with `npx prettier --write player/src/player/init.js`, then all six
+  gates re-run green.
+
+**Watch out**
+- `init.js` has 273 LOC — close to the 300 cap. Further additions there need a
+  second slice or they trip the guard.
+- The six handlers are now module-local to `init.js`; `player.js` no longer
+  exports them. Any future direct call must go through a deps slot.
+- No TV connected. No TV verification claimed — attach/teardown is playback
+  code.
+
+**Next**
+- T-127 — extract `loadChannel` + `reloadChannel` into `player/load.js`
+  (this batch's limit of 3 is reached; next batch starts here).
+
+---
+
 ## 2026-11-17 — T-125: pure helpers out of loadChannel — @nightshift
 
 **Ticket:** T-125

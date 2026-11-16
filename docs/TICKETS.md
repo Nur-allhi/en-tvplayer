@@ -408,7 +408,13 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** public 24-name surface unchanged; all gates green; bundle
   change within ±2 %; no import cycle; `init.js` ≤ 300 LOC.
 - **Depends:** T-124, T-125 · **Must land before T-127.**
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `player/init.js` (273 LOC) holds `initPlayer`,
+  `destroyPlayer` and the six video-element event handlers only `initPlayer`
+  uses. Four new deps slots (`showLoading`, `getBufferingPercent`,
+  `showPlayState`, `toProxied`) carry the slice's calls back into the hub,
+  so no slice imports `player.js` (zero cycles). Transitive surface audit
+  24 before / 24 after. All gates green incl. `npm run tizen`; bundle
+  968.97 → 969.36 kB (+0.04 %). No TV verification claimed.
 
 ### T-127 — `player/load.js` — load + reload slice
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~280 LOC, may need a
