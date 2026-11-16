@@ -19,11 +19,6 @@
     "file": "player/src/ui.js",
     "detail": "1464 LOC exceeds 300"
   },
-  "loc:player/src/utils.js": {
-    "rule": "loc",
-    "file": "player/src/utils.js",
-    "detail": "348 LOC exceeds 300"
-  },
   "exports:player/src/logic.js": {
     "rule": "exports",
     "file": "player/src/logic.js",
