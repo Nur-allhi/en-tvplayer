@@ -44,6 +44,52 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-131: confirm dialog extracted — @nightshift
+
+**Ticket:** T-131 ✅ · **Branch:** `feature/t-131-ui-dialogs` → `dev`
+**Status:** ✅ done — self-contained `ui/dialogs.js`, 74-name `ui.js` API intact
+
+**What changed**
+- **`player/src/ui/dialogs.js`** (new, 53 LOC) — the 5 named functions plus the
+  private `updateDialogFocus`, with the 4 dialog-local vars (`dialogOpen`,
+  confirm/cancel callbacks, `dialogFocus`). No imports at all: only `document`.
+- **`ui.js`** — the 49-line dialog block replaced by a 5-name re-export from
+  `./ui/dialogs.js`. Callers keep using `ui.showConfirmDialog` etc.
+- Docs: T-131 → done, `NEXT` → T-132, `LAST_RUN` updated.
+
+**Verified**
+- AST export audit: **74 before / 74 after**, none added or removed.
+- Callers checked: exit (`main.js:1507`), delete playlist
+  (`settings.js:298,710`), update notice (`main.js:877`) — all via `ui.*`,
+  all untouched.
+- `npm test` → 248 passed · `npm run lint` → clean · `npm run validate` →
+  38 files, 0 new violations · `npm run format:check` → clean ·
+  `npm run build` → `index.ChQLc5Eq.js` 966.90 kB (+0.01 kB) ·
+  `npm run tizen` → WGT signed with the expected fingerprint.
+- No TV verification attempted or claimed.
+
+**Decisions**
+- **Pure move + re-export, no importer edits** (T-122 precedent). `main.js` and
+  `settings.js` still import `* as ui`; changing them would steal T-135's work.
+- **No new tests.** All dialog functions are DOM-coupled (`getElementById`),
+  which Vitest cannot exercise here (node env, no jsdom). Verified by export
+  parity + build instead, as T-122 was.
+- Kept `updateDialogFocus` private inside the slice — it is not part of the
+  public API.
+
+**Watch out**
+- The slice is deliberately dependency-free; do not import `ui/state.js` into
+  it (T-131 acceptance forbids it).
+- `ui.js` stays in the modularity baseline until T-135 deletes it.
+- `docs/REFINED_UX_REPORT.md` remains untracked and untouched.
+
+**Next**
+- T-132 (`ui/osd.js`) — channel OSD, buffering pill, empty-state brand,
+  watermark, play-state overlay, progress toast. Honour the z-index contract
+  in `docs/TIZEN_GUIDE.md` §6.3.
+
+---
+
 ## 2026-11-16 — T-130: shared UI state extracted — @nightshift
 
 **Ticket:** T-130 ✅ · **Branch:** `feature/t-130-ui-state` → `dev`
