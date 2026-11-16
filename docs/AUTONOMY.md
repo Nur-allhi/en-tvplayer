@@ -6,40 +6,38 @@
 > **Owner:** maintainer. **Start here:** `.opencode/agents/nightshift.md`.
 > **Command:** `/nightshift` · **Scheduled loop:** `.agents/loops/nightshift.md`
 
-## One-time OpenChamber setup (do this once, before the first night)
+## OpenChamber setup — DONE 2026-11-16
 
-The repo ships the agent, the command, the loop file and the hard-deny policies.
-Four UI switches are yours to set — OpenChamber keeps them on this machine, not
-in git. See <https://docs.openchamber.dev/scheduled-tasks/> and
-<https://docs.openchamber.dev/permissions/>.
+All switches were set directly through the running OpenChamber 2.0.8 server on
+port 3000. Nothing is left for the maintainer to toggle on this machine.
 
-1. **Permissions → Accept everything.** Settings → Sessions → Permissions.
-   This makes `ask` rules auto-approve while you are away. It does **not**
-   override the `deny` policies in `.opencode/opencode.jsonc` — main branch,
-   release, tags, force-push and signing-key generation stay blocked even in
-   this mode. (The "Safety net" mode also works, but needs a Jev classification
-   provider and can hold a request for four seconds; "Accept everything" is
-   the predictable choice for an unattended run.)
-2. **Sync the loop.** Open the Scheduled Tasks list from the session sidebar.
-   The `.agents/loops/nightshift.md` file appears as a task named `nightshift`.
-   Committing the file does **not** start it: project loops are off by default
-   on every machine. Turn it on in the UI. A repo loop is cron-only — the
-   schedule (`0 22 * * *`, 22:00 server local time) must be edited in the file.
-3. **Enable "Run as goal" on the task.** Goal settings are UI-only for loop
-   files, so tick this in the Scheduled Tasks dialog. Without it, the task
-   sends `/nightshift` once and stops after the first reply — no auto-retry.
-   The loop runs in the OpenChamber server, not in a browser tab.
-4. **Set a token budget.** Settings → Chat → Goal. Give it enough for three
-   tickets (the `BATCH_LIMIT`). The run also stops on three consecutive
-   "stuck" audit verdicts, a turn error, or the cap on continuations.
-5. **Keep the server running.** The desktop app or the `openchamber` process
-   must stay alive overnight. Closing the tab or locking the screen is fine.
-   For the CLI, `openchamber startup enable` makes it survive logout.
+| Setting | Value |
+|---|---|
+| Task | `nightshift`, enabled |
+| Schedule | cron `35 23 * * *` — **11:35 PM Bangladesh time**, TZ `Asia/Dhaka` (UTC+6) |
+| Execution | prompt `/nightshift`, model `opencode/hy4-flash-free` (the current model), agent `nightshift` |
+| Run as goal | `goalEnabled: true`, `goalTokenBudget: 400000` |
+| Global goals | enabled, default budget 400000 |
+| Question auto-delegate | enabled (backstop) |
+| Permissions | `{ "action": "*", "resource": "*", "effect": "allow" }` in `.opencode/opencode.jsonc` |
 
-Check the loop with **run now** the first time. If it behaves, leave it enabled
-and it will fire at 22:00 each night. Morning review: read the newest
-`docs/SESSION_LOG.md` entry, `git log --oneline origin/dev..dev`, and the CI
-status on `dev`.
+Allow-all at the permission layer is deliberate: an unattended session has no
+one to answer an `ask`. It cannot lift the `deny` policies — main, release,
+tags, force-push and signing-key generation stay blocked.
+
+**Verified:** `nextRunAt` = 2026-11-16 23:35 Dhaka (17:35 UTC),
+`schedulerSynced: true`, both CI checks green on the last batch commit
+`e2ebb1d`.
+
+Keep the OpenChamber server alive overnight. Closing a tab is fine; quitting
+the process pauses the schedule. `openchamber startup enable` survives logout.
+
+These are machine-level settings, not committed files. On another machine,
+repeat via the Scheduled Tasks and Settings UI: enable the `nightshift` loop,
+set cron `35 23 * * *` / `Asia/Dhaka`, tick **Run as goal**, set a token budget.
+
+Morning review: newest `docs/SESSION_LOG.md` entry,
+`git log --oneline origin/dev..dev`, and CI on `dev`.
 
 ## Current state
 

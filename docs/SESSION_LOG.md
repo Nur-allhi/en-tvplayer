@@ -44,6 +44,84 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Night shift is live: 23:35 Dhaka, goal mode, hard policies — @maintainer
+
+**Ticket:** tooling · **Branch:** `chore/nightshift-schedule` → `dev`
+**Status:** ✅ done — every machine-side switch set; first auto-run tonight
+
+**What changed**
+- **OpenChamber scheduled task `nightshift`** created through the running
+  server's API (port 3000), ID
+  `35194797-b718-46d4-8066-22a54de716e0`. Cron **`35 23 * * *`**, TZ
+  **`Asia/Dhaka`** — 11:35 PM Bangladesh time, as requested.
+  `goalEnabled: true`, budget 400000, model `opencode/hy4-flash-free`
+  (unchanged from the current session), agent `nightshift`, prompt `/nightshift`.
+- **Global settings** via `PUT /api/config/settings`: Session Goals on with a
+  400000 default budget; question auto-delegate on as a backstop.
+- **`.opencode/opencode.jsonc`** — added
+  `{ action: "*", resource: "*", effect: "allow" }` at the permission layer
+  so no `ask` can stall a session with nobody present. The `deny` policies
+  are a separate layer and were left intact: main, release, tags, force-push,
+  `--no-verify`, key generation and key-file edits remain blocked.
+- **`.agents/loops/nightshift.md`** — cron and timezone now match the live
+  task (`35 23 * * *`, `Asia/Dhaka`).
+- **`docs/AUTONOMY.md`** — setup section rewritten from "four steps you must
+  do" to a record of what is set, with the schedule and verification evidence.
+
+**Verified**
+- `nextRunAt` = 2026-11-16 23:35 Dhaka (17:35 UTC), `schedulerSynced: true`,
+  `hasEnabledScheduledTasks: true`.
+- `opencode run --agent nightshift` loads and replies under the current model
+  with the new permissions.
+- CI green on `e2ebb1d`, the tip of `dev` when this session started.
+
+**The probe did real work — read this before the morning report**
+Trying the `/nightshift` command with a 3-minute shell timeout accidentally
+launched the actual loop. It stopped when the shell timed out, but not before
+it ran a full batch:
+- **T-122 done** — `player/events.js` + `player/stream.js`, 24-name API intact,
+  bundle unchanged in size. Merged, pushed, both CI checks green.
+- **T-121 blocked** — its spec cannot be a pure move (351-LOC function plus a
+  three-node import cycle). Needs maintainer re-scoping.
+- **T-123 blocked** — depends on T-121, so `player.js` still owns the engine.
+- Queue `NEXT` advanced to **T-130**, with full entries in `docs/SESSION_LOG.md`.
+- `docs/REFINED_UX_REPORT.md` was never staged. No main/release/tag/key touched.
+
+This is the first real proof the loop works unattended: it made a conservative
+decision, recorded it, and stopped on the batch limit rather than forcing a
+broken refactor.
+
+**Decisions**
+- **Config-layer allow-all, not the UI's "Accept everything".** Scheduled
+  sessions are created fresh with IDs unknown in advance, so a per-session UI
+  toggle cannot help them. A project config rule applies to every session.
+  Policies still hard-deny the non-negotiables.
+- **Same model, as asked.** The earlier warning about the free-tier usage cap
+  was based on a title-refresh error in session metadata, not on the agent's
+  own turns — the batch completed on `hy4-flash-free`. Keeping it.
+- **Bangladesh time** chosen over the previous Kyiv default. Dhaka is UTC+6;
+  23:35 local = 17:35 UTC.
+
+**Watch out**
+- **The session log has three new entries from `@nightshift`** above this one.
+  Read them in order — T-121's block analysis explains why M2 cannot finish yet.
+- **T-121 needs a human decision.** The loop will skip it on later runs; it
+  will not force an unimplementable spec. Re-scope it as a state-injected
+  cross-slice refactor before expecting `player/index.js`.
+- **The loop does not restart if you quit OpenChamber.** Keep the desktop app
+  or the `openchamber` process alive. Closing a tab is fine.
+- **Machine-side settings are not in git.** A fresh machine needs the
+  Scheduled Tasks + Settings UI steps documented in `docs/AUTONOMY.md`.
+
+**Next**
+- Let tonight's 23:35 Dhaka run go. In the morning: read the newest session log
+  entry, check `git log --oneline origin/dev..dev`, check CI on `dev`.
+- Re-scope **T-121** so the M2 split can finish; T-123 is waiting on it.
+
+---
+
+## 2026-11-16 — Night shift batch complete: 1 done, 2 blocked — @nightshift
+
 ## 2026-11-16 — Night shift batch complete: 1 done, 2 blocked — @nightshift
 
 **Ticket:** T-121 ⛔ / T-122 ✅ / T-123 ⛔ · **Branch:** see per-ticket entries
