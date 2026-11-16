@@ -2,6 +2,22 @@
 
 > **Check this file at the start of every conversation.** Update it whenever new conventions or files are introduced.
 
+## 0. Non-negotiables — read these first
+
+These five rules have each already been broken once. They are not advice.
+
+| # | Rule | Enforced by |
+|---|------|-------------|
+| 1 | **Never mint a signing key.** A different key makes every TV treat the update as a new app and **wipes every user's settings**. `tizen/author-key.pem` is restored from backup, never regenerated. | `npm run release` refuses without it; `npm run tizen` aborts on a fingerprint mismatch (`tizen/author-cert.sha256`) |
+| 2 | **Never commit to `main`.** Work on a branch, merge into `dev`, and only a green `dev` merges to `main`. | Branch protection on `dev` |
+| 3 | **Never end a session without a `docs/SESSION_LOG.md` entry.** That file is the only handover mechanism — the maintainer reads the diff independently of any summary. | Manual · §13 |
+| 4 | **Commit messages are machine-checked.** `<type>(<scope>): <subject> (T-###)`; `feat`/`fix`/`refactor`/`perf` need a ticket **and** a body explaining *why*. | `commit-msg` hook (`scripts/check-commit-msg.mjs`) |
+| 5 | **All four gates must pass before any commit touching `player/src`**: `npm test`, `npm run lint`, `npm run build`, `npm run validate`. | CI + pre-commit hook · §11 |
+
+If you are an AI agent: **stop and re-read §5 before you commit.** Your summary
+is not evidence — the diff and the gates are.
+
+
 ## 1. Project Overview
 
 **EN TV Player** is a standalone Samsung Tizen TV IPTV player that solves DRM-protected channel playback issues on Tizen OS.

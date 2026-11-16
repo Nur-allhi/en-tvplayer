@@ -27,7 +27,11 @@
   - `settings.js` — 713 LOC
   - `ui.js` — 838 LOC
 - **Expected:** Each file ≤ 300 LOC.
-- **Resolution:** Deferred due to tight coupling and lack of tests. Splitting would risk breaking the app. See docs/FILE_SPLIT_PLAN.md for future reference.
+- **Resolution:** Scheduled for v4.0.0 as a sequenced, test-first restructure —
+  pure logic is extracted to `lib/` before any coupled file is touched, and
+  `npm run validate` ratchets the debt so it can only shrink. See
+  `docs/MIGRATION.md` and `docs/v4.PLAN.md` §4. (`docs/FILE_SPLIT_PLAN.md` is
+  the abandoned v1.3 approach and is superseded.)
 
 ---
 

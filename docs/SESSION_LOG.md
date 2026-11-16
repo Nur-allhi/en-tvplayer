@@ -44,6 +44,82 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Phase 0 closed: audit clean, CI gates merges, stale plan retired — @maintainer
+
+**Ticket:** T-100, T-106 (plus T-107 status correction, `FILE_SPLIT_PLAN` cleanup)
+**Branch:** `chore/t-106-audit-fixes` → `dev`
+**Status:** ✅ Phase 0 complete — Phase 1 is unblocked
+
+**What changed**
+- **T-100 — CI now actually gates `dev`.** The workflow already existed and
+  was green; what was missing was the enforcement. Enabled branch protection
+  on `dev` requiring both checks (`Test · Lint · Build · Modularity`,
+  `WGT packaging`), with no required reviewers (solo project), and
+  force-push/deletion blocked. Verified by reading the protection API back.
+- **T-106 — 0 vulnerabilities.** `npm audit fix`: vite 6.3.5 → 6.4.6,
+  source-map-js 1.2.1 → 1.2.2, vitest 5.0.2 → 5.1.0, eslint 10.11 → 10.15.
+  All advisories were dev-server/test-runner only and none ship in the WGT.
+- **`docs/FILE_SPLIT_PLAN.md` resolved.** It described the abandoned v1.3
+  four-phase approach with stale LOC (claimed `ui.js` 838, actually 1464) and
+  contradicted `docs/MIGRATION.md`. Replaced with a short superseded-pointer
+  that maps each file to its real v4 ticket. `docs/BUGS.md` (BUG-002) and
+  `docs/ROADMAP.md` item 6 now point at `MIGRATION.md` instead.
+- **`docs/TICKETS.md`** — T-100, T-106 marked done with evidence; T-107
+  corrected to committed (`cb9ccbe`) — it was recorded as "in progress,
+  needs a commit" but had in fact already landed.
+- **`AGENTS.md` — new §0 "Non-negotiables".** The five rules that have each
+  already been broken once (mint-a-key, commit-to-main, no session entry,
+  commit format, the four gates) are now at the top of the file instead of
+  buried in §5, each tagged with what enforces it.
+
+**Verified**
+- `npm test` → 61 passed, 4 files
+- `npm run lint` → clean
+- `npm run validate` → 15 files, 0 new violations, 8 baselined
+- `npm run build` → ok, **bundle byte-identical** to pre-upgrade
+  (`index.4Ng0uPJB.js`); size gate 931.2 KB = 82.7 % of the 1126 KB budget
+- `npm audit` → 0 vulnerabilities
+- `gh api …/branches/dev/protection` → both contexts required, force-push
+  and deletion disabled
+
+**Decisions**
+- **Branch protection only on `dev`, not `main`.** `main` receives a merge
+  from `dev` that is already gated, so a second gate there adds a step
+  without adding information. Revisit if `main` ever takes a direct commit.
+- **`required_pull_request_reviews: null`** — deliberately no reviews, per
+  `docs/BRANCHING.md` §1 (solo, no PRs). The protection is about CI, not
+  about a second pair of eyes.
+- **Deleted `FILE_SPLIT_PLAN.md`'s content rather than the file.** Old links
+  in `BUGS.md`/`ROADMAP.md`/the session log still resolve, and the original
+  is recoverable from git history — the pointer says how.
+- **`npm audit fix`, not `--force`.** Nothing needed a breaking major bump;
+  the whole set resolved within existing semver ranges.
+
+**Watch out**
+- **A `--dry-run` audit is not a fix.** `npm audit fix --dry-run` printed the
+  same 7 vulnerabilities and still exited non-zero; only the real run cleared
+  them. Do not read the dry-run output as failure.
+- Vitest moved 5.0.2 → 5.1.0 and eslint 10.11 → 10.15 as a side effect of
+  the audit fix. Both are minor bumps and the suite is green, but if a test
+  behaves oddly later, that pair is the first thing to suspect.
+- `npm warn allow-scripts` mentions `esbuild@0.25.12` on every install. That
+  is npm's script-approval prompt, not a vulnerability — it does not appear
+  in `npm audit`.
+- Branch protection does **not** block a direct push to `dev` from a
+  maintainer who bypasses checks unless `enforce_admins` is on. It is off by
+  design (you are the only admin); the gate protects against accident, not
+  against you.
+
+**Next**
+- **Phase 1 starts at T-110 (`lib/m3u.js`)** — `utils.js` is the smallest
+  baselined violation (348 LOC) and `parse-m3u.test.js` already covers the
+  four target functions, so the split has a real characterisation net.
+  Order: T-110 → T-111 → T-112 → T-113 → T-114.
+- Then T-129 (shared `player/state.js`) **before** T-120, per the migration
+  guide's warning that a naive `player.js` slice duplicates module state.
+
+---
+
 ## 2026-11-15 — migration guide for the v4 restructure — @maintainer
 
 **Ticket:** T-105 (docs), plus new T-129 / T-153 / T-181
