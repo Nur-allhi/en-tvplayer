@@ -15,4 +15,6 @@ export const deps = {
   selectChannel: unwired('selectChannel'),
   renderGroupList: unwired('renderGroupList'),
   updateSidebarTitle: unwired('updateSidebarTitle'),
+  applySidebar: unwired('applySidebar'),
+  resetInactivity: unwired('resetInactivity'),
 };
