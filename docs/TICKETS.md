@@ -139,18 +139,39 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** existing `parse-m3u.test.js` passes against the new module
   **before** the old code is deleted; ≥ 30 tests total; `utils.js` shrinks.
 - **Depends:** —
+- **Status:** ✅ done 2026-11-16 — `utils.js` 348 → **66 LOC**, violation gone
+  from the baseline. `lib/` created: `m3u.js` (157), `url.js` (73),
+  `drm.js` (57). Tests 61 → 86 (+25 in `lib/m3u.test.js`). Bundle 953 493 B vs
+  953 499 B before — a 6-byte delta from module-boundary naming, well inside
+  the ±2 % tolerance.
+- **Sequencing correction:** this ticket cannot land alone. `parseM3u` calls
+  `extractAuthQuery` (T-111) and `parseLicenseKeyValue` (T-112); moving it
+  first would make `lib/m3u.js` import `../utils.js` while `utils.js` imports
+  `lib/m3u.js` — a circular import the validator forbids. **T-111 and T-112
+  therefore land with, or before, T-110.** Their modules were extracted here
+  as part of the same move; their own test-expansion acceptance criteria
+  remain open and are tracked under T-111/T-112.
 
 ### T-111 — `lib/url.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~120 LOC)
 - **Spec:** move `withAuthQuery`, `redactUrl`, `extractAuthQuery` here.
 - **Acceptance:** ≥ 20 tests, including the `data:` license-URI case that
   must never get a query string appended (BUG-013 / v3.0.4 regression).
+- **Depends:** —
+- **Status:** 🔄 module moved with T-110 (`player/src/lib/url.js`, 73 LOC,
+  `extractAuthQuery` / `withAuthQuery` / `redactUrl`); **test expansion still
+  open** — no colocated `lib/url.test.js` yet, the coverage lives in
+  `utils.test.js`.
 
 ### T-112 — `lib/drm.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~110 LOC)
 - **Spec:** move `parseLicenseKeyValue` + hex normalisation here.
 - **Acceptance:** ≥ 15 tests covering all three `license_key` forms (single
   `KID:KEY`, unquoted dict, JSON dict) plus the rejection cases.
+- **Depends:** —
+- **Status:** 🔄 module moved with T-110 (`player/src/lib/drm.js`, 57 LOC);
+  **test expansion still open** — coverage lives in `utils.test.js` and
+  `parse-m3u.test.js`, no colocated `lib/drm.test.js` yet.
 
 ### T-113 — `lib/time.js`
 - **Type:** refactor · **Priority:** P1 · **Size:** XS (~60 LOC)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseM3u } from './utils.js';
+import { parseM3u } from './lib/m3u.js';
 
 const M3U_BASIC = `#EXTM3U
 #EXTINF:-1 tvg-chno="7" group-title="News",BBC News
@@ -80,7 +80,9 @@ https://x.example.com/live|User-Agent=UA1&edge-token=ABC
   });
 
   it('reads drmLicense tokens from the stream URL', () => {
-    const ch = parseM3u('#EXTM3U\n#EXTINF:-1,Tok\nhttps://x.example.com/a.mpd?drmLicense=abcdef1234567890:1234567890abcdef\n');
+    const ch = parseM3u(
+      '#EXTM3U\n#EXTINF:-1,Tok\nhttps://x.example.com/a.mpd?drmLicense=abcdef1234567890:1234567890abcdef\n',
+    );
     expect(ch[0].drm.clearKeys).toEqual({ abcdef1234567890: '1234567890abcdef' });
   });
 

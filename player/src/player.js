@@ -1,6 +1,6 @@
 import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
-import { withAuthQuery, redactUrl } from './utils.js';
+import { withAuthQuery, redactUrl } from './lib/url.js';
 import {
   segment404Decision,
   lastResortDecision,

@@ -44,6 +44,88 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Phase 1 opened: `lib/` extracted, `utils.js` off the baseline — @maintainer
+
+**Ticket:** T-110 ✅ (T-111/T-112 modules moved, test expansion still open)
+**Branch:** `feature/t-110-lib-m3u` → `dev`
+**Status:** ✅ merged — first baselined violation retired
+
+**What changed**
+- **`player/src/lib/` created** with three DOM-free modules:
+  - `m3u.js` (157) — `parseM3u`, `parseStreamHeaders`, `processStreamUrl`,
+    `findNameSeparator`
+  - `url.js` (73) — `extractAuthQuery`, `withAuthQuery`, `redactUrl`
+  - `drm.js` (57) — `parseLicenseKeyValue`, `normalizeHex`, `isHex`
+- **`utils.js` 348 → 66 LOC.** It now holds only the network layer
+  (`fetchPlaylist`, `fetchPlaylistEntry`, `fetchPlaylistWithRetry`) and
+  `escapeHtml`. `parseM3u` is imported from `lib/m3u.js` so the public
+  surface of `utils.js` is unchanged for its three call sites.
+- **Ratchet baseline 8 → 7 violations** (`--update`). `utils.js` is gone from
+  it permanently; it cannot come back without failing `npm run validate`.
+- **Tests 61 → 86.** New `lib/m3u.test.js` (+25) characterises the edge cases
+  the old suite never asserted: `?`-before-edge-param handling, DRM
+  directives being skipped rather than becoming headers, literal-`|` vs
+  `%7C` precedence both ways, malformed percent-encoding not throwing,
+  duplicate user-agent resolution, `tvg-chno` beating `channel-number`,
+  zero/negative/NaN channel numbers, CRLF playlists, malformed `EXTHTTP`,
+  and a later `KODIPROP` merging over an earlier `EXTHTTP` instead of
+  replacing it.
+
+**Verified**
+- `npm test` → 86 passed, 5 files
+- `npm run lint` → clean
+- `npm run validate` → 19 files, 0 new violations, 7 baselined
+- `npm run build` → ok; **bundle 953 493 B vs 953 499 B before the move**
+  (stash-and-rebuild comparison), a 6-byte delta from module-boundary naming,
+  well inside the ±2 % tolerance in §4 Phase 2
+- DOM purity: `grep` for `document.`/`window.`/`localStorage`/`navigator.`
+  across `lib/` returns nothing, and the validator enforces it for `lib/`
+- Old-code-first discipline followed: the existing suite was repointed at
+  `lib/m3u.js` and passed **before** any line was deleted from `utils.js`
+
+**Decisions**
+- **`utils.js` keeps its remaining exports and is NOT deleted.** MIGRATION.md
+  §1 says `utils.js` is deleted once `lib/` is complete — that is correct, but
+  the network layer (`fetchPlaylist*`) has DOM/`fetch` dependencies and no
+  `lib/` home yet. It stays until T-113/T-114 finish the extraction.
+- **`parseM3u` stayed reachable from `utils.js`.** Re-pointing the three call
+  sites (`main.js`, `settings.js`, `ui.js`) was unnecessary: only `main.js`
+  uses the playlist API, and the other two import `escapeHtml`. `utils.js`
+  now re-imports `parseM3u` for `fetchPlaylist` internally, so nothing
+  outside had to change.
+- **Test expansion accepted as separate work.** T-110's own bar (≥30 tests
+  covering the moved code) is met at 86 total / 25 new. T-111 and T-112's
+  per-module bars (≥20 and ≥15 colocated tests) are **not** met and are left
+  open on those tickets rather than claimed.
+
+**Watch out**
+- **T-110 could not have landed alone.** `parseM3u` depends on
+  `extractAuthQuery` and `parseLicenseKeyValue`, so moving it first would put
+  `lib/m3u.js` and `utils.js` in an import cycle — which `npm run validate`
+  rejects. The three leaf modules had to move together. Anyone sequencing
+  T-111/T-112 before T-110 in the ticket list should read this first.
+- **`lib/` is scanned by the modularity guard, including test files.**
+  `walk()` recurses and matches every `.js`, so `lib/*.test.js` must stay
+  DOM-free too. Fine today, worth knowing before writing a lib test that
+  reaches for `document`.
+- **A bundle hash change is expected here.** The old hash was
+  `index.4Ng0uPJB.js`; the split produces `index.DZXs08fz.js` for a 6-byte
+  difference. Do not treat a hash change as a regression when a refactor
+  crosses a module boundary — compare sizes, not names.
+- `git stash` around a rebuild is the reliable way to get a before/after
+  comparison; `npm run build` rewrites `dist/`, so build order matters.
+
+**Next**
+- **T-111** — add colocated `lib/url.test.js` (≥20 tests, including the
+  `data:` license-URI regression from BUG-013) and move the `withAuthQuery` /
+  `redactUrl` assertions out of `utils.test.js`.
+- **T-112** — colocated `lib/drm.test.js` (≥15), covering all three
+  `license_key` forms plus rejections.
+- Then **T-113** (`lib/time.js` from `settings.js`) and **T-114**
+  (`lib/capabilities.js`), which close out M1.
+
+---
+
 ## 2026-11-16 — Phase 0 closed: audit clean, CI gates merges, stale plan retired — @maintainer
 
 **Ticket:** T-100, T-106 (plus T-107 status correction, `FILE_SPLIT_PLAN` cleanup)
