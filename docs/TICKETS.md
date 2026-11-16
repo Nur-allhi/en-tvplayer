@@ -36,9 +36,11 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** a push with a failing test shows a red check, and the merge
   into `dev` is stopped by that red check.
 - **Depends:** T-101 (or gate inline)
-- **Notes:** no `.github/` directory exists today. Enable "require status
-  checks to pass" on `dev` in GitHub settings — with no required reviewers,
-  since there is only one maintainer.
+- **Status:** ✅ done 2026-11-15 — `.github/workflows/ci.yml` runs on push and
+  PR for `main`/`dev`. Branch protection enabled on `dev` with both checks
+  required (`Test · Lint · Build · Modularity`, `WGT packaging`), no required
+  reviewers, force-push and deletion blocked. Verified via the branch
+  protection API.
 
 ### T-101 — Modularity validator script
 - **Type:** chore · **Priority:** P0 · **Size:** S (~150 LOC)
@@ -107,6 +109,11 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** resolve the `vite ≤6.4.3` and `source-map-js` advisories
   (`npm audit fix`). Dev-server only — not shipped to TVs.
 - **Acceptance:** `npm audit` reports no high/critical; build and tests still pass.
+- **Status:** ✅ done 2026-11-15 — `npm audit fix` moves vite 6.3.5 → 6.4.6,
+  source-map-js 1.2.1 → 1.2.2, vitest 5.0.2 → 5.1.0, eslint 10.11 → 10.15.
+  `npm audit` reports **0 vulnerabilities**. All four gates green and the
+  built bundle is byte-identical (`index.4Ng0uPJB.js`, 931.2 KB), confirming
+  nothing reaching the app changed.
 
 ### T-107 — Toolchain portability fixes
 - **Type:** fix · **Priority:** P0 · **Size:** XS
@@ -118,7 +125,8 @@ A ticket is only `done` when it meets the **Definition of Done**
      `process.platform`; the Windows form creates a literal `nul` file on Linux.
 - **Acceptance:** `npm run proxy` starts on Linux; `npm run tizen` creates no
   stray file in `tizen/`.
-- **Status:** 🔄 in progress — applied to the working tree, needs a commit.
+- **Status:** ✅ done — committed as `cb9ccbe`
+  (`fix(tooling): make the proxy and WGT packager work on Linux`).
 
 ---
 

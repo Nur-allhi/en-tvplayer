@@ -71,7 +71,7 @@ Summary of the goals:
 ### 6. Split oversized files toward the 300-LOC rule — `deferred` → v4
 - Problem: `ui.js` (~1460), `player.js` (~1670), `main.js` (~1590),
   `styles.css` (~1770) — every recent fix touched these hot files.
-- Original plan: `docs/FILE_SPLIT_PLAN.md` (Phases 1–4).
+- Original plan: `docs/FILE_SPLIT_PLAN.md` (Phases 1–4) — **superseded**, see below.
 - **Superseded**: the v4 plan splits the same files, but sequenced behind a
   test-coverage phase and with a CI-enforced ratchet so the debt can only
   shrink. See `docs/v4.PLAN.md` M1–M5 and `docs/TICKETS.md` T-110…T-152.
