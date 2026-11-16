@@ -362,6 +362,11 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Type:** refactor · **Priority:** P0 · **Size:** XS
 - **Acceptance:** `player.js` gone; `player/index.js` is the only entry;
   every importer updated; full suite green.
+- **Status:** ⛔ blocked 2026-11-16 — still owns `initPlayer`, `loadChannel`,
+  the recovery/watchdog paths and the DOM helpers that T-121 was meant to
+  extract. It cannot be deleted until T-121 is re-scoped and landed; the
+  index hub cannot be the only entry while those functions live here.
+  T-122 extracted only the events and stream slices.
 
 ---
 

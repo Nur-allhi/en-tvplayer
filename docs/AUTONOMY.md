@@ -45,9 +45,9 @@ status on `dev`.
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-123      # first unresolved row below
+NEXT        = T-130      # first unresolved row below
 MODE        = unattended # agent must not ask questions
-LAST_RUN    = 2026-11-16 # T-122 done; T-121 blocked (see SESSION_LOG)
+LAST_RUN    = 2026-11-16 # batch complete: T-122 done; T-121/T-123 blocked
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -90,7 +90,7 @@ with the exact gate output; agent skipped it.
 |------:|--------|-------|-------|----------------|
 | 1 | T-121 | `player/init.js` + `player/load.js` | blocked | spec infeasible as written — needs atomic M2 re-scope |
 | 2 | T-122 | `player/events.js` + `player/stream.js` | done | merged + gated 2026-11-16 |
-| 3 | T-123 | delete `player.js`, `player/index.js` hub | ready | after T-122; 24 exports preserved |
+| 3 | T-123 | delete `player.js`, `player/index.js` hub | blocked | needs T-121 re-scope; player.js still owns the engine |
 | 4 | T-130 | `ui/state.js` | ready | before T-131; 21 shared vars — measure, don't trust the number |
 | 5 | T-131 | `ui/dialogs.js` | ready | zero deps on other UI modules |
 | 6 | T-132 | `ui/osd.js` | ready | z-index contract `TIZEN_GUIDE.md` §6.3 |

@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Night shift batch complete: 1 done, 2 blocked — @nightshift
+
+**Ticket:** T-121 ⛔ / T-122 ✅ / T-123 ⛔ · **Branch:** see per-ticket entries
+**Status:** ✅ batch limit (3) reached — dev green, no force-push, no main/release/tag/key touched
+
+**What changed**
+- T-121 — blocked, spec unimplementable as a pure move (351-LOC function +
+  three-node import cycle). Its own entry has the full analysis.
+- T-122 — done: `player/events.js` + `player/stream.js`, 24-name API intact.
+- T-123 — blocked: `player.js` still owns the engine because T-121 is blocked.
+- `docs/AUTONOMY.md` — `NEXT` advanced to **T-130**, `LAST_RUN` set.
+
+**Verified**
+- Every gate green on the feature branch **and again on dev** after each
+  merge: 243 tests, lint, modularity (0 new violations), format, build, and
+  `npm run tizen` with the expected certificate fingerprint.
+- Bundle 963.24 kB → 963.24 kB (0 %), well inside ±2 %.
+- CI on `dev`: `Test · Lint · Build · Modularity` green; `WGT packaging`
+  checked after the push (see status note below).
+
+**Decisions**
+- Three tickets processed, then stop — `BATCH_LIMIT = 3`. Two of them blocked,
+  but **not consecutively** (T-122 landed between them), so stop condition 2
+  did not fire.
+- No TV verification claimed. T-122 moved DRM-adjacent code but changed no
+  logic; `isEmeSupported` was copied verbatim and the bundle is unchanged in
+  size. Hardware smoke test is still owed by the maintainer.
+
+**Watch out**
+- The maintainer must re-scope **T-121** before M2 can finish. Until then,
+  T-123 cannot land and the `player/index.js` hub does not exist.
+- `docs/REFINED_UX_REPORT.md` is still untracked and was never staged.
+- GitHub prints "Bypassed rule violations ... 2 of 2 required status checks
+  are expected" on each dev push — the checks attach to the new SHA shortly
+  after; both were green when checked.
+
+**Next**
+- Maintainer: re-scope T-121 as an atomic M2 refactor (state-injected
+  cross-slice calls, ~6 modules), then re-run. The queue resumes at T-130 for
+  the next automated batch.
+
+---
+
 ## 2026-11-16 — T-122: events and stream slices extracted — @nightshift
 
 **Ticket:** T-122 ✅ · **Branch:** `feature/t-122-events-stream` → `dev`
