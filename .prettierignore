@@ -1,0 +1,26 @@
+# Prettier ignores — a shrinking list, not a permanent exemption.
+#
+# AGENTS.md §11.6: "Legacy files are formatted gradually on touch, never in a
+# big-bang reformat." Each file below has never been run through Prettier.
+# Reformatting them in one commit would rewrite ~3100 lines that no ticket is
+# touching, which would bury the real change and make a regression impossible
+# to bisect.
+#
+# Rule: when you touch one of these files for any other reason, run
+#   npx prettier --write <file>
+# and delete its line here in the same commit. The list only ever shrinks.
+#
+# Verified 2026-11-16 — these are the only player/src files that fail
+# `prettier --check` once line endings are normalised (endOfLine: auto).
+player/src/settings.js
+player/src/styles.css
+player/src/avplay.js
+player/src/remote.js
+player/src/xtream.js
+
+# Build output and vendored code, if ever present.
+player/dist/
+node_modules/
+releases/
+beta/
+stable/

@@ -42,6 +42,22 @@ A ticket is only `done` when it meets the **Definition of Done**
   reviewers, force-push and deletion blocked. Verified via the branch
   protection API.
 
+### T-210 — Make the formatting check enforceable
+- **Type:** chore · **Priority:** P1 · **Size:** S
+- **Spec:** `npm run format:check` reported 26 files on a clean checkout, so
+  CI carried `continue-on-error: true` and formatting had no signal at all.
+  Fix the cause rather than the symptom.
+- **Acceptance:** `npm run format:check` exits 0 on a clean checkout; CI runs
+  it without `continue-on-error`; the never-formatted legacy files are
+  tracked as a shrinking list, not reformatted in bulk (`AGENTS.md` §11.6).
+- **Status:** ✅ done 2026-11-16 — two causes, two fixes. Line endings (21 of
+  26): added `.gitattributes` (`* text=auto eol=lf`) and prettier
+  `endOfLine: "auto"`; the repo stored LF while `core.autocrlf` checked out
+  CRLF. Real drift (5 files): `.prettierignore` lists `settings.js`,
+  `styles.css`, `avplay.js`, `remote.js`, `xtream.js` — measured at ~3158
+  lines if reformatted together, which §11.6 forbids. CI step now runs
+  `npm run format:check` with no escape hatch. Result: 26 failures → 0.
+
 ### T-101 — Modularity validator script
 - **Type:** chore · **Priority:** P0 · **Size:** S (~150 LOC)
 - **Spec:** `scripts/validate-modularity.mjs`. Checks: every file under

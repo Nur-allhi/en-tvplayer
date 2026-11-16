@@ -42,10 +42,11 @@ jobs:
         run: node scripts/check-bundle-size.mjs
 
       - name: Formatting check
-        # Only the files the pre-commit hook formats; legacy files are
-        # reformatted on touch, never in a big-bang pass.
-        run: npx prettier --check "player/src/**/*.{js,css}" "scripts/**/*.mjs"
-        continue-on-error: true
+        # Enforced, not advisory. .prettierignore carries the 5 never-formatted
+        # legacy files as a shrinking ratchet (AGENTS.md §11.6); everything
+        # else must be clean. `.gitattributes` pins LF so a Windows CRLF
+        # checkout cannot fail this for a non-style reason.
+        run: npm run format:check
 
   wgt:
     name: WGT packaging
