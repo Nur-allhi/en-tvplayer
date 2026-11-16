@@ -44,6 +44,79 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-129: 45 shared bindings into one state object — @maintainer
+
+**Ticket:** T-129 ✅ · **Branch:** `refactor/t-129-player-state` → `dev`
+**Status:** ✅ done — Risk C mitigated; T-120 is unblocked
+
+**What changed**
+- **`player/src/player/state.js` (new, 103 LOC)** — one exported `state`
+  object holding **45** bindings: engine/DOM handles, subscriptions, current
+  tune + `loadToken`, reconnect and stall budgets, the segment-404 window, the
+  native-fallback flags, and the three URL-keyed workaround caches.
+- **`player.js`** — every read/write is now `state.<name>`; the 45 declarations
+  are gone. 1533 → 1464 LOC.
+- **`state.test.js` (9 tests)** — pins object identity (not a factory), the
+  staleness-guard semantics, shared `Set`/`Map` membership, and that
+  `useAvplay` stays runtime state rather than a capability.
+- **196 tests** (was 187).
+
+**How the rename was done, and why not a regex**
+`player.js` line 24 contains a regex literal with quote characters in it
+(`/(https?:\/\/[^\s'"]+?)[?#]/`). A hand-written string/comment scanner cannot
+tell `'` inside a regex from the start of a string, so it desynced — my first
+attempt reported **0 renames** while looking like it had succeeded. The fix was
+to parse with `acorn` (already present via eslint) and rewrite by identifier
+node range, which excluded `config.player` and `shaka.Player` automatically.
+Result: **495** rewrites, all 45 names touched.
+
+**Verified**
+- `npm test` → **196 passed** · `lint` clean · `validate` 29 files,
+  0 new violations, 7 baselined · `format:check` clean
+- `npm run build` ok · `npm run tizen` → WGT 469.3 KB
+- **Bundle 931.9 → 938.3 KB (+0.69 %)** — inside the plan's ±2 % criterion.
+  The delta is the 495 `state.` prefixes; nothing else was added.
+- **Diff audit:** every added line except the import and three comment lines
+  contains `state.` — the change is a pure rename.
+- Bare-identifier grep for all 45 names returns nothing outside strings and
+  comments.
+
+**Decisions**
+- **Property mutation, never destructuring.** `const { loadToken } = state`
+  would snapshot a number and every staleness comparison would silently pass.
+  All 495 sites are `state.x`.
+- **No `resetTuneState()` helper**, though it was tempting. The five reset
+  blocks in `loadChannel` restore *different* subsets (567–582, 730–734,
+  1402–1405, 1437–1450). Unifying them would have changed behaviour inside a
+  commit that claims to be a pure move. The state moved; the reset logic did
+  not.
+- **T-130 will hit the same trap.** `ui.js` has the same shape, and the ticket's
+  "21 variables" estimate was low here by more than half — expect more.
+
+**Watch out**
+- **`player.js` was NOT on the `.prettierignore` ratchet** (unlike
+  `settings.js`/`avplay.js`/`remote.js`), so it was already prettier-clean and
+  the rename broke its formatting. Ran `prettier --write` to restore it. If a
+  future edit shows a formatting failure here, that is the cause — not a new
+  legacy exemption.
+- **`state` is a plain object, not reactive.** T-170 converts it later, in a
+  separate phase, so a failure then has one cause. Do not add subscribers here.
+- **`useAvplay` genuinely belongs in `state`**, even though it looks like a
+  capability. It records that *this channel* fell back (T-115). The probe
+  answers what the *platform* can do.
+- **The WGT still carries the old hash** (`dfa0ba8`) because the name comes
+  from the last commit. Expected; it only proves signing works.
+
+**Next**
+- **T-120 (`player/recovery.js`)** is now unblocked and is the real reason
+  T-129 existed — the retry budgets live there and it is the highest-risk file
+  in the app. Tests first: ≥30 composition tests mapping each decision to its
+  action, before any slicing.
+- Then the rest of M2 (`init.js`, `load.js`, `events.js`, `stream.js`) and
+  `player/index.js` as the re-export hub.
+
+---
+
 ## 2026-11-16 — T-115: one probe, and two latent bugs it exposed — @maintainer
 
 **Ticket:** T-115 ✅ · **Branch:** `refactor/t-115-capability-wiring` → `dev`

@@ -172,6 +172,24 @@ failure has one cause.
 
 `player.js` and `settings.js` have the same pattern and the same fix.
 
+**Done for `player.js` (T-129, 2026-11-16).** It was **45** shared bindings, not
+21 — the estimate was low by more than half. They now live in
+`player/src/player/state.js` as properties of one exported object, with
+`player.js` referencing them as `state.<name>`. Verified: 196 tests, bundle
++0.69 % (inside the ±2 % budget), no behaviour change.
+
+Two lessons worth carrying into T-130:
+
+1. **Do the rename with a real parser.** A regex or a hand-written scanner
+   cannot tell a regex literal from division, and `player.js` contains
+   `/…[^\s'"]+?…/` — my scanner silently produced **zero** renames because the
+   quote characters inside that literal desynced it. Parsing with `acorn` and
+   editing by node range is what actually worked.
+2. **Do not invent a "reset all state" helper while you are in there.** The
+   five reset sites in `loadChannel` restore different subsets of the counters.
+   Merging them would have changed behaviour inside a commit claiming to be a
+   pure move. Move the state; leave the reset logic exactly where it was.
+
 ---
 
 ## 5. What is safe to delete, and when

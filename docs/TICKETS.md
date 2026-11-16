@@ -318,6 +318,25 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Depends:** — · **Must land before T-120.**
 - **Notes:** `docs/MIGRATION.md` §4 Risk C. Same pattern applies to `ui.js`
   (T-130) and `settings.js`.
+- **Status:** ✅ done 2026-11-16 — `player/src/player/state.js` (103 LOC),
+  `state.test.js` (**9 tests**). **45** bindings moved, not "~20": the ticket
+  underestimated the coupling. `player.js` 1533 → 1464 LOC.
+  - Renamed to `state.<name>` at **495** sites via an AST transform (acorn),
+    not a regex. A regex is unsafe here: `player.js` contains a regex literal
+    with quote characters in it, which desyncs any hand-written
+    string/comment scanner — my first attempt silently found 0 renames
+    because of exactly that.
+  - `config.player` and `shaka.Player` were left untouched (property
+    accesses, excluded by the transformer). Verified by re-running the
+    transform's own audit plus a bare-identifier grep that returns nothing.
+  - **No `resetTuneState()` helper was added, deliberately.** The five reset
+    sites in `loadChannel` reset *different* subsets (lines 567–582 vs 730–734
+    vs 1402–1405 vs 1437–1450), so unifying them would have changed behaviour
+    while claiming to be a pure move.
+  - Bundle 931.9 → 938.3 KB (**+0.69 %**), inside the plan's ±2 % criterion;
+    the delta is the 495 `state.` prefixes.
+  - Behaviour-neutral by construction: every expression changed only by
+    prefixing an identifier that already resolved to module scope.
 
 ### T-130 — Extract `ui/state.js` (shared module state)
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~120 LOC)
