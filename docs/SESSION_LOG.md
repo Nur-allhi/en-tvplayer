@@ -44,6 +44,58 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-132: OSD slice extracted; batch complete (3/3) — @nightshift
+
+**Ticket:** T-132 ✅ · **Branch:** `feature/t-132-ui-osd` → `dev`
+**Status:** ✅ done — `ui/osd.js`, z-index contract intact; batch limit reached
+
+**What changed**
+- **`player/src/ui/osd.js`** (new, 209 LOC) — 20 functions (14 public, 6
+  private) + 8 slice-local vars: channel OSD, buffering pill, empty-state
+  brand, watermark/badge, tune toast. Uses only `document`, `ui/state.js` and
+  pure helpers from `utils.js`/`logic.js`.
+- **`ui.js`** — the three OSD blocks removed (201 lines); re-exports the 14
+  public names. `applySidebar()` still calls `applyWatermark()`, now imported
+  one-way from `ui/osd.js` (exported from the slice). No import cycle.
+- Docs: T-132 → done, `NEXT` → T-133, `LAST_RUN` = batch complete.
+
+**Verified**
+- AST export audit: **74 before / 74 after**, none added or removed.
+- **z-index contract:** `styles.css` untouched; values still present —
+  veil 30 (`:436`), pills 40 (`:476/:544/:758/:779`), splash 200
+  (`:815/:1456`), modals 300 (`:1630`). No inline z-index in JS.
+- `npm test` → 248 passed · `npm run lint` → clean · `npm run validate` →
+  39 files, 0 new violations · `npm run format:check` → clean ·
+  `npm run build` → `index.BbQQvWmZ.js` 966.90 kB (0 %) · `npm run tizen` →
+  WGT signed with the expected fingerprint.
+- No TV verification attempted or claimed.
+
+**Decisions**
+- **Extracted only what is actually in `ui.js`.** The ticket also names
+  "play-state overlay" and "progress toast"; their DOM is in `index.html` but
+  they are driven from `main.js:1121-1138` and `player.js:1381`, not `ui.js`.
+  Inventing them here would change behaviour. They travel with the app/player
+  slices instead. Recorded in the ticket status.
+- **One-way call for `applyWatermark`.** Exported it from the slice and
+  imported it into `ui.js` rather than duplicating it — keeps `applySidebar`
+  behaviour identical and avoids a cycle (the slice never imports `ui.js`).
+- **No new tests** — all moved functions are DOM-coupled; verified by export
+  parity + build, as T-131 was.
+
+**Watch out**
+- `ui.js` stays in the modularity baseline until T-135 deletes it.
+- `docs/REFINED_UX_REPORT.md` remains untracked and untouched.
+
+**Next**
+- T-133 (`ui/sidebar.js` + `ui/search.js`) — sidebar toggle, groups, search;
+  preserve the T-037 search flow and hidden-group handling.
+
+**Batch summary:** BATCH_LIMIT = 3 reached — T-130, T-131, T-132 all merged
+and green; dev push `142442c` had both CI checks green. No blocked tickets,
+no force-push, no main/release/tag/key touched.
+
+---
+
 ## 2026-11-16 — T-131: confirm dialog extracted — @nightshift
 
 **Ticket:** T-131 ✅ · **Branch:** `feature/t-131-ui-dialogs` → `dev`

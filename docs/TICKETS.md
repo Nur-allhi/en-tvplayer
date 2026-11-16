@@ -451,6 +451,22 @@ A ticket is only `done` when it meets the **Definition of Done**
   play-state overlay, progress toast.
 - **Acceptance:** the z-index contract from `docs/TIZEN_GUIDE.md` §6.3 holds
   (veil 30, pills 40, splash 200, modals 300).
+- **Status:** ✅ done 2026-11-16 — `player/src/ui/osd.js` (209 LOC), 20
+  functions (14 public + 6 private) with 8 slice-local vars. Moved channel
+  OSD, buffering pill, empty-state brand, watermark/badge and tune toast;
+  `ui.js` re-exports the 14 public names (AST audit 74 before / 74 after).
+  The one cross-slice call is `applySidebar()` → `applyWatermark()`, handled
+  by a one-way `ui.js → ui/osd.js` import (no cycle).
+  - **z-index contract:** unchanged — CSS was not touched. Verified the
+    values still present: veil 30 (`styles.css:436`), pills 40
+    (476/544/758/779), splash 200 (815/1456), modals 300 (1630). No inline
+    z-index is set in JS.
+  - **"Play-state overlay" and "progress toast" are not in `ui.js`** — their
+    DOM lives in `index.html` but is driven from `main.js:1121-1138` and
+    `player.js:1381`. They will travel with the app/player slices (T-150+
+    and T-123), not T-132. Recorded rather than invented.
+  - `ui.js` 1408 → 1227 LOC. Bundle 966.90 → 966.90 kB (0 %). All gates
+    green, plus `npm run tizen`. No TV verification claimed.
 
 ### T-133 — `ui/sidebar.js` + `ui/search.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~380 LOC combined)
