@@ -44,6 +44,30 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — TV verification deferred — @maintainer
+
+**Decision:** hardware verification is postponed. T-130, T-131 and T-132 are
+merged and gated, but no TV is attached to this machine, so they stay
+effectively `needs-tv`. Same for T-184, T-185, T-190 and T-191.
+
+**What changed**
+- `docs/TICKETS.md` — a "Deferred TV test" note under the ticket-state table
+  names every affected ticket and tells agents not to claim hardware
+  verification. Search the session log for "No TV verification claimed".
+
+**Why**
+The maintainer chose to test later. Nothing on this machine can exercise
+remote input, playback or the soft keyboard, so an agent asserting hardware
+verification would be fabricating it. The note makes the gap discoverable.
+
+**Watch out**
+- Deferred is not waived. Before calling v4.0.0 ready, sideload a WGT and
+  check channel navigation, sidebar, confirm dialog, OSD, playback, and the
+  Tizen 5.0 shims (T-190).
+- The nightly run continues unchanged at 23:35 Dhaka, NEXT = T-133.
+
+---
+
 ## 2026-11-17 — T-121 re-scoped into four atomic tickets — @maintainer
 
 **Ticket:** T-121 (umbrella) → **T-124, T-125, T-126, T-127**
