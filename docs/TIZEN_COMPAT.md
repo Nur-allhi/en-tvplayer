@@ -122,13 +122,15 @@ export function detectCapabilities(win) {
   // (abridged — every read is wrapped in try/catch)
   return {
     isTizen: !!(w && w.tizen),
+    hasTvInputDevice: !!(w && w.tizen && w.tizen.tvinputdevice),
+    hasApplicationControl: !!(w && w.tizen && w.tizen.application),
     webApiVersion: parseWebApiVersion(w && w.tizen && w.tizen.webAPIVersion),
     hasAbortController: typeof w.AbortController !== 'undefined',
     hasTrimStart: typeof ''.trimStart === 'function',
     hasResizeObserver: typeof w.ResizeObserver !== 'undefined',
     hasRequestVideoFrameCallback: /* HTMLVideoElement.prototype check */,
     hasMediaCapabilities: !!(w.navigator && w.navigator.mediaCapabilities),
-    hasShaka: !!(w.shaka || w.ShakaPlayer),
+    hasShaka: true, // bundled as a module — see note below
     hasAvplay: !!(w.webapis && w.webapis.avplay),
   };
 }
@@ -136,6 +138,12 @@ export function detectCapabilities(win) {
 export function capabilities() {}   // cached probe
 export function currentEngine() {}  // selectEngine(capabilities())
 ```
+
+> **`hasShaka` is deliberately not probed.** The app imports Shaka as an ES
+> module (`import shaka from 'shaka-player'`) and never assigns `window.shaka`,
+> so probing the global reported `false` on every TV the app actually ships to
+> — which made `selectEngine()` claim a working Shaka TV was native-only. If
+> this code runs, Shaka is there. Do not "restore" the global check.
 
 ```js
 // player/src/lib/capabilities.js — pure, DOM-free, unit-tested
@@ -146,23 +154,31 @@ export function selectEngine(caps) {}        // 'shaka' | 'native' | 'none'
 export function engineLabel(engine) {}
 export function missingApis(caps) {}
 export function canObserveVideoFrames(caps) {}
+export function hasTvKeyInput(caps) {}
+export function platformName(caps) {}
 ```
 
 Taking `win` as a parameter is what makes the probe testable in the project's
 node test env — no jsdom, no globals to stub.
 
-Consumers:
+Consumers (all shipped as of T-115):
 
-- `player/recovery.js` — native fallback when `hasAvplay && !hasShaka`
-- `player/black-watchdog.js` — `getVideoPlaybackQuality()` path when
-  `!hasRequestVideoFrameCallback`
-- `app/about.js` — display "Engine: Shaka / Native / Browser" + TV API version
+- `avplay.js` — `isAvailable()` is now `capabilities().hasAvplay`; the module
+  keeps only its own runtime state (whether it opened the native instance)
+- `main.js` — `registerTizenKeys()` and app exit read `hasTvKeyInput` /
+  `hasApplicationControl`
+- `remote.js` — the search-field Backspace/Enter handling reads `hasTvKeyInput`
+- `settings.js` — the IME re-focus behaviour reads `hasTvKeyInput`
+- `update.js` — the opt-in usage ping reports `platformName(caps)`
 
-> **Wiring status:** the probe and its decisions are shipped and tested, but
-> `avplay.isAvailable()` and `player.js`'s engine choice still have their own
-> checks. Folding them onto the probe is **T-115**. Note that
-> `player.js`'s `useAvplay` is *runtime state* (this channel fell back), which
-> is not the same as a *platform capability* — do not collapse the two.
+> **`window.tizen` and `window.webapis` are read in exactly one file.**
+> `capabilities.js` is the only place that inspects them; everything else asks
+> the probe. Remaining `window.tizen.*` occurrences are *API calls* after a
+> guard (e.g. `registerKey`), not detection — leave those alone.
+>
+> **`player.js`'s `useAvplay` is runtime state, not a capability.** It records
+> that a *specific channel* fell back to native. `selectEngine()` answers what
+> the *platform* can do. Do not collapse the two.
 
 ---
 
