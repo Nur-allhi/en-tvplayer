@@ -390,7 +390,13 @@ A ticket is only `done` when it meets the **Definition of Done**
   LOC drops by ≥ 80; behaviour identical (characterise first); no file > 300.
 - **Depends:** T-124
 - **Notes:** prerequisite to T-126 so the moved `loadChannel` fits under 300.
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `lib/mime.js` (60 LOC) holds `detectMimeType`
+  + `sniffMimeFromBytes` (23 new tests). `isNativeLoadCrash`/`isRecoverable`
+  were already in `player/recovery.js` — verified equivalent (the `httpStatusOf`
+  `null` vs `undefined` difference is unreachable at the branch), so the two
+  local duplicates were deleted in favour of imports, not re-created.
+  `player.js` 1487 → 1402 LOC (−85, ≥80 target). All gates green incl.
+  `npm run tizen`; bundle 969.37 → 968.97 kB (−0.04 %). No TV verification claimed.
 
 ### T-126 — `player/init.js` — init + destroy slice
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~200 LOC)

@@ -44,6 +44,50 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-125: pure helpers out of loadChannel — @nightshift
+
+**Ticket:** T-125
+**Branch:** `feature/t-125-load-helpers` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/lib/mime.js` (new, 60 LOC) — `detectMimeType(url)` and
+  `sniffMimeFromBytes(bytes)`, the two DOM-free MIME decisions formerly inline
+  in `player.js`. The fetch/AbortController part of `probeChannelFormat` stays
+  in `player.js`; only the byte-decision moved.
+- `player/src/lib/mime.test.js` (new, 23 tests) — characterises URL extension
+  hints, numeric-path detection, ftyp/HLS/DASH/TS byte sniffing and all null
+  cases.
+- `player.js` — imports the two mime helpers; deleted the local
+  `detectMimeType` and the inline sniff block (now `sniffMimeFromBytes(bytes)`).
+
+**Verified**
+- `npm test` → 284 passed (was 261, +23); `npm run lint`, `npm run validate`
+  (50 files, 0 new violations), `npm run format:check`, `npm run build` and
+  `npm run tizen` all green.
+- `player.js` 1487 → 1402 LOC (−85, ≥80 target met).
+- Bundle 969 370 → 968 971 B (−0.04 %).
+
+**Decisions**
+- The ticket guessed `isNativeLoadCrash` might be in `lib/drm.js`; it is actually
+  already in `player/recovery.js` alongside `isRecoverable`, both with existing
+  tests. Verified equivalence (recovery's `httpStatusOf` yields `null` where the
+  local copy yielded `undefined`; both falsy at the same branch), then deleted
+  the two local duplicates in favour of imports — no new module, no reimplementation.
+- The counter-reset decision already used `logic.js` `tuneCountersReset` at the
+  channel-switch site; nothing to reimplement there.
+
+**Watch out**
+- `sniffMimeFromBytes` must keep the `head.includes('#EXT-X-')` check on the raw
+  (untrimmed) head — the original used raw `head` there, trimmed only for the
+  `startsWith` checks. The tests pin this.
+- No TV connected. No TV verification claimed — the probe path is playback code.
+
+**Next**
+- T-126 — extract `initPlayer` + `destroyPlayer` into `player/init.js`.
+
+---
+
 ## 2026-11-17 — T-124: player deps registry — @nightshift
 
 **Ticket:** T-124
