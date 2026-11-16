@@ -174,10 +174,12 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** ≥ 20 tests, including the `data:` license-URI case that
   must never get a query string appended (BUG-013 / v3.0.4 regression).
 - **Depends:** —
-- **Status:** 🔄 module moved with T-110 (`player/src/lib/url.js`, 73 LOC,
-  `extractAuthQuery` / `withAuthQuery` / `redactUrl`); **test expansion still
-  open** — no colocated `lib/url.test.js` yet, the coverage lives in
-  `utils.test.js`.
+- **Status:** ✅ done 2026-11-16 — module moved with T-110
+  (`player/src/lib/url.js`, 73 LOC); colocated **`lib/url.test.js` (152 LOC,
+  34 tests)** added, exceeding the ≥20 bar. Covers `withAuthQuery` append/merge
+  /fragment behaviour, the `data:`/`blob:`/`file:` non-network cases
+  (BUG-013 / v3.0.4 regression), regex-metacharacter param names, and all
+  `extractAuthQuery` cookie cases including duplicate suppression.
 
 ### T-112 — `lib/drm.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~110 LOC)
@@ -185,9 +187,12 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** ≥ 15 tests covering all three `license_key` forms (single
   `KID:KEY`, unquoted dict, JSON dict) plus the rejection cases.
 - **Depends:** —
-- **Status:** 🔄 module moved with T-110 (`player/src/lib/drm.js`, 57 LOC);
-  **test expansion still open** — coverage lives in `utils.test.js` and
-  `parse-m3u.test.js`, no colocated `lib/drm.test.js` yet.
+- **Status:** ✅ done 2026-11-16 — module moved with T-110
+  (`player/src/lib/drm.js`, 57 LOC); colocated **`lib/drm.test.js` (102 LOC,
+  19 tests)** added, exceeding the ≥15 bar. Covers all three `license_key`
+  forms (single `KID:KEY`, unquoted dict, JSON dict), hex normalisation and
+  dash stripping, and the rejection cases. Two of the first-draft
+  expectations were wrong and the tests caught it — see `docs/SESSION_LOG.md`.
 
 ### T-113 — `lib/time.js`
 - **Type:** refactor · **Priority:** P1 · **Size:** XS (~60 LOC)
