@@ -4,6 +4,7 @@ import { login as xtreamLogin } from './xtream.js';
 import { setConsented } from './update.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
+import { timeAgo, formatDate } from './lib/time.js';
 
 let container = null;
 let onPlaylistFetched = null;
@@ -1041,26 +1042,6 @@ async function handleFetch() {
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;
   }
-}
-
-function formatDate(isoString) {
-  if (!isoString) return 'Never';
-  const d = new Date(isoString);
-  if (isNaN(d.getTime())) return 'Never';
-  return d.toLocaleDateString();
-}
-
-function timeAgo(isoString) {
-  if (!isoString) return 'Never';
-  const diff = Date.now() - new Date(isoString).getTime();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 10) return 'Just now';
-  if (seconds < 60) return seconds + 's ago';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + 'm ago';
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + 'h ago';
-  return new Date(isoString).toLocaleDateString();
 }
 
 

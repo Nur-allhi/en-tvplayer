@@ -199,6 +199,12 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** move `timeAgo`, `formatDate` out of `settings.js`.
 - **Acceptance:** ≥ 8 tests; no locale-dependence surprises (pin the locale
   in assertions).
+- **Status:** ✅ done 2026-11-16 — `player/src/lib/time.js` (37 LOC),
+  `lib/time.test.js` (**12 tests**). `timeAgo` gained an optional `now`
+  parameter (the caller's reference instant) so the buckets are testable
+  without freezing the clock; `settings.js` calls it with the old 1-arg form
+  and behaviour is unchanged. Both accept an optional pinned `locale`.
+  `settings.js` 1067 → 980 LOC: import added, both local definitions deleted.
 
 ### T-114 — `lib/capabilities.js`
 - **Type:** feat · **Priority:** P0 · **Size:** S (~70 LOC)
@@ -208,6 +214,41 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** ≥ 10 tests with a mocked `window`; every platform decision
   in the app reads from here and nowhere else.
 - **Spec detail:** `docs/TIZEN_COMPAT.md` §4.
+
+### T-115 — Route platform decisions through `capabilities.js`
+- **Type:** refactor · **Priority:** P1 · **Size:** S
+- **Spec:** T-114 built the single probe; this makes it the only source.
+  Today there are three independent answers to "can we use native playback?":
+  `avplay.js` `isAvailable()`, `player.js`'s `useAvplay` module flag, and now
+  `lib/capabilities.js` `selectEngine()`. Fold the first two onto the third.
+- **Acceptance:** `grep -r "typeof window.webapis" player/src` appears only in
+  `capabilities.js`; `avplay.js` exposes no platform detection of its own;
+  the native-fallback behaviour is unchanged (characterise with a test on
+  `selectEngine` before touching the callers).
+- **Depends:** T-114.
+- **Notes:** behaviour risk, not a code move — `player.js` keeps `useAvplay`
+  as *runtime state* (a channel may switch engine), which is not the same
+  thing as a *platform capability*. Do not collapse the two: the probe says
+  what is possible, the flag says what is currently in use.
+- **Status:** ✅ done 2026-11-16 — **split across two files, because the plan's
+  single-file version cannot pass the guard.** `TIZEN_COMPAT.md` §4 places the
+  probe in `lib/capabilities.js`, but `lib/` is DOM-free by rule and the guard
+  matches `/\bwindow\b/`, which `typeof window !== 'undefined'` also trips.
+  So:
+  - `player/src/lib/capabilities.js` (78 LOC) — **pure decisions**:
+    `parseWebApiVersion`, `meetsMinimumPlatform`, `selectEngine`,
+    `engineLabel`, `missingApis`, `canObserveVideoFrames`,
+    `MIN_WEB_API_VERSION`.
+  - `player/src/capabilities.js` (68 LOC) — **the one place that reads
+    globals**: `detectCapabilities(win?)` (injectable for tests, every read
+    wrapped in try/catch), plus a cached `capabilities()` and
+    `currentEngine()`.
+  - Tests: `lib/capabilities.test.js` (**24**) + `capabilities.test.js`
+    (**10**, with a fake `window`) = **34**, against a bar of 10.
+  - **Consumer wiring is NOT done.** Acceptance says every platform decision
+    must read from here; today `avplay.js` has its own `isAvailable()` and
+    `player.js` keeps its own `useAvplay` state. Migrating them is real
+    behaviour risk with no ticket — left open deliberately, see "Next" below.
 
 ---
 

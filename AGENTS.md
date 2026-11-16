@@ -75,12 +75,15 @@ en-tvplayer/
 │   │   ├── remote.js    Remote control handler
 │   │   ├── update.js    Update checker + opt-in ping
 │   │   ├── config.js    localStorage settings
-│   │   ├── utils.js     Shared utilities
+│   │   ├── capabilities.js  Runtime capability probe (the only window reader)
+│   │   ├── utils.js     Playlist fetch + escapeHtml
 │   │   ├── logic.js     Pure DOM-free logic (testable, no side effects)
 │   │   ├── lib/         Extracted pure modules — DOM-free, unit-tested
 │   │   │   ├── m3u.js   M3U parsing, Kodi pipe suffix, stream headers
 │   │   │   ├── url.js   Auth-query promotion, URL redaction
-│   │   │   └── drm.js   ClearKey `license_key` parsing
+│   │   │   ├── drm.js   ClearKey `license_key` parsing
+│   │   │   ├── time.js  timeAgo / formatDate
+│   │   │   └── capabilities.js  Pure engine/platform decisions
 │   │   └── *.test.js    Vitest suites, colocated per module (§11)
 │   ├── public/          Static assets
 │   └── vite.config.js   Vite configuration
