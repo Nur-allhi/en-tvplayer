@@ -2,10 +2,6 @@ import shaka from 'shaka-player';
 import config, { getSettings } from './config.js';
 import { withAuthQuery, redactUrl } from './lib/url.js';
 import {
-  segment404Decision,
-  lastResortDecision,
-  tokenRecoveryDecision,
-  forbiddenRetryDelay,
   tuneCountersReset,
   isStalePlayerEvent,
   shouldIgnoreVideoError,
@@ -16,6 +12,7 @@ import {
 } from './logic.js';
 import * as avplay from './avplay.js';
 import { state } from './player/state.js';
+import { planRecovery, httpStatusOf } from './player/recovery.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
 // Stream tokens (?token=…) are scrubbed: users paste inspector logs publicly.
@@ -842,17 +839,6 @@ async function destroyPlayer(keepElement) {
   }
 }
 
-function isTransientBlip(error) {
-  if (!error || typeof error.code !== 'number') return false;
-  if (error.code === 1002 || error.code === 1003) return true;
-  if (error.code === 1001) {
-    const status = error.data && error.data[1];
-    if (!status) return true;
-    return status >= 500 || status === 429 || status === 408;
-  }
-  return false;
-}
-
 function isRenderingFrames() {
   try {
     return (
@@ -871,7 +857,7 @@ function isRenderingFrames() {
 // is generation-guarded — a newer tune must not be clobbered by a stale
 // timer, which previously caused duplicate reloads and bogus "retry 0/3"
 // logs after a successful recovery.
-function scheduleForbiddenReload(status, attempt) {
+function scheduleForbiddenReload(status, attempt, delay) {
   state.reconnectAttempts = Math.max(state.reconnectAttempts, 1);
   const tokenAtSchedule = state.loadToken;
   const channelAtSchedule = state.currentChannel;
@@ -879,7 +865,7 @@ function scheduleForbiddenReload(status, attempt) {
     if (tokenAtSchedule !== state.loadToken) return;
     logEvent('INFO', status + ' retry ' + attempt + '/3 — reloading channel');
     if (channelAtSchedule) loadChannel(channelAtSchedule);
-  }, forbiddenRetryDelay(attempt));
+  }, delay);
 }
 
 function handlePlayerError(error) {
@@ -901,24 +887,50 @@ function handlePlayerError(error) {
   // Suppress errors while auto-advance is pending
   if (state.advancePending) return;
 
-  // Transient upstream blip (5xx/429/408, HTTP_ERROR, TIMEOUT) while frames
-  // are actually rendering: Shaka retries the failed update internally, so
-  // tearing down the player here turns every hiccup into a visible restart
-  // loop. Reset the slate and let playback continue; a genuine outage stalls
-  // the video and the stall watchdog handles that path.
-  if (isTransientBlip(error) && isRenderingFrames()) {
-    state.consecutiveErrors = 0;
-    return;
+  // The branch logic lives in player/recovery.js as a pure plan (T-120). This
+  // function's job is now to snapshot the state it needs and perform whatever
+  // side effect comes back.
+  const plan = planRecovery(error, {
+    currentChannel: state.currentChannel,
+    advancePending: state.advancePending,
+    initialLoadPending: state.initialLoadPending,
+    loadingTimeout: state.loadingTimeout,
+    renderingFrames: isRenderingFrames(),
+    pdtFallbackTried: !!(state.currentChannel && state.pdtFallbackUrls.has(state.currentChannel.url)),
+    hasTokenExpiredCallback: !!state.tokenExpiredCallback,
+    hasAdvanceCallback: !!state.channelAdvanceCallback,
+    consecutiveErrors: state.consecutiveErrors,
+    lastResortAttempts: state.lastResortAttempts,
+    hardReloads: state.hardReloads,
+    reconnectAttempts: state.reconnectAttempts,
+    segment404: state.segment404Url
+      ? { url: state.segment404Url, attempts: state.segment404Attempts, lastAt: state.segment404LastAt }
+      : null,
+    now: Date.now(),
+  });
+
+  // Apply the counter changes the plan decided on, before acting.
+  if (plan.counters) {
+    for (const [key, value] of Object.entries(plan.counters)) {
+      state[key] = value;
+    }
+  }
+  if (plan.segment404) {
+    state.segment404Url = plan.segment404.url;
+    state.segment404Attempts = plan.segment404.attempts;
+    state.segment404LastAt = plan.segment404.lastAt;
   }
 
-  state.consecutiveErrors++;
+  switch (plan.action) {
+    case 'none':
+    case 'ignore':
+      // Transient blip while rendering: Shaka retries internally, a genuine
+      // outage stalls the video and the stall watchdog handles that path.
+      return;
 
-  // Native crash inside Shaka during playback — retry once with HLS PDT sync
-  // disabled (BUG-013), unless we are still inside load() (its catch handles
-  // that path).
-  if (isNativeLoadCrash(error) && !state.loadingTimeout) {
-    if (state.currentChannel && !state.pdtFallbackUrls.has(state.currentChannel.url)) {
-      state.pdtFallbackUrls.add(state.currentChannel.url);
+    case 'pdt-retry':
+      // BUG-013: retry once with HLS PDT sync disabled.
+      state.pdtFallbackUrls.add(plan.url);
       logEvent(
         'WARN',
         'Native crash during playback — reloading without PDT sync: ' +
@@ -926,99 +938,84 @@ function handlePlayerError(error) {
       );
       loadChannel(state.currentChannel);
       return;
-    }
-    logEvent(
-      'ERROR',
-      'Playback crashed (native): ' +
-        (state.currentChannel ? state.currentChannel.name + ' | ' + state.currentChannel.url.slice(0, 100) : '?') +
-        ' — ' +
-        (error.message || ''),
-    );
-    if (typeof console !== 'undefined') console.error('Shaka runtime crash:', error, error.stack);
-    showError(
-      'This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel.',
-    );
-    return;
-  }
 
-  // 401/403 (BAD_HTTP_STATUS, code 1001, status in data[1]) on a segment:
-  // same-URL reloads only win inside the server grace window (the token is
-  // frozen into the channel object), so two fast grace reloads with backoff,
-  // then ONE playlist refetch for a fresh link (see onTokenExpired), then
-  // the terminal advance below. BUG-021 follow-up: tokenized servers also
-  // answer 401 mid-playback when the token dies — same recovery, not a
-  // terminal login error.
-  if (error.code === 1001 && state.currentChannel) {
-    const status = error.data && error.data[1];
-    if (status === 403 || status === 401) {
-      state.lastResortAttempts++;
-      const policy = tokenRecoveryDecision(state.lastResortAttempts);
-      if (policy === 'reload') {
-        logEvent('WARN', status + ' on segment — retry ' + state.lastResortAttempts + '/3');
-        scheduleForbiddenReload(status, state.lastResortAttempts);
-        return;
+    case 'forbidden-reload':
+      // Same-URL grace reload with backoff. Only the plain auth-retry path
+      // logged the segment line in the original; the refresh fallback did not.
+      if (plan.log === 'segment-retry') {
+        logEvent('WARN', plan.status + ' on segment — retry ' + state.lastResortAttempts + '/3');
       }
-      if (policy === 'refresh') {
-        logEvent('WARN', status + ' persists after reloads — refetching playlist for a fresh link');
-        if (state.tokenExpiredCallback) {
-          state.tokenExpiredCallback(state.currentChannel);
-        } else {
-          scheduleForbiddenReload(status, state.lastResortAttempts);
-        }
-        return;
-      }
-      // 'advance': falls through to the terminal handling below.
-    }
-  }
+      scheduleForbiddenReload(plan.status, state.lastResortAttempts, plan.delay);
+      return;
 
-  if (isRecoverable(error)) {
-    // After 3 consecutive errors, force a hard reload (cache-bust + fresh edge).
-    // Budgeted per tune: without a cap this loops destroy/create forever and
-    // the TV eventually kills the app on endless buffering.
-    if (state.consecutiveErrors >= 3) {
-      state.consecutiveErrors = 0;
-      state.hardReloads++;
-      if (hardReloadDecision(state.hardReloads) === 'giveup') {
-        giveUpTune();
-        return;
+    case 'token-refresh':
+      logEvent('WARN', httpStatusOf(error) + ' persists after reloads — refetching playlist for a fresh link');
+      state.tokenExpiredCallback(state.currentChannel);
+      return;
+
+    case 'reload':
+      if (plan.segment404) {
+        logEvent(
+          'WARN',
+          'Live segment 404 — reload ' +
+            state.segment404Attempts +
+            '/3 for a fresh edge: ' +
+            (state.currentChannel.name || state.currentChannel.url.slice(0, 80)),
+        );
       }
       loadChannel(state.currentChannel);
       return;
-    }
-    scheduleReconnect();
-    return;
-  }
 
-  // Live segment 404 after a successful load: master/variant/init all loaded,
-  // so the link itself is good — this segment fell off the live edge or its
-  // per-request token died. Reload for a fresh edge instead of condemning
-  // the link. Budgeted per URL (see segment404* above): persistent 404s still
-  // end on the terminal error below. An initial-load 404 (initialLoadPending)
-  // means the link itself is dead.
-  if (error.code === 1001 && state.currentChannel && !state.initialLoadPending && error.data && error.data[1] === 404) {
-    const decision = segment404Decision(
-      state.segment404Url
-        ? { url: state.segment404Url, attempts: state.segment404Attempts, lastAt: state.segment404LastAt }
-        : null,
-      state.currentChannel.url,
-      Date.now(),
-    );
-    state.segment404Url = decision.state.url;
-    state.segment404Attempts = decision.state.attempts;
-    state.segment404LastAt = decision.state.lastAt;
-    if (decision.retry) {
-      logEvent(
-        'WARN',
-        'Live segment 404 — reload ' +
-          state.segment404Attempts +
-          '/3 for a fresh edge: ' +
-          (state.currentChannel.name || state.currentChannel.url.slice(0, 80)),
-      );
-      loadChannel(state.currentChannel);
+    case 'reconnect':
+      scheduleReconnect(plan.delay);
       return;
-    }
-  }
 
+    case 'giveup':
+      giveUpTune();
+      return;
+
+    case 'advance':
+      showTerminal(error);
+      state.advancePending = true;
+      logEvent('INFO', '3 retries exhausted — advancing to next channel');
+      showError('This channel link has expired. Moving to the next channel...');
+      {
+        const advanceToken = state.loadToken;
+        setTimeout(() => {
+          // #16: never yank the user away from a channel they picked meanwhile.
+          if (advanceToken !== state.loadToken) return;
+          state.advancePending = false;
+          logEvent('INFO', 'Advancing channel');
+          state.channelAdvanceCallback();
+        }, plan.delay);
+      }
+      return;
+
+    case 'terminal':
+    default:
+      if (plan.message === 'crash') {
+        logEvent(
+          'ERROR',
+          'Playback crashed (native): ' +
+            (state.currentChannel ? state.currentChannel.name + ' | ' + state.currentChannel.url.slice(0, 100) : '?') +
+            ' — ' +
+            (error.message || ''),
+        );
+        if (typeof console !== 'undefined') console.error('Shaka runtime crash:', error, error.stack);
+        showError(
+          'This channel stopped unexpectedly — it uses a stream format this player could not handle. Try another channel.',
+        );
+        return;
+      }
+      showTerminal(error);
+      return;
+  }
+}
+
+// The shared "unrecoverable" reporting, used by both the terminal branch and
+// the advance branch (the original logged and showed the error before it began
+// advancing, so both paths must report).
+function showTerminal(error) {
   logEvent(
     'ERROR',
     'Unrecoverable error ' +
@@ -1029,24 +1026,6 @@ function handlePlayerError(error) {
       getErrorMessage(error),
   );
   showError(getErrorMessage(error));
-
-  // Auto-advance to next channel after 3 failed 401/403 retries
-  if (error.code === 1001 && state.channelAdvanceCallback) {
-    const status = error.data && error.data[1];
-    if ((status === 403 || status === 401) && lastResortDecision(state.lastResortAttempts) === 'advance') {
-      state.advancePending = true;
-      logEvent('INFO', '3 retries exhausted — advancing to next channel');
-      showError('This channel link has expired. Moving to the next channel...');
-      const advanceToken = state.loadToken;
-      setTimeout(() => {
-        // #16: never yank the user away from a channel they picked meanwhile.
-        if (advanceToken !== state.loadToken) return;
-        state.advancePending = false;
-        logEvent('INFO', 'Advancing channel');
-        state.channelAdvanceCallback();
-      }, 4000);
-    }
-  }
 }
 
 // Native last resort for loads the browser stack cannot complete: CORS-blocked
@@ -1089,15 +1068,17 @@ function isRecoverable(error) {
   return false;
 }
 
-function scheduleReconnect() {
+function scheduleReconnect(delay) {
   if (state.reconnectPending || !state.currentChannel) return;
   state.reconnectPending = true;
   state.reconnectAttempts++;
   const tokenAtSchedule = state.loadToken;
   const channelAtSchedule = state.currentChannel;
   logEvent('WARN', 'Reconnecting (attempt ' + state.reconnectAttempts + ')');
-  // Live recovery: fast initial retry, cap at 10s
-  const delay = Math.min(1000 * state.reconnectAttempts, 10000);
+  // Live recovery: fast initial retry, cap at 10s. The delay is computed by
+  // planRecovery() so the pure logic stays the single source (T-120); the
+  // fallback keeps the other call sites in this file working unchanged.
+  const wait = delay === undefined ? Math.min(1000 * state.reconnectAttempts, 10000) : delay;
 
   state.reconnectTimer = setTimeout(() => {
     state.reconnectPending = false;
@@ -1107,7 +1088,7 @@ function scheduleReconnect() {
     if (state.currentChannel && state.currentChannel === channelAtSchedule) {
       loadChannel(state.currentChannel);
     }
-  }, delay);
+  }, wait);
 }
 
 // Liveness proof while a load hangs: the tune veil keeps counting seconds
