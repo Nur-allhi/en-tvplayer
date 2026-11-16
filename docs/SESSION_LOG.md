@@ -44,6 +44,52 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — Sync the night-shift prompt so a fresh machine works — @maintainer
+
+**Ticket:** tooling · **Branch:** `chore/nightshift-prompt-sync` → `dev`
+**Status:** ✅ done — the committed loop now matches the live API task
+
+**What changed**
+- **`docs/NIGHTSHIFT_PROMPT.md` (new)** — the exact plain-text prompt that
+  actually ran the successful batch, with the live task settings table.
+- **`.agents/loops/nightshift.md`** — prompt changed from `/nightshift` to
+  that plain text. Same cron, timezone, model and agent.
+- **`docs/AUTONOMY.md`** — setup table points at the shared prompt; the
+  slash-command trap is recorded under "Known traps".
+
+**Why**
+OpenChamber's scheduler treats a prompt starting with `/` as a slash command
+and routes it through `session.command`. On the installed v2.0.8 that failed
+with `Missing key at ["name"]` four times — once on the 23:35 scheduled run
+and three manual triggers — before any agent turn began. A plain-text prompt
+goes through `session.prompt` and worked immediately: a 954-second run that
+merged T-130, T-131 and T-132 green.
+
+The live task on this machine had already been fixed through the API, so
+tonight's run is safe. But the committed loop still carried the broken prompt,
+so a fresh machine would have failed all night. This commit closes that gap.
+
+**Verified**
+- Live task prompt matches the committed file byte for byte.
+- `nextRunAt` = 2026-11-17 23:35 Dhaka (unchanged).
+- Last run `status: success`, both CI checks green on `b54aeff`.
+- Gates on `dev`: 248 tests, lint, validate, format all clean.
+
+**Watch out**
+- Keep `docs/NIGHTSHIFT_PROMPT.md`, `.agents/loops/nightshift.md` and the
+  live API task in sync. Three copies of one prompt is a liability; the doc is
+  the source of truth.
+- The `/nightshift` slash command still exists for interactive use. Only the
+  *scheduled task prompt* must be plain text.
+- No TV connected. T-130–T-132 moved UI structure but owe a hardware smoke test.
+
+**Next**
+- Queue `NEXT` = T-133 (`ui/sidebar.js` + `ui/search.js`), starting
+  23:35 Dhaka tonight.
+- T-121 still needs human re-scoping before M2 can finish.
+
+---
+
 ## 2026-11-16 — T-132: OSD slice extracted; batch complete (3/3) — @nightshift
 
 **Ticket:** T-132 ✅ · **Branch:** `feature/t-132-ui-osd` → `dev`
