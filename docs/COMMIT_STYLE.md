@@ -92,6 +92,29 @@ it. Use `migration` for restructure planning, `roadmap` for plan documents.
 
 Run `npm run lint:commits` to audit the whole history after a rule change.
 
+#### Where to put a message file
+
+`git commit -F <file>` needs the message somewhere on disk before it is
+committed. **Never create that scratch file inside the repository** — a
+stray `msg.txt` in the tree is one `git add -A` away from being committed,
+and it adds nothing to the history that the commit itself does not already
+contain.
+
+Put it in the OS temp directory instead, so it can never be staged:
+
+```powershell
+# Windows
+git commit -F "$env:TEMP\msg.txt"
+```
+
+```bash
+# Linux / macOS
+git commit -F /tmp/msg.txt
+```
+
+Delete it afterwards. Temporary scratch files are not documentation;
+**documentation lives in `docs/` as `.md`**.
+
 ### Ticket reference
 
 - **Required** in the subject for `feat`, `fix`, `refactor`, `perf`.
