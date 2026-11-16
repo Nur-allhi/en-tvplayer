@@ -21,6 +21,11 @@ const SLOT_NAMES = [
   'stopBlackWatchdog',
   'notifyBufferingProgress',
   'isRenderingFrames',
+  // T-126 additions (init slice calls back into the hub).
+  'showLoading',
+  'getBufferingPercent',
+  'showPlayState',
+  'toProxied',
 ];
 
 // Snapshot every slot before each test and restore afterwards so registration
@@ -40,7 +45,7 @@ describe('player deps — shape', () => {
     expect(deps).toBe(deps);
   });
 
-  it('exposes exactly the fifteen M2 slots', () => {
+  it('exposes exactly the M2 slots', () => {
     expect(Object.keys(deps).sort()).toEqual([...SLOT_NAMES].sort());
   });
 
