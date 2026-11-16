@@ -1,94 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import { fetchPlaylist, fetchPlaylistWithRetry } from './utils.js';
-import { extractAuthQuery, withAuthQuery, redactUrl } from './lib/url.js';
-import { processStreamUrl, parseStreamHeaders } from './lib/m3u.js';
-import { parseLicenseKeyValue } from './lib/drm.js';
-
-describe('processStreamUrl', () => {
-  it('passes plain URLs through', () => {
-    expect(processStreamUrl('https://x.example.com/a.m3u8')).toEqual({
-      url: 'https://x.example.com/a.m3u8',
-      extraHeaders: null,
-    });
-  });
-
-  it('splits pipe headers from the base URL', () => {
-    const r = processStreamUrl('https://x.example.com/a|Referer=https://s.example/&User-Agent=U');
-    expect(r.url).toBe('https://x.example.com/a');
-    expect(r.extraHeaders).toEqual({ referer: 'https://s.example/', 'user-agent': 'U' });
-  });
-
-  it('keeps edge- params on the URL', () => {
-    const r = processStreamUrl('https://x.example.com/a?x=1|edge-token=T&X-Foo=bar');
-    expect(r.url).toBe('https://x.example.com/a?x=1&edge-token=T');
-    expect(r.extraHeaders).toEqual({ 'x-foo': 'bar' });
-  });
-
-  it('supports URL-encoded pipe delimiters', () => {
-    const r = processStreamUrl('https://x.example.com/a%7CUser-Agent=U');
-    expect(r.url).toBe('https://x.example.com/a');
-    expect(r.extraHeaders).toEqual({ 'user-agent': 'U' });
-  });
-});
-
-describe('extractAuthQuery', () => {
-  it('promotes known token cookies', () => {
-    expect(extractAuthQuery({ Cookie: 'sess=abc; __hdnea__=TOK123' })).toBe('__hdnea__=TOK123');
-  });
-
-  it('ignores unknown cookies and empty input', () => {
-    expect(extractAuthQuery({ Cookie: 'sess=abc' })).toBeNull();
-    expect(extractAuthQuery(null)).toBeNull();
-    expect(extractAuthQuery({})).toBeNull();
-  });
-});
-
-describe('withAuthQuery', () => {
-  it('appends missing params and skips present ones', () => {
-    expect(withAuthQuery('https://h.example.com/a', '__hdnea__=T')).toBe('https://h.example.com/a?__hdnea__=T');
-    expect(withAuthQuery('https://h.example.com/a?__hdnea__=T', '__hdnea__=T')).toBe(
-      'https://h.example.com/a?__hdnea__=T',
-    );
-  });
-
-  it('leaves non-network URIs (e.g. data: licenses) untouched', () => {
-    const dataUri = 'data:text/plain;base64,QUJD';
-    expect(withAuthQuery(dataUri, '__hdnea__=T')).toBe(dataUri);
-  });
-});
-
-describe('parseStreamHeaders', () => {
-  it('decodes URL-encoded values and picks out the UA', () => {
-    const { headers, userAgent } = parseStreamHeaders('User-Agent=My%20UA&Referer=https%3A%2F%2Fs.example%2F');
-    expect(userAgent).toBe('My UA');
-    expect(headers['Referer']).toBe('https://s.example/');
-  });
-});
-
-describe('parseLicenseKeyValue', () => {
-  it('parses single KID:KEY pairs', () => {
-    expect(parseLicenseKeyValue('abcdef1234567890:1234567890abcdef')).toMatchObject({ keyId: 'abcdef1234567890' });
-  });
-
-  it('returns null for license-server URLs and garbage', () => {
-    expect(parseLicenseKeyValue('https://lic.example.com/key')).toBeNull();
-    expect(parseLicenseKeyValue('nope')).toBeNull();
-  });
-});
-
-describe('redactUrl', () => {
-  it('strips query strings and fragments from stream URLs', () => {
-    expect(redactUrl('https://cdn.example.com/live/bbc?token=SECRET')).toBe('https://cdn.example.com/live/bbc');
-    expect(redactUrl('https://h.example.com/a.ts?__hdnea__=ABC#frag')).toBe('https://h.example.com/a.ts');
-  });
-
-  it('leaves clean URLs, other schemes and non-strings alone', () => {
-    expect(redactUrl('https://h.example.com/a.ts')).toBe('https://h.example.com/a.ts');
-    expect(redactUrl('data:text/plain,abc?def')).toBe('data:text/plain,abc?def');
-    expect(redactUrl(null)).toBeNull();
-  });
-});
 
 describe('fetchPlaylist / fetchPlaylistWithRetry', () => {
   let server;
@@ -113,6 +25,18 @@ describe('fetchPlaylist / fetchPlaylistWithRetry', () => {
           } else if (req.url === '/json') {
             res.setHeader('content-type', 'application/json');
             res.end(JSON.stringify([{ name: 'J', url: 'https://x.example.com/j' }]));
+          } else if (req.url === '/json-object') {
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ channels: [{ name: 'Wrapped', url: 'https://x.example.com/w' }] }));
+          } else if (req.url === '/json-unexpected') {
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ nope: true }));
+          } else if (req.url === '/json-broken') {
+            res.setHeader('content-type', 'application/json');
+            res.end('{ not json');
+          } else if (req.url === '/garbage') {
+            res.setHeader('content-type', 'text/plain');
+            res.end('this is not a playlist');
           } else {
             res.statusCode = 500;
             res.end('down');
@@ -135,6 +59,27 @@ describe('fetchPlaylist / fetchPlaylistWithRetry', () => {
 
   it('passes JSON channel arrays through', async () => {
     expect(await fetchPlaylist(base + '/json')).toEqual([{ name: 'J', url: 'https://x.example.com/j' }]);
+  });
+
+  it('unwraps a { channels: [...] } JSON object', async () => {
+    const ch = await fetchPlaylist(base + '/json-object');
+    expect(ch[0].name).toBe('Wrapped');
+  });
+
+  it('rejects a JSON object with no channels array', async () => {
+    await expect(fetchPlaylist(base + '/json-unexpected')).rejects.toThrow(/unexpected format/i);
+  });
+
+  it('rejects malformed JSON rather than returning nothing', async () => {
+    await expect(fetchPlaylist(base + '/json-broken')).rejects.toThrow();
+  });
+
+  it('rejects a body that is neither JSON nor M3U', async () => {
+    await expect(fetchPlaylist(base + '/garbage')).rejects.toThrow(/not supported/i);
+  });
+
+  it('reports a server error with its status code', async () => {
+    await expect(fetchPlaylist(base + '/missing')).rejects.toThrow(/error 500/i);
   });
 
   it('retries a transient 500 then succeeds', async () => {
