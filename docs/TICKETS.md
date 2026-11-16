@@ -17,6 +17,14 @@
 | `review` | Branch ready to merge into `dev` |
 | `done` | Merged — record the merge SHA |
 | `needs-tv` | Merged, but playback behaviour is unverified on hardware |
+
+> **Deferred TV test (2026-11-17):** the maintainer chose to verify on hardware
+> later. T-130, T-131 and T-132 are merged and gated but their status lines say
+> "No TV verification claimed" — treat them as `needs-tv` until a device check
+> happens. Same for T-184, T-185, T-190 and T-191 (pre-marked `needs-tv`).
+> Search `docs/SESSION_LOG.md` for "No TV verification claimed" to find every
+> affected change. Nothing here can be verified without a TV attached to the
+> machine, so no agent should mark these as hardware-verified.
 | `blocked` | Waiting on something — say what |
 
 A ticket is only `done` when it meets the **Definition of Done**
