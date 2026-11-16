@@ -44,6 +44,61 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-121 re-scoped into four atomic tickets — @maintainer
+
+**Ticket:** T-121 (umbrella) → **T-124, T-125, T-126, T-127**
+**Branch:** `docs/rescope-t121` → `dev`
+**Status:** ✅ done — the M2 blocker now has an implementable path
+
+**What changed**
+- **`docs/TICKETS.md`** — T-121 is now an umbrella: "do not pick up directly".
+  Four new tickets replace it, in strict order:
+  - **T-124** `player/deps.js` — a registry of function slots. The cycle
+    breaker: slices call `deps.handlePlayerError` / `deps.initPlayer` instead
+    of importing each other; only the hub imports all slices.
+  - **T-125** — move DOM-free helpers out of `loadChannel` (351 LOC → under 300).
+  - **T-126** — `player/init.js` (`initPlayer` + `destroyPlayer`).
+  - **T-127** — `player/load.js` (`loadChannel` + `reloadChannel`), with
+    `load-error.js` in the same ticket if the catch block overflows.
+- **T-123** now depends on T-127; its blocked status explains why.
+- **`docs/AUTONOMY.md`** — queue rewritten cleanly (42 rows, no duplicates,
+  sequential order numbers), M2 note added explaining the four-ticket order.
+
+**Why this shape**
+The agent blocked T-121 on 2026-11-16 for two hard reasons: `loadChannel` is
+351 LOC against a 300 cap, and `initPlayer → handlePlayerError → loadChannel →
+initPlayer` is a three-node import cycle. Both are real. Compressing all of
+M2 into one ticket, on playback code with no TV verification, was the wrong
+unit of work. The registry makes the cycle a boot-time wire-up; the helper
+extraction makes the moved function fit the guard.
+
+**Decisions**
+- **Registry over parameter threading.** Passing six hooks through every call
+  would touch far more code than a single mutable slot object, with the same
+  testability. The registry is pure, DOM-free and unit-testable.
+- **No reordering.** T-124 must land first; T-125 makes T-127 possible; T-123
+  is last. Each acceptance criterion depends on the previous ticket.
+- **Kept tonight's `NEXT = T-133` untouched.** The re-scope adds tickets after
+  the in-flight UI slices, so the 23:35 run is unaffected.
+
+**Verified**
+- Queue has no duplicate ticket IDs and all order numbers are sequential.
+- No code was changed — no gate could be run red.
+- Gates on `dev` still green: 248 tests, lint, validate, format.
+
+**Watch out**
+- The registry must register its concrete functions in `player.js` today and
+  in `player/index.js` when T-123 lands. Forgetting that is a silent no-op.
+- `player.js` is still baselined in `scripts/modularity-baseline.json`;
+  shrinking it does not remove the key. No `--update` needed yet.
+- No TV connected. Every M2 ticket needs a hardware smoke test by the maintainer.
+
+**Next**
+- Tonight 23:35 Dhaka: T-133 (`ui/sidebar.js` + `ui/search.js`).
+- After the UI slices: **T-124**, then T-125, T-126, T-127, then T-123.
+
+---
+
 ## 2026-11-17 — Sync the night-shift prompt so a fresh machine works — @maintainer
 
 **Ticket:** tooling · **Branch:** `chore/nightshift-prompt-sync` → `dev`
