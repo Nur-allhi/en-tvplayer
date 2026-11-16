@@ -67,6 +67,8 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** exits non-zero with a clear message naming the file and the
   rule broken. Wired into `npm run lint` and CI.
 - **Depends:** —
+- **Status:** ✅ done 2026-11-15 — see `docs/SESSION_LOG.md`
+  "v4 groundwork committed and CI-verified" (`cd809e6`).
 
 ### T-102 — Metrics script
 - **Type:** chore · **Priority:** P1 · **Size:** XS (~80 LOC)
@@ -74,6 +76,8 @@ A ticket is only `done` when it meets the **Definition of Done**
   files over 300 LOC, bundle size raw + gzip, and the test count.
 - **Acceptance:** output is stable enough to diff between commits; used as
   the v4 progress baseline (`docs/v4.PLAN.md` §2).
+- **Status:** ✅ done 2026-11-15 — see `docs/SESSION_LOG.md`
+  "v4 groundwork committed and CI-verified" (`cd809e6`).
 
 ### T-103 — CHANGELOG `[Unreleased]` section
 - **Type:** docs · **Priority:** P0 · **Size:** XS
@@ -82,6 +86,8 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** `npm run release -- 4.0.0 --dry-run` gets past the
   changelog guard.
 - **Notes:** `scripts/release.mjs` aborts without it — a real release blocker.
+- **Status:** ✅ done 2026-11-15 — see `docs/SESSION_LOG.md`
+  "v4 groundwork committed and CI-verified" (`cd809e6`).
 
 ### T-104 — Restore the release signing key
 - **Type:** chore · **Priority:** **P0 — release blocker** · **Size:** XS
@@ -214,6 +220,9 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** ≥ 10 tests with a mocked `window`; every platform decision
   in the app reads from here and nowhere else.
 - **Spec detail:** `docs/TIZEN_COMPAT.md` §4.
+- **Status:** ✅ done 2026-11-16 — see the detailed entry under T-115. The
+  probe was split into `lib/capabilities.js` (pure decisions, 24 tests) and
+  `capabilities.js` (the only file that reads globals, 10 tests).
 
 ### T-115 — Route platform decisions through `capabilities.js`
 - **Type:** refactor · **Priority:** P1 · **Size:** S
@@ -599,7 +608,7 @@ A ticket is only `done` when it meets the **Definition of Done**
   broken in between.
 - **Notes:** `docs/MIGRATION.md` §4 Risk A.
 
-### T-181 — v4 settings schema migration
+### T-186 — v4 settings schema migration
 - **Type:** feat · **Priority:** **P0** · **Size:** S (~60 LOC)
 - **Spec:** add a `schemaVersion` field and an additive migration in
   `config.js`. v4 introduces `movies`, `favorites` and `features` keys.
@@ -608,6 +617,9 @@ A ticket is only `done` when it meets the **Definition of Done**
   preserved**; running the migration twice changes nothing (idempotent);
   the `en_settings` key name is unchanged.
 - **Notes:** `docs/MIGRATION.md` §4 Risk B · `docs/BRANCHING.md` §5.
+- **Renumbered 2026-11-16:** this ticket was originally T-181, colliding with
+  "Add media by URL / manifest" in Phase 8. Git history uses T-181 for both
+  meanings; the settings migration is **T-186** from this point forward.
 
 ---
 

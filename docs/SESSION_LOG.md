@@ -44,6 +44,74 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — Unattended night-shift setup — @maintainer
+
+**Ticket:** tooling · **Branch:** `chore/nightshift-autonomy` → `dev`
+**Status:** ✅ done — repo-side config complete; four OpenChamber UI switches left to the maintainer
+
+**What changed**
+- **`.opencode/opencode.jsonc`** — hard **policies**, not permissions. A
+  policy deny survives OpenChamber's "Accept everything" mode, so an
+  unattended agent cannot release, tag, force-push, commit to `main`, or
+  mint/overwrite a signing key no matter how it reasons.
+- **`.opencode/agents/nightshift.md`** — primary agent with `question` **denied**.
+  It must decide conservatively and write the decision into the session log.
+  Encodes branch/gate/commit/merge/CI/session-log steps and three retries.
+- **`.opencode/commands/nightshift.md`** — `/nightshift`, a self-contained goal
+  objective. Written for the auditor, which sees only the objective and the
+  last reply, not chat history.
+- **`.agents/loops/nightshift.md`** — cron `0 22 * * *`, agent `nightshift`,
+  enabled in the file. OpenChamber still requires a UI toggle per machine and
+  a UI "Run as goal" tick — both documented in `docs/AUTONOMY.md`.
+- **`docs/AUTONOMY.md`** — authoritative 38-ticket queue with `BATCH_LIMIT=3`,
+  dependencies, stop conditions, known traps, and the five UI setup steps.
+- **`docs/TICKETS.md`** — three defects that would have derailed an unattended
+  run, fixed:
+  - T-101/T-102/T-103 had no Status line though done → added, pointing at the
+    groundwork commit.
+  - T-114's status was filed under the T-115 section → added its own.
+  - **T-181 was used twice** (VOD media-by-URL and settings migration). The
+    settings migration is now **T-186**; history still says T-181 for both.
+- **`AGENTS.md`** — links `docs/AUTONOMY.md`.
+
+**Verified**
+- Config parsed by OpenCode v2.2.5 — `nightshift` agent and `/nightshift`
+  command are discovered (see gates below).
+- No changes to `player/src`; gates still run to confirm nothing regressed.
+
+**Decisions**
+- **Policies over permissions.** "Accept everything" is the only mode that
+  reliably answers every `ask` while asleep, and it cannot lift a `deny`. So
+  the five non-negotiables are expressed as policies. The safety-net mode was
+  rejected: it needs a Jev provider and can hold a request for four seconds.
+- **`BATCH_LIMIT = 3`.** A single nightly goal that tried all 38 tickets would
+  blow the token budget and never let the auditor declare completion. Three
+  tickets per run, then a clean STATUS block, is reviewable in the morning.
+- **Question tool denied on the agent.** The maintainer explicitly wants
+  autonomous decisions. A blocked question would stall the whole night.
+- **`needs-tv` states pre-marked** for T-184, T-185, T-190, T-191 so the agent
+  cannot claim hardware verification it cannot perform.
+
+**Watch out**
+- **The loop does not start from the file alone.** `enabled: true` is
+  overridden by OpenChamber's per-machine off-by-default rule for repo loops.
+  Turn it on in Scheduled Tasks and tick **Run as goal**, or the task fires
+  once and stops after one reply.
+- **Goal settings are UI-only** for loop files. `BATCH_LIMIT` in the markdown
+  is read by the agent; the token budget is a separate UI setting.
+- **Check `NEXT` after each run.** The agent updates `docs/AUTONOMY.md`, so a
+  missed update makes the next run redo a ticket. CI green on `dev` is the
+  authority, not the agent's summary.
+- **`opencode.json` is gitignored** as a local model preference. The config
+  here is `.opencode/opencode.jsonc` on purpose — that one is committed.
+
+**Next**
+- Maintainer: do the five UI steps in `docs/AUTONOMY.md`, press **run now** once,
+  and watch the first batch. Then let the 22:00 schedule take over.
+- The queue starts at **T-121** (`player/init.js` + `player/load.js`).
+
+---
+
 ## 2026-11-16 — T-120: recovery became a plan, not 165 lines of side effects — @maintainer
 
 **Ticket:** T-120 ✅ · **Branch:** `refactor/t-120-player-recovery` → `dev`
