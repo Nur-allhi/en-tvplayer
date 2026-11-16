@@ -44,6 +44,87 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-115: one probe, and two latent bugs it exposed — @maintainer
+
+**Ticket:** T-115 ✅ · **Branch:** `refactor/t-115-capability-wiring` → `dev`
+**Status:** ✅ done — `capabilities.js` is now the only detection site
+
+**What changed**
+- **Probe extended:** `hasTvInputDevice`, `hasApplicationControl`.
+- **New pure decisions** in `lib/capabilities.js`: `hasTvKeyInput(caps)`,
+  `platformName(caps)`.
+- **Rewired 5 consumers:** `avplay.isAvailable()` → `capabilities().hasAvplay`;
+  `main.js` (`registerTizenKeys`, app exit); `remote.js` (search-field
+  Backspace/Enter); `settings.js` (IME re-focus); `update.js` (ping `tv`).
+- **187 tests** (was 177).
+- **Format ratchet honoured:** `settings.js`, `avplay.js`, `remote.js`
+  reformatted and dropped from `.prettierignore` — now only `styles.css` and
+  `xtream.js` remain.
+
+**Two bugs this ticket uncovered — both would have shipped silently**
+
+1. **`hasShaka` was always `false` on real TVs.** The probe read
+   `window.shaka || window.ShakaPlayer`, but the app *imports* Shaka as an ES
+   module (`import shaka from 'shaka-player'`) and never assigns that global.
+   `selectEngine()` would therefore have concluded that a perfectly good Shaka
+   TV was native-only. Nobody noticed because no consumer had read
+   `selectEngine()` yet. Now hardcoded `true`, with a regression test asserting
+   `hasShaka === true` even when every global is absent, plus a "do not
+   restore" note in `TIZEN_COMPAT.md` §4.
+
+2. **`settings.js` cached the probe at module load.** `const isTizenTV =
+   hasTvKeyInput(capabilities())` ran at import time, which is before Tizen has
+   necessarily injected `tizen` — so the flag could freeze at `false` and the
+   soft-keyboard re-focus would silently stop working on TV. Replaced with a
+   lazy `onTv()` helper evaluated at call time. `remote.js` was already safe
+   (its read sits inside the keydown handler).
+
+Neither bug is reachable by a test on the old code, and neither is verifiable
+here without a TV — which is exactly why they were worth hunting rather than
+assuming the mechanical rewrite was safe.
+
+**Verified**
+- `npm test` → **187 passed** (10 files) · `lint` clean ·
+  `validate` 27 files, 0 new, 7 baselined · `format:check` clean
+- `npm run build` ok · bundle under budget · `npm run tizen` → WGT 468.7 KB
+- **Detection audit:** `grep "typeof window.webapis" player/src` → **no hits**.
+  All remaining `window.tizen.*` occurrences are API *calls* behind a guard
+  (`registerKey`, `getCurrentApplication`), which is correct and must stay.
+
+**Decisions**
+- **`hasShaka` hardcoded, not probed.** There is no runtime signal for it —
+  the bundler decides. Probing a global the app never sets is worse than
+  constant `true`, because it is confidently wrong.
+- **`selectEngine()` kept, though it can now only return `'shaka'`.** It still
+  encodes the preference order and is the contract the future `recovery.js`
+  will call; deleting it would just move the decision back into a caller.
+  Its doc comment now states plainly that it answers "what could we use", not
+  "what is this channel using".
+- **Lazy read, not cache invalidation.** Rather than adding a `reset()` call
+  somewhere in the boot sequence that nobody can verify without a TV, the
+  probe read simply moved to the point of use.
+
+**Watch out**
+- **`window.shaka` will look like an obvious thing to add back.** Don't.
+- **`detectCapabilities()` still defaults `webAPIVersion` to `5.0`** when no
+  `tizen` global exists. Desktop convenience, not a detected value —
+  `meetsMinimumPlatform()` returns `true` for non-Tizen anyway.
+- **`player.js`'s `useAvplay` is untouched and must stay separate.**
+  It is per-channel runtime state; `selectEngine()` is platform capability.
+- **`npm run tizen` in this session built `EN-IPTV_Player_v3.2.0_ef1e204.wgt`**
+  — the hash still says `ef1e204` because the WGT name comes from the last
+  commit, so it does not reflect T-115's changes yet. Not a problem (it only
+  proves signing works), but do not mistake it for a T-115 artifact.
+
+**Next**
+- **M2 — the `player.js` split.** **T-129 (`player/state.js`) must land before
+  T-120**: `player.js` and `ui.js` share module-level variables, and slicing
+  naively gives each slice its own copy — the UI silently stops working.
+- Still open from earlier: `fix(drm)` ticket for the unterminated-brace
+  `parseLicenseKeyValue` behaviour, pinned as characterisation for now.
+
+---
+
 ## 2026-11-16 — M1 closed: `lib/time.js` and capabilities probe — @maintainer
 
 **Ticket:** T-113 ✅ · T-114 ✅ (new T-115 opened for the wiring)

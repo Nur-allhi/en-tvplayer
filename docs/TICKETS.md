@@ -218,13 +218,11 @@ A ticket is only `done` when it meets the **Definition of Done**
 ### T-115 — Route platform decisions through `capabilities.js`
 - **Type:** refactor · **Priority:** P1 · **Size:** S
 - **Spec:** T-114 built the single probe; this makes it the only source.
-  Today there are three independent answers to "can we use native playback?":
-  `avplay.js` `isAvailable()`, `player.js`'s `useAvplay` module flag, and now
-  `lib/capabilities.js` `selectEngine()`. Fold the first two onto the third.
+  Fold `avplay.js` `isAvailable()` and the ad-hoc `window.tizen` checks in
+  `main.js`, `remote.js`, `settings.js` and `update.js` onto the probe.
 - **Acceptance:** `grep -r "typeof window.webapis" player/src` appears only in
   `capabilities.js`; `avplay.js` exposes no platform detection of its own;
-  the native-fallback behaviour is unchanged (characterise with a test on
-  `selectEngine` before touching the callers).
+  the native-fallback behaviour is unchanged.
 - **Depends:** T-114.
 - **Notes:** behaviour risk, not a code move — `player.js` keeps `useAvplay`
   as *runtime state* (a channel may switch engine), which is not the same
@@ -249,6 +247,26 @@ A ticket is only `done` when it meets the **Definition of Done**
     must read from here; today `avplay.js` has its own `isAvailable()` and
     `player.js` keeps its own `useAvplay` state. Migrating them is real
     behaviour risk with no ticket — left open deliberately, see "Next" below.
+- **Status (T-115):** ✅ done 2026-11-16. `capabilities.js` is now the only
+  file that reads `window.tizen` / `window.webapis` for detection. Remaining
+  occurrences are API *calls* after a guard (`registerKey`,
+  `getCurrentApplication`), which is correct.
+  - New probe fields: `hasTvInputDevice`, `hasApplicationControl`.
+  - New pure decisions: `hasTvKeyInput`, `platformName`.
+  - Rewired: `avplay.isAvailable()` → `capabilities().hasAvplay`;
+    `main.js` key registration + app exit; `remote.js` IME key handling;
+    `settings.js` IME re-focus; `update.js` ping `tv` field.
+  - **Bug found and fixed:** `hasShaka` probed `window.shaka`, but the app
+    *imports* Shaka as a module and never sets that global — so it reported
+    `false` on every shipped TV and `selectEngine()` would have claimed a
+    working Shaka TV was native-only. Now hardcoded `true` with a regression
+    test and a "do not restore" note in `TIZEN_COMPAT.md` §4.
+  - **Bug found and fixed:** `settings.js` evaluated `isTizenTV` at module
+    load, caching the probe before Tizen injects its globals. Now a lazy
+    `onTv()` helper read at call time.
+  - Tests **177 → 187**. Also honoured the format ratchet: `settings.js`,
+    `avplay.js`, `remote.js` reformatted and removed from `.prettierignore`,
+    which is now down to `styles.css` + `xtream.js`.
 
 ---
 

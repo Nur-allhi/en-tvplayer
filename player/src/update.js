@@ -3,6 +3,8 @@
 // Version metadata comes from a static file on jsDelivr, so no server is
 // required. See docs/TELEMETRY.md for the optional ping endpoint.
 import { APP_VERSION, getSettings, saveSettings } from './config.js';
+import { capabilities } from './capabilities.js';
+import { platformName } from './lib/capabilities.js';
 
 const VERSION_URL = 'https://cdn.jsdelivr.net/gh/Nur-allhi/en-tvplayer@main/version.json';
 // Deploy the worker in docs/TELEMETRY.md and paste its URL here to enable
@@ -93,7 +95,7 @@ export function sendUsagePing() {
   try {
     const params = new URLSearchParams({
       v: APP_VERSION,
-      tv: typeof window !== 'undefined' && window.tizen ? 'tizen' : 'browser',
+      tv: platformName(capabilities()),
     });
     fetch(PING_URL + '?' + params.toString(), { mode: 'no-cors', keepalive: true }).catch(() => {});
   } catch {}

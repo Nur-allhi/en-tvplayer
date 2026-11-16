@@ -20,8 +20,12 @@ export function meetsMinimumPlatform(caps) {
   return typeof caps.webApiVersion === 'number' && caps.webApiVersion >= MIN_WEB_API_VERSION;
 }
 
-// Shaka is preferred everywhere. Native AVPlay is the fallback, and it is the
-// only option when Shaka is unusable but the platform provides AVPlay.
+// Which engine to prefer, given availability. Shaka wins when present; native
+// AVPlay is the only option when it is not.
+//
+// This answers "what could we use". It does NOT answer "what is this channel
+// using" — player.js tracks that per channel (avplayPreferredUrls, useAvplay),
+// because a channel can fall back to native while the platform still has Shaka.
 export function selectEngine(caps) {
   if (!caps) return 'none';
   if (caps.hasShaka) return 'shaka';
@@ -44,6 +48,19 @@ export function missingApis(caps) {
   if (!caps.hasTrimStart) missing.push('trimStart');
   if (!caps.hasResizeObserver) missing.push('ResizeObserver');
   return missing;
+}
+
+// The Tizen remote-key API. Only a TV registers special keys, and only a TV
+// opens its IME on an explicit OK press, so both behaviours key off this.
+export function hasTvKeyInput(caps) {
+  return !!(caps && caps.hasTvInputDevice);
+}
+
+// Reported to the opt-in usage ping. Distinguishes a TV from a desktop
+// browser without the caller re-reading globals.
+export function platformName(caps) {
+  if (caps && caps.isTizen) return 'tizen';
+  return 'browser';
 }
 
 // True when the platform can watch video progression without a timer.

@@ -19,12 +19,18 @@ function safe(fn, fallback) {
   }
 }
 
+// `hasShaka` is NOT a platform capability. Shaka is bundled as an ES module
+// (`import shaka from 'shaka-player'`), so the app never sets `window.shaka` —
+// probing the global answered `false` on every TV the app actually ships to.
+// If this code is running at all, Shaka is present.
 export function detectCapabilities(win) {
   const w = win === undefined ? (typeof window !== 'undefined' ? window : null) : win;
   const nav = safe(() => (w && w.navigator) || null, null);
 
   return {
     isTizen: !!(w && w.tizen),
+    hasTvInputDevice: !!(w && w.tizen && w.tizen.tvinputdevice),
+    hasApplicationControl: !!(w && w.tizen && w.tizen.application),
     webApiVersion: parseWebApiVersion(safe(() => (w && w.tizen && w.tizen.webAPIVersion) || '5.0', '5.0')),
     hasAbortController: safe(() => typeof w.AbortController !== 'undefined', false),
     hasTrimStart: safe(() => typeof ''.trimStart === 'function', false),
@@ -36,7 +42,7 @@ export function detectCapabilities(win) {
       false,
     ),
     hasMediaCapabilities: !!(nav && nav.mediaCapabilities),
-    hasShaka: !!(w && (w.shaka || w.ShakaPlayer)),
+    hasShaka: true,
     hasAvplay: !!(w && w.webapis && w.webapis.avplay),
   };
 }

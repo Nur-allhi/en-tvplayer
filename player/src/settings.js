@@ -5,6 +5,8 @@ import { setConsented } from './update.js';
 import * as player from './player.js';
 import * as ui from './ui.js';
 import { timeAgo, formatDate } from './lib/time.js';
+import { capabilities } from './capabilities.js';
+import { hasTvKeyInput } from './lib/capabilities.js';
 
 let container = null;
 let onPlaylistFetched = null;
@@ -31,7 +33,9 @@ const MAX_PLAYLISTS = 3;
 // Tizen TVs don't open the IME on programmatic focus — the keyboard only
 // appears on an explicit user gesture, so the first OK re-focuses the field
 // (blur + focus) to pop the keyboard. Desktop keeps the old advance-on-Enter.
-const isTizenTV = typeof window !== 'undefined' && !!(window.tizen && window.tizen.tvinputdevice);
+// Read at call time, not module load: this module evaluates before Tizen has
+// finished injecting globals on some firmwares.
+const onTv = () => hasTvKeyInput(capabilities());
 
 export function init(settingsContainer, callbacks) {
   container = settingsContainer;
@@ -161,11 +165,17 @@ export function navigateNav(dir) {
     if (btnIdx >= 0) {
       if (dir > 0 && btnIdx < buttons.length - 1) {
         const newIdx = focusOrder.indexOf(buttons[btnIdx + 1]);
-        if (newIdx >= 0) { focusIdx = newIdx; applyFocus(); }
+        if (newIdx >= 0) {
+          focusIdx = newIdx;
+          applyFocus();
+        }
         return;
       } else if (dir < 0 && btnIdx > 0) {
         const newIdx = focusOrder.indexOf(buttons[btnIdx - 1]);
-        if (newIdx >= 0) { focusIdx = newIdx; applyFocus(); }
+        if (newIdx >= 0) {
+          focusIdx = newIdx;
+          applyFocus();
+        }
         return;
       }
       if (dir < 0 && btnIdx === 0) {
@@ -201,7 +211,7 @@ export function selectFocused() {
   if (!el) return;
 
   if (el.classList.contains('nav-item')) {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
     el.classList.add('active');
     activeSection = el.dataset.section;
     focusIdx = 0;
@@ -220,9 +230,11 @@ export function selectFocused() {
   if (el.tagName === 'INPUT') {
     // On Tizen the first OK hands focus to the IME so the TV keyboard
     // opens; the second OK advances/saves. Desktop keeps advance-on-Enter.
-    if (isTizenTV && !el.dataset.ime) {
+    if (onTv() && !el.dataset.ime) {
       el.dataset.ime = '1';
-      try { el.blur(); } catch {}
+      try {
+        el.blur();
+      } catch {}
       el.focus();
       return;
     }
@@ -441,7 +453,15 @@ function saveEditPlaylist() {
     const username = valOf('pl-edit-user');
     const password = document.getElementById('pl-edit-pass') ? document.getElementById('pl-edit-pass').value : '';
     if (!host || !username || !password) return;
-    playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', type: 'xtream', host, username, password, url: host };
+    playlists[editIndex] = {
+      ...playlists[editIndex],
+      name: name || 'Unnamed',
+      type: 'xtream',
+      host,
+      username,
+      password,
+      url: host,
+    };
   } else {
     const url = valOf('pl-edit-url');
     if (!url) return;
@@ -499,7 +519,7 @@ async function testXtreamLogin(prefix) {
 
 function buildFocusOrder() {
   focusOrder = [];
-  document.querySelectorAll('.nav-item').forEach(el => focusOrder.push(el));
+  document.querySelectorAll('.nav-item').forEach((el) => focusOrder.push(el));
 
   if (activeSection === 'source') {
     if (addMode) {
@@ -560,7 +580,7 @@ function buildFocusOrder() {
 }
 
 function clearFocus() {
-  document.querySelectorAll('[data-focused]').forEach(el => el.removeAttribute('data-focused'));
+  document.querySelectorAll('[data-focused]').forEach((el) => el.removeAttribute('data-focused'));
 }
 
 function applyFocus() {
@@ -579,7 +599,7 @@ function applyFocus() {
       // Desktop focuses fields on arrival so typing works at once. On Tizen
       // the keyboard must open only after OK on the field (selectFocused),
       // never while merely passing through it.
-      if (elIsField && !isTizenTV) {
+      if (elIsField && !onTv()) {
         el.focus();
       } else if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl !== el) {
         activeEl.blur();
@@ -592,10 +612,19 @@ function render() {
   const s = getSettings();
   const lastFetched = s.channelsFetched ? timeAgo(s.channelsFetched) : 'Never';
 
-  const navHtml = NAV_ITEMS.map(item =>
-    '<div class="nav-item' + (activeSection === item.id ? ' active' : '') + '" data-section="' + item.id + '">' +
-      '<span class="nav-icon">' + item.icon + '</span><span class="nav-label">' + item.label + '</span>' +
-    '</div>'
+  const navHtml = NAV_ITEMS.map(
+    (item) =>
+      '<div class="nav-item' +
+      (activeSection === item.id ? ' active' : '') +
+      '" data-section="' +
+      item.id +
+      '">' +
+      '<span class="nav-icon">' +
+      item.icon +
+      '</span><span class="nav-label">' +
+      item.label +
+      '</span>' +
+      '</div>',
   ).join('');
 
   let mainHtml = '';
@@ -616,30 +645,34 @@ function render() {
   container.innerHTML =
     '<div class="bg-glow"></div>' +
     '<div class="settings-layout">' +
-      '<nav class="settings-nav">' +
-        '<div class="nav-header">' +
-          '<div class="nav-logo">' +
-            '<img class="icon" src="logo.svg" alt="EN IPTV logo">' +
-            '<div class="text">EN <span>IPTV</span></div>' +
-          '</div>' +
-          '<div class="nav-sub">Settings</div>' +
-        '</div>' +
-        '<div class="nav-items">' + navHtml + '</div>' +
-      '</nav>' +
-      '<main class="settings-main">' + mainHtml + '</main>' +
+    '<nav class="settings-nav">' +
+    '<div class="nav-header">' +
+    '<div class="nav-logo">' +
+    '<img class="icon" src="logo.svg" alt="EN IPTV logo">' +
+    '<div class="text">EN <span>IPTV</span></div>' +
+    '</div>' +
+    '<div class="nav-sub">Settings</div>' +
+    '</div>' +
+    '<div class="nav-items">' +
+    navHtml +
+    '</div>' +
+    '</nav>' +
+    '<main class="settings-main">' +
+    mainHtml +
+    '</main>' +
     '</div>' +
     '<div id="remote-hints">' +
-      '<div class="hint-group"><kbd>&#9650;</kbd> <kbd>&#9660;</kbd> <span class="sep">|</span> Navigate</div>' +
-      '<div class="hint-group"><kbd>Enter</kbd> <span class="sep">|</span> Select / Toggle</div>' +
-      '<div class="hint-group"><kbd>&#9664;</kbd> <span class="sep">|</span> Back</div>' +
-      '<div class="hint-group"><kbd>Back</kbd> <span class="sep">|</span> Close</div>' +
+    '<div class="hint-group"><kbd>&#9650;</kbd> <kbd>&#9660;</kbd> <span class="sep">|</span> Navigate</div>' +
+    '<div class="hint-group"><kbd>Enter</kbd> <span class="sep">|</span> Select / Toggle</div>' +
+    '<div class="hint-group"><kbd>&#9664;</kbd> <span class="sep">|</span> Back</div>' +
+    '<div class="hint-group"><kbd>Back</kbd> <span class="sep">|</span> Close</div>' +
     '</div>';
 
   buildFocusOrder();
 
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.nav-item').forEach((item) => {
     item.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
       item.classList.add('active');
       activeSection = item.dataset.section;
       focusIdx = 0;
@@ -750,8 +783,8 @@ function render() {
     }
     document.getElementById('settings-fetch-btn').addEventListener('click', handleFetch);
   } else if (activeSection === 'playback') {
-    document.querySelectorAll('.toggle').forEach(t => {
-      t.addEventListener('click', function() {
+    document.querySelectorAll('.toggle').forEach((t) => {
+      t.addEventListener('click', function () {
         this.classList.toggle('on');
         if (this.id === 'toggle-autoq') {
           const enabled = this.classList.contains('on');
@@ -782,7 +815,7 @@ function render() {
           const name = groupNames()[idx];
           if (name) {
             const shown = this.classList.contains('on');
-            const hidden = (getSettings().hiddenGroups || []).filter(g => g !== name);
+            const hidden = (getSettings().hiddenGroups || []).filter((g) => g !== name);
             if (!shown) hidden.push(name);
             saveSettings({ hiddenGroups: hidden });
           }
@@ -799,13 +832,24 @@ function renderSourceCard(s, lastFetched) {
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u{1F4E1}</span> Channel Source</h3></div>';
   html += '<div class="card-body">';
-  html += '<p class="hint" style="margin-bottom:32px;">Saved playlists (' + s.playlists.length + '/' + MAX_PLAYLISTS + '). Select one, then press Active.</p>';
+  html +=
+    '<p class="hint" style="margin-bottom:32px;">Saved playlists (' +
+    s.playlists.length +
+    '/' +
+    MAX_PLAYLISTS +
+    '). Select one, then press Active.</p>';
   if (addMode) {
     html += '<div class="input-group">';
     html += '<label>Source Type</label>';
     html += '<div class="select-grid">';
-    html += '<button id="pl-add-type-m3u" class="select-opt' + (addType !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
-    html += '<button id="pl-add-type-xtream" class="select-opt' + (addType === 'xtream' ? ' active' : '') + '" type="button">Xtream Login</button>';
+    html +=
+      '<button id="pl-add-type-m3u" class="select-opt' +
+      (addType !== 'xtream' ? ' active' : '') +
+      '" type="button">M3U URL</button>';
+    html +=
+      '<button id="pl-add-type-xtream" class="select-opt' +
+      (addType === 'xtream' ? ' active' : '') +
+      '" type="button">Xtream Login</button>';
     html += '</div>';
     html += '</div>';
     html += '<div id="pl-add-m3u-fields"' + (addType === 'xtream' ? ' class="hidden"' : '') + '>';
@@ -834,7 +878,10 @@ function renderSourceCard(s, lastFetched) {
     html += '<input id="pl-add-name" class="input-field" type="text" placeholder="My Playlist" />';
     html += '</div>';
     html += '<div class="btn-group">';
-    html += '<button id="pl-add-test" class="btn btn-secondary' + (addType !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
+    html +=
+      '<button id="pl-add-test" class="btn btn-secondary' +
+      (addType !== 'xtream' ? ' hidden' : '') +
+      '" type="button">Test Login</button>';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
     html += '<button id="pl-add-cancel" class="btn btn-secondary">Cancel</button>';
     html += '</div>';
@@ -849,24 +896,39 @@ function renderSourceCard(s, lastFetched) {
         html += '<div class="input-group">';
         html += '<label>Source Type</label>';
         html += '<div class="select-grid">';
-        html += '<button id="pl-edit-type-m3u" class="select-opt' + (et !== 'xtream' ? ' active' : '') + '" type="button">M3U URL</button>';
-        html += '<button id="pl-edit-type-xtream" class="select-opt' + (et === 'xtream' ? ' active' : '') + '" type="button">Xtream Login</button>';
+        html +=
+          '<button id="pl-edit-type-m3u" class="select-opt' +
+          (et !== 'xtream' ? ' active' : '') +
+          '" type="button">M3U URL</button>';
+        html +=
+          '<button id="pl-edit-type-xtream" class="select-opt' +
+          (et === 'xtream' ? ' active' : '') +
+          '" type="button">Xtream Login</button>';
         html += '</div>';
         html += '</div>';
         html += '<div id="pl-edit-m3u-fields"' + (et === 'xtream' ? ' class="hidden"' : '') + '>';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-url">Playlist URL</label>';
-        html += '<input id="pl-edit-url" class="input-field" type="text" value="' + escapeHtml(p.url || '') + '" placeholder="https://..." />';
+        html +=
+          '<input id="pl-edit-url" class="input-field" type="text" value="' +
+          escapeHtml(p.url || '') +
+          '" placeholder="https://..." />';
         html += '</div>';
         html += '</div>';
         html += '<div id="pl-edit-xtream-fields"' + (et !== 'xtream' ? ' class="hidden"' : '') + '>';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-host">Host</label>';
-        html += '<input id="pl-edit-host" class="input-field" type="text" value="' + escapeHtml(p.host || p.url || '') + '" placeholder="http://host:port" />';
+        html +=
+          '<input id="pl-edit-host" class="input-field" type="text" value="' +
+          escapeHtml(p.host || p.url || '') +
+          '" placeholder="http://host:port" />';
         html += '</div>';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-user">Username</label>';
-        html += '<input id="pl-edit-user" class="input-field" type="text" value="' + escapeHtml(p.username || '') + '" placeholder="Username" />';
+        html +=
+          '<input id="pl-edit-user" class="input-field" type="text" value="' +
+          escapeHtml(p.username || '') +
+          '" placeholder="Username" />';
         html += '</div>';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-pass">Password</label>';
@@ -876,10 +938,16 @@ function renderSourceCard(s, lastFetched) {
         html += '</div>';
         html += '<div class="input-group">';
         html += '<label for="pl-edit-name">Playlist Name</label>';
-        html += '<input id="pl-edit-name" class="input-field" type="text" value="' + escapeHtml(p.name || '') + '" placeholder="My Playlist" />';
+        html +=
+          '<input id="pl-edit-name" class="input-field" type="text" value="' +
+          escapeHtml(p.name || '') +
+          '" placeholder="My Playlist" />';
         html += '</div>';
         html += '<div class="btn-group">';
-        html += '<button id="pl-edit-test" class="btn btn-secondary' + (et !== 'xtream' ? ' hidden' : '') + '" type="button">Test Login</button>';
+        html +=
+          '<button id="pl-edit-test" class="btn btn-secondary' +
+          (et !== 'xtream' ? ' hidden' : '') +
+          '" type="button">Test Login</button>';
         html += '<button id="pl-edit-save" class="btn btn-primary">Save</button>';
         html += '<button id="pl-edit-cancel" class="btn btn-secondary">Cancel</button>';
         html += '</div>';
@@ -894,7 +962,12 @@ function renderSourceCard(s, lastFetched) {
         }
         html += '</div>';
         html += '<span class="playlist-url">' + escapeHtml(p.url || '') + '</span>';
-        html += '<span class="playlist-meta">Added ' + formatDate(p.addedAt) + ' \u2022 Last played ' + (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') + '</span>';
+        html +=
+          '<span class="playlist-meta">Added ' +
+          formatDate(p.addedAt) +
+          ' \u2022 Last played ' +
+          (p.lastPlayedAt ? timeAgo(p.lastPlayedAt) : 'Never') +
+          '</span>';
         html += '<div class="btn-group">';
         html += '<button id="pl-edit-' + i + '" class="btn btn-secondary">Edit</button>';
         html += '<button id="pl-delete-' + i + '" class="btn btn-secondary">Delete</button>';
@@ -930,32 +1003,42 @@ function renderPlaybackCard() {
   html += '<div class="card-header"><h3><span class="card-icon">&#x25B6;</span> Playback</h3></div>';
   html += '<div class="card-body">';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Auto quality</div><div class="toggle-desc">Automatically adjust resolution based on bandwidth</div></div>';
+  html +=
+    '<div><div class="toggle-label">Auto quality</div><div class="toggle-desc">Automatically adjust resolution based on bandwidth</div></div>';
   html += '<div class="toggle' + (autoQ ? ' on' : '') + '" id="toggle-autoq"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Auto refresh playlist</div><div class="toggle-desc">Download and update playlist from source on app launch</div></div>';
-  html += '<div class="toggle' + (autoRefresh ? ' on' : '') + '" id="toggle-auto-refresh"><div class="knob"></div></div>';
+  html +=
+    '<div><div class="toggle-label">Auto refresh playlist</div><div class="toggle-desc">Download and update playlist from source on app launch</div></div>';
+  html +=
+    '<div class="toggle' + (autoRefresh ? ' on' : '') + '" id="toggle-auto-refresh"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Check for updates</div><div class="toggle-desc">Notify when a new version is available (anonymous)</div></div>';
-  html += '<div class="toggle' + (updateCheck ? ' on' : '') + '" id="toggle-update-check"><div class="knob"></div></div>';
+  html +=
+    '<div><div class="toggle-label">Check for updates</div><div class="toggle-desc">Notify when a new version is available (anonymous)</div></div>';
+  html +=
+    '<div class="toggle' + (updateCheck ? ' on' : '') + '" id="toggle-update-check"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">App logo</div><div class="toggle-desc">Show logo and name in the top-left corner</div></div>';
+  html +=
+    '<div><div class="toggle-label">App logo</div><div class="toggle-desc">Show logo and name in the top-left corner</div></div>';
   html += '<div class="toggle' + (watermark ? ' on' : '') + '" id="toggle-watermark"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Quality badge</div><div class="toggle-desc">Show quality and stream type in the top-right corner</div></div>';
+  html +=
+    '<div><div class="toggle-label">Quality badge</div><div class="toggle-desc">Show quality and stream type in the top-right corner</div></div>';
   html += '<div class="toggle' + (badge ? ' on' : '') + '" id="toggle-badge"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Proxy menu</div><div class="toggle-desc">Show per-channel proxy option in the sidebar menu</div></div>';
+  html +=
+    '<div><div class="toggle-label">Proxy menu</div><div class="toggle-desc">Show per-channel proxy option in the sidebar menu</div></div>';
   html += '<div class="toggle' + (proxyMenu ? ' on' : '') + '" id="toggle-proxymenu"><div class="knob"></div></div>';
   html += '</div>';
   html += '<div class="toggle-row">';
-  html += '<div><div class="toggle-label">Provider order</div><div class="toggle-desc">List channels in provider order instead of A–Z (applies on next refresh)</div></div>';
-  html += '<div class="toggle' + (providerSort ? ' on' : '') + '" id="toggle-channelsort"><div class="knob"></div></div>';
+  html +=
+    '<div><div class="toggle-label">Provider order</div><div class="toggle-desc">List channels in provider order instead of A–Z (applies on next refresh)</div></div>';
+  html +=
+    '<div class="toggle' + (providerSort ? ' on' : '') + '" id="toggle-channelsort"><div class="knob"></div></div>';
   html += '</div>';
   html += '</div></div>';
   html += renderGroupsCard();
@@ -965,14 +1048,14 @@ function renderPlaybackCard() {
 function groupNames() {
   const map = {};
   for (const ch of getSettings().channels || []) {
-    const g = ((ch && ch.group) || 'Ungrouped');
+    const g = (ch && ch.group) || 'Ungrouped';
     map[g] = (map[g] || 0) + 1;
   }
   return Object.keys(map).sort();
 }
 
 function groupChannelCount(name) {
-  return (getSettings().channels || []).filter(ch => (((ch && ch.group) || 'Ungrouped') === name)).length;
+  return (getSettings().channels || []).filter((ch) => ((ch && ch.group) || 'Ungrouped') === name).length;
 }
 
 function renderGroupsCard() {
@@ -983,12 +1066,18 @@ function renderGroupsCard() {
   html += '<div class="card-header"><h3><span class="card-icon">\u{1F4C1}</span> Groups</h3></div>';
   html += '<div class="card-body">';
   if (names.length === 0) {
-    html += '<div class="toggle-row"><div><div class="toggle-label">No groups yet</div><div class="toggle-desc">Load a playlist to manage groups</div></div></div>';
+    html +=
+      '<div class="toggle-row"><div><div class="toggle-label">No groups yet</div><div class="toggle-desc">Load a playlist to manage groups</div></div></div>';
   }
   names.forEach((name, i) => {
     const shown = !hidden.includes(name);
     html += '<div class="toggle-row">';
-    html += '<div><div class="toggle-label">' + escapeHtml(name) + '</div><div class="toggle-desc">' + groupChannelCount(name) + ' channels</div></div>';
+    html +=
+      '<div><div class="toggle-label">' +
+      escapeHtml(name) +
+      '</div><div class="toggle-desc">' +
+      groupChannelCount(name) +
+      ' channels</div></div>';
     html += '<div class="toggle' + (shown ? ' on' : '') + '" id="show-group-' + i + '"><div class="knob"></div></div>';
     html += '</div>';
   });
@@ -996,22 +1085,35 @@ function renderGroupsCard() {
   return html;
 }
 
-function renderAboutCard() {  let html = '';
+function renderAboutCard() {
+  let html = '';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
   html += '<div class="card-body">';
-  html += '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' + APP_VERSION + '</div></div>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' + (player.isNativeAvailable() ? 'Available' : 'Not available') + '</div></div>';
+  html +=
+    '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' +
+    APP_VERSION +
+    '</div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' +
+    (player.isNativeAvailable() ? 'Available' : 'Not available') +
+    '</div></div>';
   html += '</div></div>';
   html += '<div class="setting-card">';
   html += '<div class="card-header"><h3><span class="card-icon">\u{1F517}</span> Links</h3></div>';
   html += '<div class="card-body">';
-  html += '<div class="toggle-row"><div><div class="toggle-label">Developer</div></div><div class="toggle-value">Nur-allhi</div></div>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">GitHub</div></div><div class="toggle-value"><a class="about-link" href="https://github.com/Nur-allhi" target="_blank" rel="noopener">github.com/Nur-allhi</a></div></div>';
-  html += '<div class="toggle-row"><div><div class="toggle-label">Telegram</div></div><div class="toggle-value"><a class="about-link" href="https://t.me/eniptvplayer" target="_blank" rel="noopener">t.me/eniptvplayer</a></div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">Developer</div></div><div class="toggle-value">Nur-allhi</div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">GitHub</div></div><div class="toggle-value"><a class="about-link" href="https://github.com/Nur-allhi" target="_blank" rel="noopener">github.com/Nur-allhi</a></div></div>';
+  html +=
+    '<div class="toggle-row"><div><div class="toggle-label">Telegram</div></div><div class="toggle-value"><a class="about-link" href="https://t.me/eniptvplayer" target="_blank" rel="noopener">t.me/eniptvplayer</a></div></div>';
   html += '</div></div>';
   return html;
 }
@@ -1043,5 +1145,3 @@ async function handleFetch() {
     if (fetchBtn) fetchBtn.disabled = false;
   }
 }
-
-
