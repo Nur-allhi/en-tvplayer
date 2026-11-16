@@ -13,6 +13,7 @@ import {
 import * as avplay from './avplay.js';
 import { state } from './player/state.js';
 import { planRecovery, httpStatusOf } from './player/recovery.js';
+import { deps } from './player/deps.js';
 // T-122: subscription setters and stream/track queries now live in their own
 // slices. player.js both uses and re-exports them so its public surface stays
 // exactly the same 24 names until the index hub lands (T-123).
@@ -33,6 +34,28 @@ export {
   selectAudioTrackById,
   getVideoElement,
 } from './player/stream.js';
+
+// T-124: register the concrete implementations in the hub. Slices call through
+// these slots instead of importing player.js back, so the init -> handleError
+// -> load -> init cycle becomes a one-way wire-up. Function declarations are
+// hoisted, so this can live here alongside the imports.
+Object.assign(deps, {
+  loadChannel,
+  initPlayer,
+  handlePlayerError,
+  scheduleReconnect,
+  showError,
+  logEvent,
+  getErrorMessage,
+  giveUpTune,
+  probeChannelFormat,
+  startStallWatchdog,
+  stopStallWatchdog,
+  startBlackWatchdog,
+  stopBlackWatchdog,
+  notifyBufferingProgress,
+  isRenderingFrames,
+});
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
 // Stream tokens (?token=…) are scrubbed: users paste inspector logs publicly.
@@ -175,7 +198,7 @@ export async function initPlayer(videoEl) {
 
   state.player.addEventListener('error', (event) => {
     if (isStalePlayerEvent(gen, state.loadToken)) return;
-    handlePlayerError(event.detail);
+    deps.handlePlayerError(event.detail);
   });
 
   state.player.addEventListener('buffering', (event) => {
@@ -525,7 +548,7 @@ export async function loadChannel(channel) {
     const tInit = Date.now();
 
     if (el) {
-      const ok = await initPlayer(el);
+      const ok = await deps.initPlayer(el);
       if (!ok) {
         // Never fail silently: an unfinished attach used to wedge the tune
         // on veil+name with no recovery able to fire.
@@ -662,7 +685,7 @@ export async function loadChannel(channel) {
       const el = state.videoElement;
       await destroyPlayer(el);
       if (el && myToken === state.loadToken) {
-        await initPlayer(el);
+        await deps.initPlayer(el);
       }
       // #16: only the still-current tune may schedule its own retry.
       if (myToken === state.loadToken && state.reconnectAttempts < 3) {
@@ -910,7 +933,7 @@ function handlePlayerError(error) {
         'Native crash during playback — reloading without PDT sync: ' +
           (state.currentChannel.name || state.currentChannel.url.slice(0, 80)),
       );
-      loadChannel(state.currentChannel);
+      deps.loadChannel(state.currentChannel);
       return;
 
     case 'forbidden-reload':
@@ -937,7 +960,7 @@ function handlePlayerError(error) {
             (state.currentChannel.name || state.currentChannel.url.slice(0, 80)),
         );
       }
-      loadChannel(state.currentChannel);
+      deps.loadChannel(state.currentChannel);
       return;
 
     case 'reconnect':
@@ -1060,7 +1083,7 @@ function scheduleReconnect(delay) {
     // only fire when nothing switched channels meanwhile.
     if (tokenAtSchedule !== state.loadToken) return;
     if (state.currentChannel && state.currentChannel === channelAtSchedule) {
-      loadChannel(state.currentChannel);
+      deps.loadChannel(state.currentChannel);
     }
   }, wait);
 }
@@ -1123,7 +1146,7 @@ function startStallWatchdog() {
           return;
         }
         logEvent('INFO', '3 stalls — hard reloading channel');
-        loadChannel(state.currentChannel);
+        deps.loadChannel(state.currentChannel);
       } else {
         scheduleReconnect();
       }
@@ -1324,7 +1347,7 @@ export function reloadChannel() {
   state.tuneAttempt = 0; // loadChannel++ makes this a fresh first try
   clearTimeout(state.reconnectTimer);
   state.reconnectPending = false;
-  loadChannel(state.currentChannel);
+  deps.loadChannel(state.currentChannel);
 }
 
 export function stop() {

@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-124: player deps registry — @nightshift
+
+**Ticket:** T-124
+**Branch:** `feature/t-124-deps-registry` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/player/deps.js` (new) — 15 unwired function slots for the M2
+  split. Pure module, no imports, no DOM; an unwired slot throws a named error.
+- `player/src/player/deps.test.js` (new, 13 tests) — a registered slot is the
+  function invoked, args/returns pass through, last registration wins, slots
+  are independent, and every unwired slot throws.
+- `player/src/player.js` — imports the registry, registers all 15 concrete
+  functions at module load, and routes the three-node cycle edges through
+  slots: init → `deps.handlePlayerError`, handleError → `deps.loadChannel`
+  (5 sites), load → `deps.initPlayer` (2 sites).
+
+**Verified**
+- `npm test` → 261 passed (was 248, +13); `npm run lint`, `npm run validate`
+  (48 files, 0 new violations), `npm run format:check`, `npm run build` and
+  `npm run tizen` all green.
+- Bundle 968 293 → 969 370 B (+0.11 %), inside ±2 %.
+
+**Decisions**
+- Scoped T-124 to the cycle-breaking edges only. The other 12 slots are
+  registered for T-126/T-127 to consume as those slices move — the ticket's
+  preparatory-registry design. Routing every call now would be a large,
+  untestable change to playback code for no acceptance benefit.
+- `Object.assign(deps, {...})` relies on function-declaration hoisting; all 15
+  targets are declarations, so registering at module top is safe.
+
+**Watch out**
+- Registration happens once at `player.js` module load. Any future slice
+  imported directly (bypassing the hub) sees unwired slots and throws —
+  intended, but keep the hub as the only registration point.
+- No TV connected. No TV verification claimed — the routed calls are the live
+  tune/recovery paths.
+
+**Next**
+- T-125 — extract DOM-free helpers from `loadChannel`.
+
+---
+
 ## 2026-11-17 — T-135: extract core, delete ui.js — @nightshift
 
 **Ticket:** T-135

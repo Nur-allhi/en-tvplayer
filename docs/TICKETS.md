@@ -371,7 +371,12 @@ A ticket is only `done` when it meets the **Definition of Done**
   becomes `init → deps.handleError` / `load → deps.init`, with only the hub
   importing all three. Registering a slot is one line per function in
   `player.js`, changed again when T-128 builds `player/index.js`.
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `player/deps.js` added with 15 unwired slots
+  that throw a named error; `deps.test.js` (13 tests) proves registration and
+  fail-loud behaviour. `player.js` registers all 15 concrete functions and
+  routes the `init → handleError → load → init` cycle edges through slots
+  (behaviour-neutral). All gates green incl. `npm run tizen`; bundle
+  968.29 → 969.37 kB (+0.11 %). No TV verification claimed.
 
 ### T-125 — Pure helpers out of `loadChannel`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~120 LOC moved, ~30 new)

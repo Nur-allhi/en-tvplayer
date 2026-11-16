@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-124      # first unresolved row below
+NEXT        = T-125      # first unresolved row below
 MODE        = unattended # agent must not ask questions
-LAST_RUN    = 2026-11-17 # batch complete: T-133 + T-134 + T-135 done
+LAST_RUN    = 2026-11-17 # T-124 done (batch of 3 in progress)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -96,8 +96,8 @@ with the exact gate output; agent skipped it.
 | 6 | T-133 | `ui/sidebar.js` + `ui/search.js` | done | merged + gated 2026-11-17; deps registry added |
 | 7 | T-134 | `ui/right-menu.js` | done | merged + gated 2026-11-17 |
 | 8 | T-135 | `ui/core.js` + delete `ui.js` | done | merged + gated 2026-11-17; hub is 74 names |
-| 9 | T-124 | `player/deps.js` — dependency registry | ready | **NEXT** — M2 cycle breaker, land first |
-| 10 | T-125 | pure helpers out of `loadChannel` | ready | after T-124; shrinks loadChannel below 300 LOC |
+| 9 | T-124 | `player/deps.js` — dependency registry | done | merged + gated 2026-11-17 |
+| 10 | T-125 | pure helpers out of `loadChannel` | ready | **NEXT** — after T-124; shrinks loadChannel below 300 LOC |
 | 11 | T-126 | `player/init.js` — init + destroy | ready | after T-125 |
 | 12 | T-127 | `player/load.js` — load + reload | ready | after T-126; may need `load-error.js` in same ticket |
 | 13 | T-123 | delete `player.js`, `player/index.js` hub | ready | after T-127 |
