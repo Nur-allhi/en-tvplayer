@@ -2,22 +2,17 @@
   "loc:player/src/main.js": {
     "rule": "loc",
     "file": "player/src/main.js",
-    "detail": "1588 LOC exceeds 300"
+    "detail": "1590 LOC exceeds 300"
   },
   "loc:player/src/player.js": {
     "rule": "loc",
     "file": "player/src/player.js",
-    "detail": "1670 LOC exceeds 300"
+    "detail": "1465 LOC exceeds 300"
   },
   "loc:player/src/settings.js": {
     "rule": "loc",
     "file": "player/src/settings.js",
-    "detail": "1067 LOC exceeds 300"
-  },
-  "loc:player/src/ui.js": {
-    "rule": "loc",
-    "file": "player/src/ui.js",
-    "detail": "1464 LOC exceeds 300"
+    "detail": "1148 LOC exceeds 300"
   },
   "exports:player/src/logic.js": {
     "rule": "exports",
@@ -28,10 +23,5 @@
     "rule": "exports",
     "file": "player/src/player.js",
     "detail": "24 exports exceeds 15"
-  },
-  "exports:player/src/ui.js": {
-    "rule": "exports",
-    "file": "player/src/ui.js",
-    "detail": "74 exports exceeds 15"
   }
 }

@@ -1,6 +1,6 @@
 import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups, APP_VERSION } from './config.js';
 import * as player from './player.js';
-import * as ui from './ui.js';
+import * as ui from './ui/index.js';
 import * as remote from './remote.js';
 import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';

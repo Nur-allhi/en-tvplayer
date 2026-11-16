@@ -7,6 +7,7 @@
 import { escapeHtml } from '../utils.js';
 import { attemptSuffix, slowHintFor } from '../logic.js';
 import { state } from './state.js';
+import { deps } from './deps.js';
 
 /* Top-left logo + top-right quality badge visibility */
 let showWatermark = true;
@@ -19,7 +20,7 @@ export function setOverlayVisibility({ watermark, badge } = {}) {
   applyBadge();
 }
 
-export function applyWatermark() {
+function applyWatermark() {
   const watermark = document.getElementById('player-watermark');
   if (!watermark) return;
   if (!showWatermark) {
@@ -207,3 +208,6 @@ function setBufferingPercent(percent) {
   const p = document.getElementById('buffering-percent');
   if (p) p.textContent = (typeof percent === 'number' ? percent : 0) + '%' + attemptSuffix(tuneAttempt);
 }
+
+// Wire the watermark helper the chrome slice calls through.
+deps.applyWatermark = applyWatermark;

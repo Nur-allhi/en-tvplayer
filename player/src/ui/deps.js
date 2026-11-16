@@ -17,4 +17,9 @@ export const deps = {
   updateSidebarTitle: unwired('updateSidebarTitle'),
   applySidebar: unwired('applySidebar'),
   resetInactivity: unwired('resetInactivity'),
+  computeSearchResults: unwired('computeSearchResults'),
+  renderSearchResults: unwired('renderSearchResults'),
+  updateActiveChannel: unwired('updateActiveChannel'),
+  scrollToFocused: unwired('scrollToFocused'),
+  applyWatermark: unwired('applyWatermark'),
 };

@@ -44,6 +44,58 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-135: extract core, delete ui.js — @nightshift
+
+**Ticket:** T-135
+**Branch:** `feature/t-135-core-hub` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/ui/core.js` (248 LOC) — init, virtualised channel list,
+  navigation and selection (9 public names).
+- `player/src/ui/chrome.js` (194 LOC) — sidebar toggle, fullscreen, cursor and
+  inactivity timer (12 public names).
+- `player/src/ui/channel-view.js` (143 LOC) — channel getters/refresh, focus and
+  marquee (5 public names).
+- `player/src/ui/index.js` — pure `export *` hub with exactly the old 74-name
+  API. `player/src/ui.js` deleted; `main.js` and `settings.js` now import
+  `./ui/index.js`.
+- `player/src/ui/deps.js` — more slots for internal view/watermark helpers so
+  no private function leaks into the hub's `export *` surface.
+- `scripts/modularity-baseline.json` 7 → 5: the `ui.js` LOC and exports entries
+  are resolved (AGENTS.md §11.7).
+
+**Verified**
+- Transitive surface audit mirroring the validator: **74 before / 74 after**,
+  zero name diff. The first attempt exposed 78; the 4 internal helpers were
+  routed through deps until it matched exactly.
+- `npm test` → 248 passed; `npm run lint`, `npm run validate` (46 files, 0 new
+  violations), `npm run format:check`, `npm run build` and `npm run tizen` all
+  green.
+- Bundle 967 539 → 968 293 B (+0.08 %).
+
+**Decisions**
+- `export *` hub, not named re-exports: the guard counts a named-reexport hub
+  as 74 own exports and would flag it as a new violation. Each slice wires its
+  own deps slots locally, so the hub stays declaration-free.
+- Split the remaining 620 LOC into three slices — one `core.js` would be ~580
+  LOC against the 300 cap. The ticket's "~280 LOC" estimate covered only part
+  of what `ui.js` still owned.
+
+**Watch out**
+- The 74-name surface is now assembled from eight modules; adding a public
+  function to any slice silently grows it. Re-run the surface audit after UI
+  edits.
+- `deps.js` has 12 slots, all wired by slice module bodies. A direct import of
+  a slice that bypasses `ui/index.js` leaves them unwired and throws — intended.
+- No TV connected. No TV verification claimed — the whole UI flow needs a
+  device check before v4 is called ready.
+
+**Next**
+- Batch limit (3) reached. Next batch starts at **T-124** (`player/deps.js`).
+
+---
+
 ## 2026-11-17 — T-134: extract the right-menu slice — @nightshift
 
 **Ticket:** T-134
