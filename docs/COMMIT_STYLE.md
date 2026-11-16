@@ -69,6 +69,29 @@ Closes: T-120
 - Say what problem existed and why this is the fix — future you will not
   remember, and neither will the next agent.
 
+#### Two traps that will reject your commit
+
+Both are consequences of how `scripts/check-commit-msg.mjs` parses the
+message. Neither is obvious, and both cost a rewrite the first time.
+
+**1. A body line starting `word: ` is read as a trailer.** The parser finds
+the first body line matching `^[A-Za-z-]+: ` and treats **everything from
+there down** as trailers. A body sentence like
+
+```
+The gap was enforcement: nothing stopped a red check from reaching dev.
+```
+
+silently truncates the body at that line and then rejects the words after it
+as unrecognised trailers. Rephrase to avoid a colon after a word at the
+start of a line — use a dash, a comma, or restructure the sentence.
+
+**2. The scope list is closed and smaller than it looks.** `v4` is **not** a
+scope. Documents are full of `docs(v4): …`-style prose, but the hook rejects
+it. Use `migration` for restructure planning, `roadmap` for plan documents.
+
+Run `npm run lint:commits` to audit the whole history after a rule change.
+
 ### Ticket reference
 
 - **Required** in the subject for `feat`, `fix`, `refactor`, `perf`.

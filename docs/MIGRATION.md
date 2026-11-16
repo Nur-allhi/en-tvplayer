@@ -18,8 +18,17 @@
 | `ui.js` (1463 LOC, 74 exports) | `ui/` — 7 modules + `index.js` hub | **deleted** after the split |
 | `settings.js` (1066 LOC, 8 exports) | `settings/` — 5 modules + `index.js` hub | **deleted** after the split |
 | `main.js` (1587 LOC) | `main.js` (thin, ~40 LOC) + `app/` — 5 modules | **kept** as the entry point, emptied |
-| `utils.js` (347 LOC) | `lib/` — 5 modules | **deleted**; `lib/` is imported directly |
+| `utils.js` (347 LOC) | `lib/` — 5 modules | **shrunk, not deleted** — see below |
 | `styles.css` (1771 LOC) | `styles/` — 7 files | **split**; `main.js` imports `styles/index.css` |
+
+> **`utils.js` correction (T-110, 2026-11-16).** It is **not** deleted. The
+> pure helpers moved to `lib/` (`m3u.js`, `url.js`, `drm.js`), taking it from
+> 347 to 66 LOC, but the network layer (`fetchPlaylist`,
+> `fetchPlaylistEntry`, `fetchPlaylistWithRetry`) and `escapeHtml` stayed:
+> they touch `fetch`/`document` and have no `lib/` home. `lib/` is DOM-free by
+> rule (`npm run validate` enforces it), so the network code cannot go there.
+> The module keeps its public surface, so `main.js`, `settings.js` and `ui.js`
+> needed no change.
 
 **No line of logic is rewritten during the move.** The split is a *move*,
 verified by the build and the test suite. Feature work happens afterwards,
