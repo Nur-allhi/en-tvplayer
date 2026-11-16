@@ -12,8 +12,9 @@ import {
 } from './logic.js';
 import * as avplay from './avplay.js';
 import { state } from './player/state.js';
-import { planRecovery, httpStatusOf } from './player/recovery.js';
+import { planRecovery, httpStatusOf, isNativeLoadCrash, isRecoverable } from './player/recovery.js';
 import { deps } from './player/deps.js';
+import { detectMimeType, sniffMimeFromBytes } from './lib/mime.js';
 // T-122: subscription setters and stream/track queries now live in their own
 // slices. player.js both uses and re-exports them so its public surface stays
 // exactly the same 24 names until the index hub lands (T-123).
@@ -71,29 +72,6 @@ function logEvent(level, message) {
 // All mutable engine state lives in one shared object (T-129). Every slice of
 // the upcoming player/ split imports this same reference — see docs/MIGRATION.md
 // Risk C for what happens if they each keep their own copy.
-
-// Detect MIME type from URL pattern for direct stream URLs.
-// IPTV playlists often contain raw .ts or .mp4 URLs without manifest wrappers.
-// Shaka Player needs a MIME type hint to play these correctly on Samsung Tizen.
-function detectMimeType(url) {
-  try {
-    const u = new URL(url);
-    const path = u.pathname.toLowerCase();
-    if (path.endsWith('.m3u8')) return null; // HLS — Shaka detects automatically
-    if (path.endsWith('.mpd')) return null; // DASH — Shaka detects automatically
-    if (path.endsWith('.ts')) return 'video/mp2t';
-    if (path.endsWith('.mp4')) return 'video/mp4';
-    if (path.endsWith('.mkv')) return 'video/x-matroska';
-    if (path.endsWith('.flv')) return 'video/x-flv';
-    // Direct numeric or query-only paths (e.g. /1234 or /stream?id=123)
-    // are almost always MPEG-TS streams in IPTV playlists.
-    const segs = path.split('/').filter(Boolean);
-    if (segs.length > 0 && /^\d+$/.test(segs[segs.length - 1])) {
-      return 'video/mp2t';
-    }
-  } catch {}
-  return null; // let Shaka auto-detect
-}
 
 // Desktop test relay (branch-only, never shipped): prefix a channel URL so
 // it loads through the local proxy (CORS + Origin/Referer/UA fix).
@@ -338,16 +316,6 @@ function notifyTuneAttempt() {
   } catch {}
 }
 
-// Native JS crash thrown from inside Shaka (no shaka.util.Error code), e.g.
-// "Cannot read properties of null (reading 'next')".
-function isNativeLoadCrash(error) {
-  if (!error) return false;
-  if (typeof error.code === 'number') return false; // shaka.util.Error
-  if (error instanceof TypeError) return true;
-  const msg = error.message || '';
-  return /Cannot read propert/.test(msg) && /reading /.test(msg);
-}
-
 // BUG-014: Shaka reports error 4000 when it cannot guess a stream's format
 // from the URL (no extension) or the server's Content-Type. Probe the first
 // bytes of the stream ourselves and return the format Shaka should use.
@@ -402,34 +370,7 @@ async function probeChannelFormat(channel) {
     } catch {}
     clearTimeout(timer);
     if (state.probeController === controller) state.probeController = null;
-    if (bytes.length < 8) return null;
-
-    // MP4: ftyp box at offset 4.
-    const box = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]);
-    if (box === 'ftyp') return 'video/mp4';
-
-    // Text-based manifests: HLS (#EXTM3U / #EXT-X-...) and DASH (<MPD).
-    const head = new TextDecoder().decode(bytes.subarray(0, Math.min(bytes.length, 8192)));
-    const trimmed = head.trimStart();
-    if (trimmed.startsWith('#EXTM3U') || head.includes('#EXT-X-')) {
-      return 'application/vnd.apple.mpegurl'; // force Shaka's HLS parser
-    }
-    if (trimmed.startsWith('<MPD') || (trimmed.startsWith('<?xml') && head.includes('<MPD'))) {
-      return 'application/dash+xml'; // force Shaka's DASH parser
-    }
-
-    // MPEG-TS: sync byte 0x47 repeating every 188 bytes.
-    for (let start = 0; start < 4 && start + 564 < bytes.length; start++) {
-      if (
-        bytes[start] === 0x47 &&
-        bytes[start + 188] === 0x47 &&
-        bytes[start + 376] === 0x47 &&
-        bytes[start + 564] === 0x47
-      ) {
-        return 'video/mp2t';
-      }
-    }
-    return null;
+    return sniffMimeFromBytes(bytes);
   } catch (e) {
     if (state.probeController === controller) state.probeController = null;
     logEvent('WARN', 'Format probe failed: ' + (e && e.message ? e.message : e));
@@ -1036,32 +977,6 @@ function shouldTryNative(error) {
   if (state.avplayFailedUrls.has(state.currentChannel.url)) return false;
   if (error.code === 1002 || error.code === 1003) return true;
   if (error.code === 1001 && !(error.data && error.data[1])) return true;
-  return false;
-}
-
-function isRecoverable(error) {
-  if (!error) return false;
-  // Shaka error codes below match shaka-player 5.x (see lib/util/error.js):
-  //   1000 UNSUPPORTED_SCHEME (never transient)
-  //   1001 BAD_HTTP_STATUS   (status is error.data[1])
-  //   1002 HTTP_ERROR        (request failed for a non-server reason)
-  //   1003 TIMEOUT           (no response at all)
-  if (error.code === 1000) return false;
-  // BAD_HTTP_STATUS — retry server failures and "no status", not client errors
-  if (error.code === 1001) {
-    const status = error.data && error.data[1];
-    if (!status) return true;
-    return status >= 500 || status === 429 || status === 408;
-  }
-  // HTTP_ERROR / TIMEOUT — always transient, retry
-  if (error.code === 1002 || error.code === 1003) return true;
-  // MediaSource operation errors — recover by reloading (destroys corrupted MediaSource)
-  if (error.code === 3014 || error.code === 3015 || error.code === 3016) return true;
-  // BUG-017: live/tokenized servers (e.g. kliv) serve stale segments that fail
-  // to transmux (3018), and Shaka then disables the only variant which
-  // surfaces as 4032 CONTENT_UNSUPPORTED_BY_BROWSER. A fresh load refetches
-  // the master playlist (new token) and clears the disabled state.
-  if (error.code === 3018 || error.code === 4032) return true;
   return false;
 }
 
