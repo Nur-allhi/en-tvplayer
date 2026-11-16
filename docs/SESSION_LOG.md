@@ -44,6 +44,52 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-134: extract the right-menu slice — @nightshift
+
+**Ticket:** T-134
+**Branch:** `feature/t-134-right-menu` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/ui/right-menu.js` (new, 297 LOC) — right sidebar, resolution /
+  audio dropdowns, proxy + action buttons, focus list and selection. 12 public
+  names.
+- `player/src/ui/deps.js` — two more slots (`applySidebar`, `resetInactivity`)
+  for the slice's calls back into the core.
+- `player/src/ui.js` 929 → 620 LOC — imports `applyRightSidebar` (its only
+  remaining call into the slice), wires the new slots, re-exports all 12 names.
+
+**Verified**
+- Export-surface audit: 74 before / 74 after, zero diff.
+- `npm test` → 248 passed; `npm run lint`, `npm run validate` (43 files, 0 new
+  violations), `npm run format:check`, `npm run build` and `npm run tizen` all
+  green.
+- Bundle 967 440 → 967 539 B (+0.01 %), well inside ±2 %.
+
+**Decisions**
+- Same deps registry as T-133: `ui.js` must re-export the slice, so a slice
+  importing `ui.js` back would be a cycle. Only two core callbacks are needed
+  here (`applySidebar`, `resetInactivity`).
+- The verbatim move was 335 LOC, over the 300 cap. Four setters shared an
+  identical "rebuild focus if open" tail, so it became one `refreshRightFocus()`
+  helper (same call order); decorative comments and interior blank lines were
+  trimmed to land at 297. No logic changed.
+
+**Watch out**
+- `right-menu.js` is dense (blanks trimmed to fit the cap). Prettier keeps the
+  current layout and will not restore spacing on its own — reformat if the file
+  is edited further.
+- `setAutoCloseCallback` stayed in `ui.js`: it writes the core
+  `autoCloseCallback` var used by `autoCloseOverlays`, so moving it would need
+  another slot.
+- No TV connected. No TV verification claimed — quality, audio and proxy remote
+  paths still need a device check.
+
+**Next**
+- T-135 (`ui/core.js` + delete `ui.js`) — the last UI slice.
+
+---
+
 ## 2026-11-17 — T-133: extract sidebar + search slices — @nightshift
 
 **Ticket:** T-133

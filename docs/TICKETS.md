@@ -563,6 +563,15 @@ A ticket is only `done` when it meets the **Definition of Done**
   `rightSidebarNavigateUp/Down`, `rightSidebarSelect`.
 - **Acceptance:** quality selection, audio selection, reload, refresh,
   settings and proxy all reachable by remote.
+- **Status:** ✅ done 2026-11-17 — `ui/right-menu.js` (297 LOC, 12 public names)
+  extracted. Two more `ui/deps.js` slots (`applySidebar`, `resetInactivity`)
+  carry the slice's calls back into the core, avoiding a `ui.js → slice → ui.js`
+  import cycle. `ui.js` 929 → 620 LOC; export audit 74 before / 74 after, zero
+  diff. All gates green including `npm run tizen`; bundle +0.01 %. The verbatim
+  move was 335 LOC, so an identical repeated focus-rebuild tail became a single
+  `refreshRightFocus()` helper and decorative whitespace was trimmed to fit the
+  300-LOC cap — no logic changed. **No TV verification claimed** — quality,
+  audio, reload and proxy remote paths need a device check.
 
 ### T-135 — `ui/core.js` + delete `ui.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~280 LOC)
