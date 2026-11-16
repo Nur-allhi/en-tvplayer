@@ -44,6 +44,95 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-120: recovery became a plan, not 165 lines of side effects — @maintainer
+
+**Ticket:** T-120 ✅ · **Branch:** `refactor/t-120-player-recovery` → `dev`
+**Status:** ✅ done — the highest-risk logic in the app is now unit-tested
+
+**What changed**
+- **`player/src/player/recovery.js` (new, 209 LOC)** — decision-only. One pure
+  function `planRecovery(error, ctx)` returns
+  `{ action, delay?, counters?, segment404?, status?, log?, message? }`.
+  Actions: `none · ignore · pdt-retry · forbidden-reload · token-refresh ·
+  reload · reconnect · giveup · advance · terminal`.
+- **`player.js`** — `handlePlayerError` is now a `switch` over the plan. All
+  side effects (loads, timers, logging, `showError`) stayed put. The local
+  `isTransientBlip` was deleted; `scheduleReconnect` and
+  `scheduleForbiddenReload` take the delay the plan computed.
+- **63 new tests** in three files (196 → **243** total).
+
+**The spec's shape could not work, and I changed it**
+The ticket says put `handlePlayerError` *and* `scheduleReconnect` *and*
+`giveUpTune` in `recovery.js`. That is an import cycle: `recovery` would call
+`loadChannel` (which belongs in `load.js`) and `load.js` calls
+`scheduleReconnect`. The guard forbids cycles, and all three functions touch
+timers or the DOM, so none of them could be tested in the node env anyway —
+the ticket's own acceptance criterion was unreachable in that shape.
+
+So `recovery.js` decides and `player.js` acts. The tests then cover exactly what
+the ticket asked for: which decision maps to which action, for every branch.
+
+**Two behaviour traps, both caught by characterising rather than assuming**
+1. **`hardReloads` is incremented then compared**, so the *third* hard reload
+   gives up — `hardReloadDecision(3) === 'giveup'`. My first test asserted
+   "still reloads at exactly two" and failed; the code was right and the test
+   was wrong. Good outcome, but only because the test existed.
+2. **An exhausted 401/403 falls through to the terminal handler**, which logs
+   and calls `showError` *before* starting the 4-second advance. My first
+   rewrite returned early on that branch and silently dropped the user-facing
+   error message.
+
+**One bug I introduced and caught myself**
+`reconnectAttempts` was both returned as a plan counter *and* incremented
+inside `scheduleReconnect()`. Double-counting halves the retry ladder: attempt
+1 would schedule at 2s instead of 1s. The plan now derives the delay from
+`ctx.reconnectAttempts + 1` and leaves the increment where it was.
+
+**Verified**
+- `npm test` → **243 passed** · `lint` clean · `validate` 33 files, 0 new
+  violations (7 baselined) · `format:check` clean
+- `npm run build` ok · `npm run tizen` → WGT 469.9 KB
+- **Bundle 938.3 → 940.7 KB (+0.26 %)** — well inside the plan's ±2 %.
+- Sequence tests replay a whole incident (three hard-reload cycles, the full
+  auth ladder, three 404 reloads) and assert the ladder still terminates where
+  the original did.
+
+**Decisions**
+- **Plans return counters, they do not mutate state.** That is what keeps the
+  counter order visible and testable. `player.js` applies them in one loop.
+- **`reconnectAttempts` is the one counter the plan does not own**, because the
+  increment lives in `scheduleReconnect` and moving it would have been a
+  second change in one commit.
+- **Conditional logging via a `log` field**, not a branch in the caller. The
+  plain auth retry logged a segment line; the refresh-without-callback fallback
+  logged nothing, and that difference is now explicit in the plan.
+- **Test files split** to stay under the 300-LOC rule — the validator caught
+  `recovery.test.js` at 314 LOC twice before I split off
+  `recovery-terminal.test.js`. Budget for this when adding branches.
+
+**Watch out**
+- **`recovery.js` must never import from `player.js`.** The cycle is the reason
+  the shape changed; re-introducing it will fail `npm run validate`.
+- **`logic.js` was not touched.** It still owns the numbers (backoff, budgets).
+  `recovery.js` composes it. Keep it that way or the numbers get two homes.
+- **`handlePlayerError` still logs before deciding** (the `sinceAdapt` line and
+  `console.error`). That is intentional — diagnosing a TV error needs the log
+  even when the plan says `ignore`.
+- **The `giveup` vs `advance` distinction matters:** `giveup` calls
+  `giveUpTune()` (stops, terminal message); `advance` reports the error and
+  then moves to the next channel after `plan.delay`. Conflating them changes
+  what the user sees.
+
+**Next**
+- **T-121 (`init.js` + `load.js`)** — the actual slicing, now safe because the
+  state is shared and the recovery decisions are out. Watch the `loadChannel`
+  ↔ `scheduleReconnect` boundary: `load.js` will need to import from
+  `recovery.js`, which is fine, but `recovery.js` must keep importing nothing
+  from `load.js`. If that becomes impossible, the plan callback moves into the
+  caller instead.
+
+---
+
 ## 2026-11-16 — T-129: 45 shared bindings into one state object — @maintainer
 
 **Ticket:** T-129 ✅ · **Branch:** `refactor/t-129-player-state` → `dev`

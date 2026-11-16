@@ -282,6 +282,45 @@ A ticket is only `done` when it meets the **Definition of Done**
   to which action) for every branch: transient blip, 401/403 retry,
   token refresh, 404 re-sync, hard-reload budget → give up.
 - **Notes:** this is the highest-risk file in the app. Tests first.
+- **Status:** ✅ done 2026-11-16 — `player/src/player/recovery.js` (209 LOC) +
+  **63 tests** across three files (`recovery.test.js` 247 LOC,
+  `recovery-sequence.test.js`, `recovery-terminal.test.js`), against a bar of
+  30. Total suite **196 → 243**.
+  - **Shape changed from the spec, deliberately.** The spec says isolate
+    `handlePlayerError` *and* `scheduleReconnect`/`giveUpTune` into one module.
+    That cannot work: `recovery` would call `loadChannel` (in `load.js`) while
+    `load.js` calls `scheduleReconnect` (in `recovery`) — an import cycle, and
+    the guard forbids cycles. Also, those functions touch timers and DOM, so
+    they could never be unit-tested in the node env.
+  - **What actually landed:** `recovery.js` is a *decision-only* module. One
+    pure function, `planRecovery(error, ctx)`, returns a plan
+    (`none | ignore | pdt-retry | forbidden-reload | token-refresh | reload |
+    reconnect | giveup | advance | terminal`) plus the counter values the
+    caller must write back. `player.js` keeps every side effect and became a
+    `switch` over the plan. `scheduleReconnect`/`scheduleForbiddenReload` now
+    accept the delay the plan computed, so `logic.js` stays the single source
+    of the backoff numbers.
+  - **Counter order preserved exactly.** The original interleaved its
+    increments with the branches — a 401/403 also bumps `consecutiveErrors`,
+    which is what lets a later recoverable error trip the hard-reload budget.
+    The plan returns counters rather than mutating, and the order mirrors the
+    original line for line.
+  - **Two behaviour traps caught while characterising:**
+    1. `hardReloads` is incremented *then* compared, so the **third** hard
+       reload is the one that gives up (`hardReloadDecision(3) === 'giveup'`),
+       not the fourth. My first test asserted the opposite and the code was
+       right.
+    2. An auth error that exhausts its retries **falls through** to the
+       terminal handler, which logs and shows the error *before* advancing. An
+       early `return` would have silently dropped that reporting.
+  - **One bug I introduced and caught:** `reconnectAttempts` was returned as a
+    counter *and* incremented inside `scheduleReconnect()`, double-counting and
+    halving the retry ladder. The plan now computes the delay from
+    `ctx.reconnectAttempts + 1` and leaves the increment to the caller.
+  - **`forbidden-reload` logging is conditional via a `log` field.** The plain
+    retry path logged `"403 on segment — retry N/3"`; the
+    refresh-without-callback fallback logged nothing. Collapsing them would
+    have added a log line to a path that never had one.
 
 ### T-121 — `player/init.js` + `player/load.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** L (~450 LOC combined)
