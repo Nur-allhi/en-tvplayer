@@ -1,14 +1,22 @@
 // EN TV Player — unattended-run guardrails.
 //
-// These are POLICIES, not permissions. A policy is a hard deny: OpenChamber's
-// "Accept everything" mode cannot override it, and no saved approval can
-// lift it. This is what makes an overnight run safe in a repo whose five
-// non-negotiables include "never mint a signing key" and "never commit to main".
+// Two layers, deliberately different:
+//   permissions — allow everything, so no "ask" can stall an unattended run;
+//   policies    — hard denials that no mode or saved approval can lift.
+// The policies are what protect the five non-negotiables, including "never
+// mint a signing key" and "never commit to main".
 //
 // See docs/AUTONOMY.md for the full contract. The nightshift agent and the
 // /nightshift command live in .opencode/agents and .opencode/commands.
 {
   "$schema": "https://opencode.ai/config.json",
+
+  // Unattended sessions have no one to answer an "ask". Allow everything at
+  // the permission layer so no rule can stall the loop. The POLICIES below
+  // are a separate layer and still hard-deny the five non-negotiables.
+  "permissions": [
+    { "action": "*", "resource": "*", "effect": "allow" }
+  ],
 
   // Release is a human step: it pushes, tags and creates a GitHub release.
   "policies": [
