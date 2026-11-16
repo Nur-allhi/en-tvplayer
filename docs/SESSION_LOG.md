@@ -44,6 +44,58 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-130: shared UI state extracted — @nightshift
+
+**Ticket:** T-130 ✅ · **Branch:** `feature/t-130-ui-state` → `dev`
+**Status:** ✅ done — one shared `state` object; `ui.js` references prefixed; behaviour-neutral
+
+**What changed**
+- **`player/src/ui/state.js`** (new, 44 LOC) — the 18 shared UI bindings in one
+  exported object, grouped (channel list, sidebars, groups, search). Plain
+  object with property mutation, deliberately not a reactive store (T-170).
+- **`ui.js`** — imports `state`, 290 references renamed to `state.<name>` via
+  an AST transform, the 18 declarations removed. The four bare lookalikes
+  (`channels:` object keys ×2, `dataset.virtualStart/virtualEnd` ×2) were left
+  alone on purpose.
+- **`ui/state.test.js`** (new, 5 tests) — shared identity + mutation through
+  that identity, mirroring `player/state.test.js`.
+- Docs: T-130 → done, `NEXT` → T-131, `LAST_RUN` set.
+
+**Verified**
+- `npm test` → 248 passed (15 files, +5) · `npm run lint` → clean ·
+  `npm run validate` → 37 files, 0 new violations · `npm run format:check` →
+  clean · `npm run build` → `index.6Gz8try-.js` 966.89 kB (+0.38 % vs 963.24) ·
+  `npm run tizen` → WGT signed with the expected certificate fingerprint
+  (`40:71:40:30…`).
+- AST audit before the rewrite: the 18 names are declared **only** at module
+  scope, 290 references, zero shadowing (no params/locals/catch reuse). Audit
+  after: 290 `state.<name>` accesses, 4 intentional non-references.
+- No TV verification attempted or claimed — no TV is connected.
+
+**Decisions**
+- **Moved exactly the 18 shared bindings, not every module-level `let`.**
+  Measured 43 mutable module-level variables: 18 are shared across upcoming
+  slices (the ticket list + `virtualEnd`), the other 25 are slice-local
+  (dialog, OSD, right-menu audio, timers, callbacks) and stay in `ui.js` for
+  their own tickets — matching `docs/MIGRATION.md` Risk C ("shared → state;
+  slice-local → stays local"). This is the minimal, spec-faithful change.
+- **AST transform (espree), not regex.** Regex would also hit object keys and
+  `dataset.*` property names; those four were correctly excluded.
+- **No reactive store.** Kept separate from T-170 so a failure has one cause.
+
+**Watch out**
+- The remaining slice-local `let`s in `ui.js` are intentional; do not sweep
+  them into `state` here. Each slice ticket moves its own.
+- `ui.js` stays in the modularity baseline (loc + exports) until T-135 deletes
+  it; no `--update` needed.
+- `docs/REFINED_UX_REPORT.md` remains untracked and untouched.
+
+**Next**
+- T-131 (`ui/dialogs.js`) — zero deps on other UI modules; confirm dialog for
+  exit, delete playlist and update notice.
+
+---
+
 ## 2026-11-16 — Night shift is live: 23:35 Dhaka, goal mode, hard policies — @maintainer
 
 **Ticket:** tooling · **Branch:** `chore/nightshift-schedule` → `dev`
