@@ -45,6 +45,7 @@ is not evidence — the diff and the gates are.
 | `docs/COMMIT_STYLE.md` | Commit message format — enforced by the `commit-msg` hook |
 | `docs/MIGRATION.md` | How the v4 restructure happens — what happens to the old large files |
 | `docs/TICKETS.md` | Picking up work · one ticket = one branch = one merge to `dev` |
+| `docs/AUTONOMY.md` | Unattended runs · the authoritative ticket queue and stop conditions |
 | `docs/SESSION_LOG.md` | Where the work stands · append an entry when you finish |
 | `docs/CONTRIBUTING.md` | How to work on this repo from any machine |
 | `docs/TIZEN_COMPAT.md` | Touching platform-specific code · supported Tizen versions |

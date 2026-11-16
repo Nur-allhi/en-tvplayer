@@ -1,0 +1,39 @@
+// EN TV Player — unattended-run guardrails.
+//
+// These are POLICIES, not permissions. A policy is a hard deny: OpenChamber's
+// "Accept everything" mode cannot override it, and no saved approval can
+// lift it. This is what makes an overnight run safe in a repo whose five
+// non-negotiables include "never mint a signing key" and "never commit to main".
+//
+// See docs/AUTONOMY.md for the full contract. The nightshift agent and the
+// /nightshift command live in .opencode/agents and .opencode/commands.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Release is a human step: it pushes, tags and creates a GitHub release.
+  "policies": [
+    { "action": "tool.use", "resource": "shell:npm run release*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:node scripts/release.mjs*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:gh release *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git tag*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git push --tags*", "effect": "deny" },
+
+    // Never commit to, push to, or check out main. Work lands on dev.
+    { "action": "tool.use", "resource": "shell:git push *main*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git checkout main*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git switch main*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git push --force*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git commit --no-verify*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git reset --hard*", "effect": "deny" },
+
+    // A different signing key makes every TV treat updates as a new app and
+    // wipes every user's settings. Never generate or overwrite one.
+    { "action": "tool.use", "resource": "shell:openssl genrsa*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:openssl genpkey*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:openssl req*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:ssh-keygen*", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:tizen/author-key.pem", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:tizen/author-cert.pem", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:tizen/author-cert.sha256", "effect": "deny" }
+  ]
+}
