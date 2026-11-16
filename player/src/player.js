@@ -13,6 +13,26 @@ import {
 import * as avplay from './avplay.js';
 import { state } from './player/state.js';
 import { planRecovery, httpStatusOf } from './player/recovery.js';
+// T-122: subscription setters and stream/track queries now live in their own
+// slices. player.js both uses and re-exports them so its public surface stays
+// exactly the same 24 names until the index hub lands (T-123).
+import { getActiveTrack, getActiveHeight, getBufferingPercent, isEmeSupported } from './player/stream.js';
+export { onBuffering, onTrackChange, onChannelAdvance, onTokenExpired, onTuneAttempt } from './player/events.js';
+export {
+  getActiveTrack,
+  getActiveHeight,
+  getActiveBandwidth,
+  isEmeSupported,
+  setAutoQuality,
+  getPlayer,
+  getBufferingPercent,
+  getResolutions,
+  selectResolution,
+  getAudioTracks,
+  getActiveAudioId,
+  selectAudioTrackById,
+  getVideoElement,
+} from './player/stream.js';
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
 // Stream tokens (?token=…) are scrubbed: users paste inspector logs publicly.
@@ -289,56 +309,10 @@ function onVideoWaiting() {
   clearTimeout(state.stalledTimer);
 }
 
-export function onBuffering(callback) {
-  state.bufferingCallback = callback;
-}
-
-export function onTrackChange(callback) {
-  state.trackCallback = callback;
-}
-
-export function onChannelAdvance(callback) {
-  state.channelAdvanceCallback = callback;
-}
-
-export function onTokenExpired(callback) {
-  state.tokenExpiredCallback = callback;
-}
-
-// Silent-retry counter for the single-narrative status line: the UI shows a
-// light " • try N" suffix once retries begin, instead of retry sentences.
-export function onTuneAttempt(callback) {
-  state.tuneAttemptCallback = callback;
-}
-
 function notifyTuneAttempt() {
   try {
     if (state.tuneAttemptCallback) state.tuneAttemptCallback(state.tuneAttempt);
   } catch {}
-}
-
-export function getActiveTrack() {
-  if (!state.player) return null;
-  const tracks = state.player.getVariantTracks();
-  return tracks.find((t) => t.active) || null;
-}
-
-export function getActiveHeight() {
-  const t = getActiveTrack();
-  return t ? t.height : null;
-}
-
-export function getActiveBandwidth() {
-  const t = getActiveTrack();
-  return t ? t.bandwidth : null;
-}
-
-export function isEmeSupported() {
-  const hasApi = typeof navigator !== 'undefined' && typeof navigator.requestMediaKeySystemAccess === 'function';
-  const hasMediaKeys = typeof window !== 'undefined' && 'MediaKeys' in window;
-  const ok = hasApi && hasMediaKeys;
-
-  return ok;
 }
 
 // Native JS crash thrown from inside Shaka (no shaka.util.Error code), e.g.
@@ -1331,12 +1305,6 @@ async function switchToAvplay() {
 }
 
 // Force-reload the current channel (e.g. from R key or remote)
-export function setAutoQuality(enabled) {
-  if (state.useAvplay) return;
-  if (!state.player) return;
-  state.player.configure({ abr: { enabled } });
-}
-
 export function reloadChannel() {
   if (state.useAvplay && state.currentChannel) {
     const ch = state.currentChannel;
@@ -1392,82 +1360,6 @@ export function togglePlay() {
 
 export function isNativeAvailable() {
   return avplay.isAvailable();
-}
-
-export function getPlayer() {
-  return state.player;
-}
-
-export function getBufferingPercent() {
-  if (state.useAvplay) return state.avplayBufferPercent;
-  if (!state.videoElement) return 0;
-  const buffered = state.videoElement.buffered;
-  let end = 0;
-  for (let i = 0; i < buffered.length; i++) {
-    if (buffered.start(i) <= state.videoElement.currentTime && state.videoElement.currentTime <= buffered.end(i)) {
-      end = buffered.end(i);
-    }
-  }
-  const ahead = Math.max(0, end - state.videoElement.currentTime);
-  return Math.min(100, Math.round((ahead / 20) * 100));
-}
-
-export function getResolutions() {
-  if (state.useAvplay || !state.player) return [];
-  const tracks = state.player.getVariantTracks();
-  const heights = [...new Set(tracks.map((t) => t.height))].filter(Boolean).sort((a, b) => a - b);
-  return heights;
-}
-
-export function selectResolution(height) {
-  if (state.useAvplay || !state.player) return;
-
-  if (height == null) {
-    state.player.configure({ abr: { enabled: true } });
-    return;
-  }
-
-  const tracks = state.player.getVariantTracks().filter((t) => t.height === height);
-  if (tracks.length) {
-    state.player.configure({ abr: { enabled: false } });
-    state.player.selectVariantTrack(tracks[0], true);
-  }
-}
-
-// Multi-audio channels (languages, commentary, …): Shaka exposes the
-// audio adaptations compatible with the current video track. Selecting one
-// keeps video ABR running — only the audio switches.
-export function getAudioTracks() {
-  if (state.useAvplay || !state.player) return [];
-  try {
-    return state.player.getAudioTracks().map((t) => ({
-      id: t.id,
-      language: t.language || '',
-      label: t.label || '',
-      active: !!t.active,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export function getActiveAudioId() {
-  const active = getAudioTracks().find((t) => t.active);
-  return active ? active.id : null;
-}
-
-export function selectAudioTrackById(id) {
-  if (state.useAvplay || !state.player || id == null) return;
-  try {
-    const track = state.player.getAudioTracks().find((t) => t.id === id);
-    if (track) state.player.selectAudioTrack(track);
-  } catch (e) {
-    console.warn('Audio select failed:', e);
-  }
-}
-
-export function getVideoElement() {
-  return state.videoElement;
 }
 
 // Loading veil (spinner + channel name, centered): showLoading(false) drops

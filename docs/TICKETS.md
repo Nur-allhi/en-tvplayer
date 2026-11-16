@@ -350,6 +350,13 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** `events.js` = the `on*` subscription callbacks; `stream.js` =
   resolutions, audio tracks, active track.
 - **Acceptance:** same 24 exports; DRM path untouched.
+- **Status:** ✅ done 2026-11-16 — `player/events.js` (5 subscription
+  setters) and `player/stream.js` (13 track/resolution/getter functions)
+  extracted verbatim. `player.js` imports the four helpers it still uses and
+  re-exports all 18 moved names, so its public surface is **exactly the same
+  24 names** (measured). No new module beyond the two the ticket names; no
+  import cycle; bundle 963.24 kB → 963.24 kB (0 %). Full gates green including
+  `npm run tizen`. DRM path (`isEmeSupported`) moved unchanged.
 
 ### T-123 — Delete `player.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** XS

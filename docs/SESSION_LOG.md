@@ -44,6 +44,59 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — T-122: events and stream slices extracted — @nightshift
+
+**Ticket:** T-122 ✅ · **Branch:** `feature/t-122-events-stream` → `dev`
+**Status:** ✅ done — 2 new modules, public API byte-for-byte intact
+
+**What changed**
+- **`player/events.js`** (new) — the five `on*` subscription setters, writing
+  callbacks into the shared `state` object only.
+- **`player/stream.js`** (new) — 13 pure queries/selection helpers:
+  `getActiveTrack`/`Height`/`Bandwidth`, `isEmeSupported`, `setAutoQuality`,
+  `getPlayer`, `getBufferingPercent`, `getResolutions`, `selectResolution`,
+  `getAudioTracks`, `getActiveAudioId`, `selectAudioTrackById`,
+  `getVideoElement`.
+- **`player.js`** — deleted those 18 definitions, imports the four it still
+  calls (`getActiveTrack`, `getActiveHeight`, `getBufferingPercent`,
+  `isEmeSupported`) and re-exports all 18 so `import * as player from
+  './player.js'` is unchanged. No importer edits were needed.
+- Docs: T-122 → done, `NEXT` → T-123.
+
+**Verified**
+- Export parity measured with the validator's own regexes: **24 names**,
+  identical to the pre-split set.
+- `npm test` → 243 passed (14 files) · `npm run lint` → clean ·
+  `npm run validate` → 35 files, 0 new violations · `npm run format:check` →
+  clean · `npm run build` → `index.CalN-gHB.js` 963.24 kB (0 % vs baseline) ·
+  `npm run tizen` → WGT signed with the expected certificate fingerprint.
+- No TV verification attempted or claimed.
+
+**Decisions**
+- **Kept the split to exactly the two modules the ticket names.** The explore
+  pass suggested a 7-module rewrite with state-injected hooks (for the T-121
+  cycle), but that is T-121's problem, not T-122's. The subscription setters
+  and stream getters depend only on `state`, so they lift out with no shared
+  helper module, no hooks and no cycle. T-122 stands on its own even though
+  T-121 is blocked.
+- **`player.js` re-exports rather than repointing importers.** T-123 still
+  owns deleting `player.js` and creating the index hub; changing `main.js`
+  and `settings.js` here would have stolen that ticket's work.
+
+**Watch out**
+- The re-export block in `player.js` is a deliberate temporary bridge. T-123
+  must replace it with `player/index.js` before deleting `player.js`.
+- `onTuneAttempt` moved with the other setters; `notifyTuneAttempt` (the
+  internal notifier) deliberately stayed in `player.js` — it is not part of
+  the 24-name API and `loadChannel` calls it directly.
+- `docs/REFINED_UX_REPORT.md` remains untracked and untouched.
+
+**Next**
+- T-123 depends on T-121 and cannot land while init/load are still in
+  `player.js`; expect it to block.
+
+---
+
 ## 2026-11-16 — Night shift: T-121 blocked, setup committed — @nightshift
 
 **Ticket:** T-121 ⛔ · **Branch:** `docs/t-121-block` → `dev`
