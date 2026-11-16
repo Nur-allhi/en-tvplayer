@@ -44,6 +44,79 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — formatting made enforceable, WGT gate added — @maintainer
+
+**Ticket:** T-210 (new — tooling hygiene)
+**Branch:** `chore/t-210-format-gate` → `dev`
+**Status:** ✅ done
+
+**What changed**
+- **Root cause of the permanently-red `format:check`: line endings, not
+  style.** The repo stored LF (`git ls-files --eol` → `i/lf`) but
+  `core.autocrlf=true` checked everything out as CRLF, and Prettier defaults
+  to `endOfLine: lf`. 21 of the 26 reported failures were this and nothing
+  else. Added **`.gitattributes`** (`* text=auto eol=lf`, with CRLF
+  preserved for `.bat`/`.cmd`/`.ps1`, binary for assets) and set
+  `endOfLine: "auto"` in `.prettierrc`.
+- **The other 5 failures were real, and are now a ratchet, not a reformat.**
+  Measured first: formatting `settings.js` alone rewrites 997 of 1067 lines;
+  all five together rewrite ~3158 lines. `AGENTS.md` §11.6 forbids exactly
+  that. Added **`.prettierignore`** listing the five never-formatted files,
+  with the rule that each is formatted on next touch and its line deleted
+  then. `format:check` is now **green** and meaningful: 26 failures → 0.
+- **CI no longer tolerates formatting failures.** Replaced the
+  `continue-on-error: true` prettier step with `npm run format:check`.
+- **`npm run tizen` added to the pre-merge checklist** (`AGENTS.md` §11, new
+  rule 9). `build` proves the bundle compiles; `tizen` is the only gate that
+  proves the installable WGT is signable and signed with the right key.
+
+**Verified**
+- `npm test` → 86 passed, 5 files
+- `npm run lint` → clean
+- `npm run validate` → 19 files, 0 new violations, 7 baselined
+- `npm run format:check` → **all matched files clean** (was 26 failures)
+- `npm run build` → ok · size gate under budget
+- **`npm run tizen` → `EN-IPTV_Player_v3.2.0_ad7c7f6.wgt`, 468.5 KB**;
+  extracted `signature.xml` and confirmed the signer fingerprint is
+  `8F:73:83:29:…:80:90:23`, matching every file in `releases/`
+- All six own commits re-validated against `scripts/check-commit-msg.mjs` —
+  each passes
+
+**Decisions**
+- **Ratchet, not reformat.** ~3158 lines of pure-whitespace churn would bury
+  any real change in the same commit and make a bisect impossible. The
+  ignore-list is explicit, commented, and shrinking.
+- **`.gitattributes` over relying on `core.autocrlf`.** Per-machine config
+  is not a property of the repo; a fresh Linux clone and this Windows box
+  must agree without setup.
+- **`endOfLine: "auto"`** so a CRLF checkout cannot fail the check for a
+  reason that has nothing to do with code style. `.gitattributes` keeps LF
+  canonical either way.
+
+**Watch out**
+- **`prettier --check` was never the problem — the harness was.** Worth
+  knowing before debugging it again: 21/26 failures vanished the moment line
+  endings were normalised.
+- **Prettier's member-chain rule, not `printWidth`, explains the remaining
+  wrap.** `String(x).trim().replace(...)` is 3 chain groups and always
+  breaks; `String(x).trim()` stays inline. Any line-length-based diagnosis
+  of those 5 files is wrong.
+- **A UTF-8 BOM breaks the commit-msg validator.** Re-testing an old commit
+  message with `Out-File -Encoding utf8` adds a BOM, which the validator
+  correctly rejects as a malformed header. Use
+  `[System.IO.File]::WriteAllText(path, text, UTF8Encoding($false))`. This
+  produced a false alarm — six passing commits reported as failing.
+- **No TV testing was done.** `npm run tizen` proves packaging and signing,
+  not runtime behaviour. The sideload + inspector smoke test from
+  `docs/TIZEN_GUIDE.md` is still the maintainer's step, and `TizenSdb` is
+  not installed on this machine (`SDB: null` in the packager output).
+
+**Next**
+- Finish T-111 and T-112 test expansion (colocated `lib/url.test.js` ≥20,
+  `lib/drm.test.js` ≥15), then T-113 / T-114 to close M1.
+
+---
+
 ## 2026-11-16 — Phase 1 opened: `lib/` extracted, `utils.js` off the baseline — @maintainer
 
 **Ticket:** T-110 ✅ (T-111/T-112 modules moved, test expansion still open)

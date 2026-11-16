@@ -1,0 +1,23 @@
+# Canonical line endings: LF in the repo and in the working tree.
+#
+# Without this, core.autocrlf=true (the Windows default) checks files out as
+# CRLF, and Prettier's default endOfLine=lf then fails on every file. That made
+# `npm run format:check` permanently red on Windows for reasons that had
+# nothing to do with code style, which is why CI had to carry
+# `continue-on-error: true`.
+#
+# It also stops CRLF-only diffs from making untouched files look modified.
+* text=auto eol=lf
+
+# Windows-only scripts must keep their CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets — never touched by normalisation.
+*.png binary
+*.jpg binary
+*.ico binary
+*.wgt binary
+*.p12 binary
+*.pem binary
