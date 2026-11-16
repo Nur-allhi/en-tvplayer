@@ -3,6 +3,16 @@ import { getHiddenGroups } from './config.js';
 import { filterDisplayChannels } from './logic.js';
 import { state } from './ui/state.js';
 import { applyWatermark } from './ui/osd.js';
+import { deps } from './ui/deps.js';
+import { extractGroups, renderGroupList, showGroupList, updateSidebarTitle } from './ui/sidebar.js';
+
+// Wire the cross-slice callbacks (T-133) before any slice function can run.
+// Function declarations below are hoisted; imported bindings are live.
+deps.renderChannelList = renderChannelList;
+deps.updateFocus = updateFocus;
+deps.selectChannel = selectChannel;
+deps.renderGroupList = renderGroupList;
+deps.updateSidebarTitle = updateSidebarTitle;
 
 // Shared UI state lives in ./ui/state.js (T-130). Every upcoming ui/ slice
 // imports the same object, so no slice can silently keep its own copy.
@@ -85,335 +95,8 @@ export function init(channelList, callback) {
   }
 }
 
-export function extractGroups(channelList) {
-  const hidden = getHiddenGroups();
-  const visible = (channelList || []).filter((ch) => !hidden.includes((ch && ch.group) || 'Ungrouped'));
-  const groupMap = {};
-  for (const ch of visible) {
-    const g = ch.group || 'Ungrouped';
-    if (!groupMap[g]) groupMap[g] = [];
-    groupMap[g].push(ch);
-  }
-  const realGroups = Object.keys(groupMap)
-    .sort()
-    .map((name) => ({
-      name,
-      count: groupMap[name].length,
-      channels: groupMap[name],
-    }));
-  state.groups = [{ name: 'All Channels', count: visible.length, channels: visible }, ...realGroups];
-}
-
-export function getSidebarMode() {
-  return state.sidebarMode;
-}
-
-export function getGroups() {
-  return state.groups;
-}
-
-export function getSelectedGroup() {
-  return state.selectedGroup;
-}
-
 export function getCurrentIndex() {
   return state.currentIndex;
-}
-
-export function updateSidebarTitle() {
-  const el = document.getElementById('sidebar-title');
-  if (!el) return;
-  if (state.sidebarMode === 'search') {
-    el.textContent = 'Search';
-  } else if (state.sidebarMode === 'groups') {
-    el.textContent = 'Groups';
-  } else if (state.selectedGroup === 'all') {
-    el.textContent = 'All Channels';
-  } else if (state.selectedGroup) {
-    el.textContent = state.selectedGroup;
-  } else {
-    el.textContent = 'Channels';
-  }
-}
-
-export function renderGroupList() {
-  const container = document.getElementById('group-list');
-  if (!container) return;
-  container.innerHTML = '';
-  const searchRow = document.createElement('div');
-  searchRow.className = 'group-item';
-  searchRow.dataset.search = '1';
-  searchRow.innerHTML = '<span class="group-name">🔍 Search</span>';
-  searchRow.addEventListener('click', () => {
-    enterSearch();
-  });
-  container.appendChild(searchRow);
-  state.groups.forEach((group, index) => {
-    const item = document.createElement('div');
-    item.className = 'group-item';
-    item.dataset.index = index;
-    item.innerHTML =
-      '<span class="group-name">' +
-      escapeHtml(group.name) +
-      '</span>' +
-      '<span class="group-count">(' +
-      group.count +
-      ')</span>';
-    item.addEventListener('click', () => {
-      showGroupChannels(group.name);
-    });
-    container.appendChild(item);
-  });
-  updateGroupFocus();
-}
-
-export function updateGroupFocus() {
-  const items = document.querySelectorAll('#group-list .group-item');
-  items.forEach((item, idx) => {
-    item.classList.toggle('focused', idx === state.groupFocusedIndex);
-  });
-  if (items[state.groupFocusedIndex]) {
-    // Instant + minimal scroll: smooth queues animations on key-repeat (hold)
-    // and the focus runs ahead of the visible scroll position; re-centering
-    // on every step makes the list jump so the eye can't track focus.
-    // Nearest keeps the focused row steadily in view, one step at a time.
-    items[state.groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'auto' });
-  }
-}
-
-export function navigateGroupUp() {
-  const total = state.groups.length + 1; // + Search row
-  if (total === 0) return;
-  state.groupFocusedIndex = (state.groupFocusedIndex - 1 + total) % total;
-  updateGroupFocus();
-}
-
-export function navigateGroupDown() {
-  const total = state.groups.length + 1; // + Search row
-  if (total === 0) return;
-  state.groupFocusedIndex = (state.groupFocusedIndex + 1) % total;
-  updateGroupFocus();
-}
-
-export function selectFocusedGroup() {
-  if (state.groupFocusedIndex === 0) {
-    enterSearch();
-    return;
-  }
-  const group = state.groups[state.groupFocusedIndex - 1];
-  if (group) showGroupChannels(group.name);
-}
-
-/* Cross-group search (T-037): the pinned Search row opens a text input;
-   results span all visible groups (hidden groups excluded). */
-
-const SEARCH_LIMIT = 60;
-
-function getSearchInput() {
-  return document.getElementById('channel-search');
-}
-
-function isSearchInputFocused() {
-  const el = getSearchInput();
-  return !!el && document.activeElement === el;
-}
-
-function computeSearchResults() {
-  const q = state.searchQuery.trim().toLowerCase();
-  if (!q) return [];
-  const hidden = getHiddenGroups();
-  return state.channels.filter(
-    (ch) => !hidden.includes((ch && ch.group) || 'Ungrouped') && (ch.name || '').toLowerCase().includes(q),
-  );
-}
-
-export function enterSearch() {
-  state.sidebarMode = 'search';
-  state.searchQuery = '';
-  state.searchResults = [];
-  state.searchFocus = 0;
-  renderSearch();
-  updateSidebarTitle();
-}
-
-export function exitSearch() {
-  state.sidebarMode = 'groups';
-  state.searchQuery = '';
-  state.searchResults = [];
-  state.searchFocus = 0;
-  const groupList = document.getElementById('group-list');
-  const channelList = document.getElementById('channel-list');
-  if (channelList) channelList.classList.add('hidden');
-  if (groupList) groupList.classList.remove('hidden');
-  renderGroupList();
-  updateSidebarTitle();
-}
-
-function renderSearch() {
-  const container = document.getElementById('group-list');
-  if (!container) return;
-  const channelList = document.getElementById('channel-list');
-  if (channelList) channelList.classList.add('hidden');
-  container.classList.remove('hidden');
-  container.innerHTML = '';
-  const row = document.createElement('div');
-  row.className = 'search-row';
-  const input = document.createElement('input');
-  input.id = 'channel-search';
-  input.className = 'input-field';
-  input.type = 'text';
-  input.placeholder = 'Search channels…';
-  input.setAttribute('autocomplete', 'off');
-  input.value = state.searchQuery;
-  input.addEventListener('input', () => {
-    state.searchQuery = input.value;
-    state.searchResults = computeSearchResults();
-    state.searchFocus = 0;
-    renderSearchResults();
-  });
-  row.appendChild(input);
-  container.appendChild(row);
-  const results = document.createElement('div');
-  results.id = 'search-results';
-  container.appendChild(results);
-  renderSearchResults();
-  input.focus();
-}
-
-function searchHint(text) {
-  const el = document.createElement('div');
-  el.className = 'search-hint';
-  el.textContent = text;
-  return el;
-}
-
-function renderSearchResults() {
-  const box = document.getElementById('search-results');
-  if (!box) return;
-  box.innerHTML = '';
-  if (!state.searchQuery.trim()) {
-    box.appendChild(searchHint('Type to search all groups'));
-    return;
-  }
-  if (state.searchResults.length === 0) {
-    box.appendChild(searchHint('No channels found'));
-    return;
-  }
-  state.searchResults.slice(0, SEARCH_LIMIT).forEach((ch, i) => {
-    const item = document.createElement('div');
-    item.className = 'channel-item search-item';
-    item.innerHTML =
-      '<span class="channel-name"><span class="channel-name-text">' +
-      escapeHtml(ch.name) +
-      '</span></span>' +
-      '<span class="group-count">' +
-      escapeHtml(ch.group || 'Ungrouped') +
-      '</span>';
-    item.addEventListener('click', () => {
-      state.searchFocus = i;
-      updateSearchFocus();
-      searchSelect();
-    });
-    box.appendChild(item);
-  });
-  if (state.searchResults.length > SEARCH_LIMIT) {
-    box.appendChild(searchHint('+' + (state.searchResults.length - SEARCH_LIMIT) + ' more — keep typing'));
-  }
-  updateSearchFocus();
-}
-
-function updateSearchFocus() {
-  const items = document.querySelectorAll('#search-results .search-item');
-  items.forEach((item, i) => item.classList.toggle('focused', i === state.searchFocus));
-  if (items[state.searchFocus]) {
-    // Instant + minimal scroll: see updateGroupFocus.
-    items[state.searchFocus].scrollIntoView({ block: 'nearest', behavior: 'auto' });
-  }
-}
-
-export function searchNavigate(dir) {
-  if (isSearchInputFocused()) {
-    if (dir > 0 && state.searchResults.length > 0) {
-      getSearchInput().blur();
-      state.searchFocus = 0;
-      updateSearchFocus();
-    }
-    return;
-  }
-  if (state.searchResults.length === 0) return;
-  state.searchFocus += dir;
-  if (state.searchFocus < 0) {
-    state.searchFocus = 0;
-    const input = getSearchInput();
-    if (input) input.focus();
-    updateSearchFocus();
-    return;
-  }
-  const shown = Math.min(state.searchResults.length, SEARCH_LIMIT);
-  if (state.searchFocus >= shown) state.searchFocus = shown - 1;
-  updateSearchFocus();
-}
-
-export function searchSelect() {
-  if (isSearchInputFocused()) {
-    if (state.searchResults.length === 0) return;
-    getSearchInput().blur();
-    state.searchFocus = 0;
-    updateSearchFocus();
-    return;
-  }
-  const ch = state.searchResults[state.searchFocus];
-  if (!ch) return;
-  const idx = state.channels.indexOf(ch);
-  exitSearch();
-  if (idx >= 0) selectChannel(idx);
-}
-
-export function showGroupChannels(groupName) {
-  state.selectedGroup = groupName === 'All Channels' ? 'all' : groupName;
-  state.sidebarMode = 'channels';
-  state.focusedIndex = 0;
-  const groupList = document.getElementById('group-list');
-  const channelList = document.getElementById('channel-list');
-  if (groupList) groupList.classList.add('hidden');
-  if (channelList) channelList.classList.remove('hidden');
-  renderChannelList();
-  updateSidebarTitle();
-  updateFocus();
-}
-
-export function showGroupList() {
-  state.sidebarMode = 'groups';
-  const groupList = document.getElementById('group-list');
-  const channelList = document.getElementById('channel-list');
-  if (channelList) channelList.classList.add('hidden');
-  if (groupList) groupList.classList.remove('hidden');
-  renderGroupList();
-  updateSidebarTitle();
-}
-
-/* Re-derive groups after the hidden-groups setting changes, preserving the
-   playing mark and focus. Falls back to the group list when the open group
-   was just hidden. */
-export function refreshGroupVisibility() {
-  if (state.sidebarMode === 'search') {
-    state.searchResults = computeSearchResults();
-    renderSearchResults();
-    return;
-  }
-  extractGroups(state.channels);
-  const hidden = getHiddenGroups();
-  if (
-    state.sidebarMode === 'groups' ||
-    (state.selectedGroup && state.selectedGroup !== 'all' && hidden.includes(state.selectedGroup))
-  ) {
-    state.selectedGroup = null;
-    showGroupList();
-  } else {
-    renderChannelList();
-    updateSidebarTitle();
-    updateFocus();
-  }
 }
 
 export function renderChannelList() {
@@ -1204,6 +887,24 @@ export function setProxyToggleLabel(on) {
   const btn = document.getElementById('proxy-toggle-btn');
   if (btn) btn.textContent = 'Proxy (test): ' + (on ? 'On' : 'Off');
 }
+
+/* Sidebar + search slices (T-133) — re-exported for callers. */
+export {
+  extractGroups,
+  getSidebarMode,
+  getGroups,
+  getSelectedGroup,
+  updateSidebarTitle,
+  renderGroupList,
+  updateGroupFocus,
+  navigateGroupUp,
+  navigateGroupDown,
+  selectFocusedGroup,
+  showGroupChannels,
+  showGroupList,
+  refreshGroupVisibility,
+} from './ui/sidebar.js';
+export { enterSearch, exitSearch, searchNavigate, searchSelect } from './ui/search.js';
 
 /* Confirm Dialog — extracted to ui/dialogs.js (T-131); re-exported for callers. */
 export { isDialogOpen, showConfirmDialog, hideConfirmDialog, dialogNavigate, dialogSelect } from './ui/dialogs.js';

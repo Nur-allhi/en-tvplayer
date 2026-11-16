@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-133      # first unresolved row below
+NEXT        = T-134      # first unresolved row below
 MODE        = unattended # agent must not ask questions
-LAST_RUN    = 2026-11-16 # batch complete: T-130 + T-131 + T-132 done
+LAST_RUN    = 2026-11-17 # batch in progress: T-133 done; T-134, T-135 next
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -93,8 +93,8 @@ with the exact gate output; agent skipped it.
 | 3 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
 | 4 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
 | 5 | T-132 | `ui/osd.js` | done | z-index contract intact (CSS untouched); merged + gated 2026-11-16 |
-| 6 | T-133 | `ui/sidebar.js` + `ui/search.js` | ready | **NEXT** — first unresolved row |
-| 7 | T-134 | `ui/right-menu.js` | ready | |
+| 6 | T-133 | `ui/sidebar.js` + `ui/search.js` | done | merged + gated 2026-11-17; deps registry added |
+| 7 | T-134 | `ui/right-menu.js` | ready | **NEXT** — first unresolved row |
 | 8 | T-135 | `ui/core.js` + delete `ui.js` | ready | last UI slice |
 | 9 | T-124 | `player/deps.js` — dependency registry | ready | **M2 cycle breaker — land first** |
 | 10 | T-125 | pure helpers out of `loadChannel` | ready | after T-124; shrinks loadChannel below 300 LOC |
