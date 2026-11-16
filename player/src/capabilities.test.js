@@ -5,7 +5,11 @@ import { detectCapabilities, capabilities, resetCapabilities, currentEngine } fr
 // can be tested without jsdom (the project runs vitest in a node env).
 function fakeWindow(over = {}) {
   return {
-    tizen: { webAPIVersion: '6.5' },
+    tizen: {
+      webAPIVersion: '6.5',
+      tvinputdevice: { registerKey: function () {} },
+      application: { getCurrentApplication: function () {} },
+    },
     AbortController: function () {},
     ResizeObserver: function () {},
     HTMLVideoElement: { prototype: { requestVideoFrameCallback: function () {} } },
@@ -23,6 +27,8 @@ describe('detectCapabilities', () => {
     const caps = detectCapabilities(fakeWindow());
     expect(caps).toMatchObject({
       isTizen: true,
+      hasTvInputDevice: true,
+      hasApplicationControl: true,
       webApiVersion: 6.5,
       hasAbortController: true,
       hasTrimStart: true,
@@ -34,14 +40,36 @@ describe('detectCapabilities', () => {
     });
   });
 
-  it('detects ShakaPlayer under its alternate global', () => {
-    const w = fakeWindow({ shaka: undefined, ShakaPlayer: {} });
-    expect(detectCapabilities(w).hasShaka).toBe(true);
+  it('detects a Tizen build without the remote-key API', () => {
+    const w = fakeWindow({ tizen: { webAPIVersion: '6.5', application: {} } });
+    expect(detectCapabilities(w)).toMatchObject({ isTizen: true, hasTvInputDevice: false });
   });
 
-  it('reports a missing engine', () => {
-    const w = fakeWindow({ shaka: undefined, webapis: undefined });
-    expect(detectCapabilities(w)).toMatchObject({ hasShaka: false, hasAvplay: false });
+  it('detects a Tizen build without application control', () => {
+    const w = fakeWindow({ tizen: { webAPIVersion: '6.5', tvinputdevice: {} } });
+    expect(detectCapabilities(w)).toMatchObject({ isTizen: true, hasApplicationControl: false });
+  });
+
+  it('reports no TV input device off-Tizen', () => {
+    expect(detectCapabilities(fakeWindow({ tizen: undefined }))).toMatchObject({
+      isTizen: false,
+      hasTvInputDevice: false,
+      hasApplicationControl: false,
+    });
+  });
+
+  it('always reports Shaka, because it is bundled rather than a global', () => {
+    // Regression guard: probing window.shaka answered false on every shipped
+    // TV, which made selectEngine() claim a perfectly good Shaka TV was
+    // native-only. The app imports Shaka as a module and never sets the global.
+    const w = fakeWindow({ shaka: undefined, ShakaPlayer: undefined });
+    expect(detectCapabilities(w).hasShaka).toBe(true);
+    expect(detectCapabilities({}).hasShaka).toBe(true);
+  });
+
+  it('reports a missing native engine', () => {
+    const w = fakeWindow({ webapis: undefined });
+    expect(detectCapabilities(w)).toMatchObject({ hasShaka: true, hasAvplay: false });
   });
 
   it('defaults the API version to 5.0 when tizen is absent', () => {
@@ -62,7 +90,7 @@ describe('detectCapabilities', () => {
       hasResizeObserver: false,
       hasRequestVideoFrameCallback: false,
       hasMediaCapabilities: false,
-      hasShaka: false,
+      hasShaka: true,
       hasAvplay: false,
     });
   });

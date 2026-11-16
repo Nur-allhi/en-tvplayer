@@ -6,6 +6,8 @@ import * as settings from './settings.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
 import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
 import { filterDisplayChannels, findResumeIndex, findIntentIndex, tuneSuperseded } from './logic.js';
+import { capabilities } from './capabilities.js';
+import { hasTvKeyInput } from './lib/capabilities.js';
 
 let currentIndex = 0;
 let channels;
@@ -1211,7 +1213,7 @@ function showStaleCacheNotice() {
 }
 
 function registerTizenKeys() {
-  if (!window.tizen || !window.tizen.tvinputdevice) return;
+  if (!hasTvKeyInput(capabilities())) return;
   const keys = [
     'ColorF0Red',
     'ColorF1Green',
@@ -1504,7 +1506,7 @@ function handleRemoteAction(action, value) {
     case 'back':
       ui.showConfirmDialog('Exit the app?', (confirmed) => {
         if (confirmed) {
-          if (window.tizen && window.tizen.application) {
+          if (capabilities().hasApplicationControl) {
             try {
               window.tizen.application.getCurrentApplication().exit();
             } catch {}

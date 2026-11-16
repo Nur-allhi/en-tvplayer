@@ -6,6 +6,8 @@
 // is tried once per URL; failures are recorded so it never loops.
 // Absent outside Tizen (desktop dev) — every function guards and no-ops.
 
+import { capabilities } from './capabilities.js';
+
 let avObject = null;
 let bufferingCallback = null;
 let errorCallback = null;
@@ -17,12 +19,11 @@ let firstFrameSeen = false;
 // all playback on some firmwares.
 let active = false;
 
+// Platform detection lives in capabilities.js — the single probe. This module
+// keeps its own runtime state (whether we opened the native instance), which
+// is a different question from whether the platform offers AVPlay (T-115).
 export function isAvailable() {
-  try {
-    return typeof window !== 'undefined' && !!window.webapis && !!window.webapis.avplay;
-  } catch {
-    return false;
-  }
+  return capabilities().hasAvplay;
 }
 
 function el() {
@@ -103,13 +104,16 @@ export function play(url, { userAgent, referer, timeoutMs = 15000 } = {}) {
       avplay.open(url);
       active = true;
       avplay.setDisplayRect(0, 0, 1920, 1080);
-      avplay.prepareAsync(() => {
-        try {
-          avplay.play();
-        } catch {
-          resolveReady(false);
-        }
-      }, () => resolveReady(false));
+      avplay.prepareAsync(
+        () => {
+          try {
+            avplay.play();
+          } catch {
+            resolveReady(false);
+          }
+        },
+        () => resolveReady(false),
+      );
       readyTimer = setTimeout(() => resolveReady(firstFrameSeen), timeoutMs);
     } catch {
       resolveReady(false);

@@ -7,10 +7,14 @@ import {
   engineLabel,
   missingApis,
   canObserveVideoFrames,
+  hasTvKeyInput,
+  platformName,
 } from './capabilities.js';
 
 const tizen = (over = {}) => ({
   isTizen: true,
+  hasTvInputDevice: true,
+  hasApplicationControl: true,
   webApiVersion: 6.5,
   hasAbortController: true,
   hasTrimStart: true,
@@ -71,6 +75,10 @@ describe('selectEngine', () => {
     expect(selectEngine(tizen())).toBe('shaka');
   });
 
+  it('prefers Shaka whenever it is present, even with no native engine', () => {
+    expect(selectEngine(tizen({ hasAvplay: false }))).toBe('shaka');
+  });
+
   it('falls back to native AVPlay when Shaka is unusable', () => {
     expect(selectEngine(tizen({ hasShaka: false }))).toBe('native');
   });
@@ -129,5 +137,33 @@ describe('canObserveVideoFrames', () => {
 
   it('is false for a missing capabilities object', () => {
     expect(canObserveVideoFrames(null)).toBe(false);
+  });
+});
+
+describe('hasTvKeyInput', () => {
+  it('is true on a TV with the remote-key API', () => {
+    expect(hasTvKeyInput(tizen())).toBe(true);
+  });
+
+  it('is false on a browser without it', () => {
+    expect(hasTvKeyInput(tizen({ hasTvInputDevice: false }))).toBe(false);
+  });
+
+  it('is false for a missing capabilities object', () => {
+    expect(hasTvKeyInput(null)).toBe(false);
+  });
+});
+
+describe('platformName', () => {
+  it('reports tizen on a TV', () => {
+    expect(platformName(tizen())).toBe('tizen');
+  });
+
+  it('reports browser off-TV', () => {
+    expect(platformName(tizen({ isTizen: false }))).toBe('browser');
+  });
+
+  it('reports browser for a missing capabilities object', () => {
+    expect(platformName(null)).toBe('browser');
   });
 });
