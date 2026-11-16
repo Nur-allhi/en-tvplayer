@@ -418,6 +418,17 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Must land before T-131.**
 - **Notes:** the shared-state coupling is the main hazard in this phase.
   `docs/MIGRATION.md` §4 Risk C.
+- **Status:** ✅ done 2026-11-16 — `player/src/ui/state.js` (44 LOC),
+  `ui/state.test.js` (**5 tests**). Measured **18** shared bindings moved
+  (the ticket's list + `virtualEnd`): `espree` AST audit found them declared
+  only at module scope, with **290** references and no shadowing. Renamed via
+  an AST transform (espree), not a regex — four bare lookalikes were left
+  untouched on purpose: two object-literal `channels:` keys and the
+  `dataset.virtualStart/virtualEnd` DOM properties. `ui.js` 1463 → 1456 LOC.
+  Behaviour-neutral: only module-scope references were prefixed; the 25
+  slice-local `let`s (dialog, OSD, right-menu audio, timers) stay in `ui.js`
+  for their own tickets. Bundle 963.24 → 966.89 kB (**+0.38 %**, inside ±2 %).
+  All gates green, plus `npm run tizen`. No TV verification claimed.
 
 ### T-131 — `ui/dialogs.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~100 LOC)

@@ -1,45 +1,32 @@
 import { escapeHtml } from './utils.js';
 import { getHiddenGroups } from './config.js';
 import { filterDisplayChannels, slowHintFor, attemptSuffix } from './logic.js';
+import { state } from './ui/state.js';
 
-let channels = [];
-let currentIndex = -1;
-let focusedIndex = 0;
-let virtualStart = 0;
-let virtualEnd = 0;
+// Shared UI state lives in ./ui/state.js (T-130). Every upcoming ui/ slice
+// imports the same object, so no slice can silently keep its own copy.
+// Slice-local values (callbacks, constants) stay here.
+
 const VIRTUAL_SIZE = 30;
-let sidebarOpen = false;
-let isFullscreen = false;
-let onChannelSelect = null;
 
-/* Right sidebar state */
-let rightSidebarOpen = false;
-let rightResolutions = [];
-let rightFocus = 0;
+let onChannelSelect = null;
 let rightSelectedResolution = 'auto';
 let rightResolutionCallback = null;
-let rightItems = [];
-
-/* Group sidebar state */
-let sidebarMode = 'channels';
-let groups = [];
-let selectedGroup = null;
-let groupFocusedIndex = 0;
 
 export function init(channelList, callback) {
-  channels = channelList;
+  state.channels = channelList;
   onChannelSelect = callback;
-  currentIndex = -1;
-  focusedIndex = 0;
+  state.currentIndex = -1;
+  state.focusedIndex = 0;
 
-  extractGroups(channels);
-  if (groups.length > 0) {
-    sidebarMode = 'groups';
-    selectedGroup = null;
+  extractGroups(state.channels);
+  if (state.groups.length > 0) {
+    state.sidebarMode = 'groups';
+    state.selectedGroup = null;
     renderGroupList();
   } else {
-    sidebarMode = 'channels';
-    selectedGroup = null;
+    state.sidebarMode = 'channels';
+    state.selectedGroup = null;
     renderChannelList();
   }
   updateSidebarTitle();
@@ -50,12 +37,12 @@ export function init(channelList, callback) {
   const sidebar = document.getElementById('sidebar');
   if (hoverZone) {
     hoverZone.addEventListener('mouseenter', () => {
-      if (isFullscreen) {
-        if (rightSidebarOpen) {
-          rightSidebarOpen = false;
+      if (state.isFullscreen) {
+        if (state.rightSidebarOpen) {
+          state.rightSidebarOpen = false;
           applyRightSidebar();
         }
-        sidebarOpen = true;
+        state.sidebarOpen = true;
         applySidebar();
         resetInactivity();
       }
@@ -63,8 +50,8 @@ export function init(channelList, callback) {
   }
   if (sidebar) {
     sidebar.addEventListener('mouseleave', () => {
-      if (isFullscreen && !rightSidebarOpen) {
-        sidebarOpen = false;
+      if (state.isFullscreen && !state.rightSidebarOpen) {
+        state.sidebarOpen = false;
         applySidebar();
       }
     });
@@ -75,12 +62,12 @@ export function init(channelList, callback) {
   const rightSidebarEl = document.getElementById('right-sidebar');
   if (rightZone) {
     rightZone.addEventListener('mouseenter', () => {
-      if (isFullscreen) {
-        if (sidebarOpen) {
-          sidebarOpen = false;
+      if (state.isFullscreen) {
+        if (state.sidebarOpen) {
+          state.sidebarOpen = false;
           applySidebar();
         }
-        rightSidebarOpen = true;
+        state.rightSidebarOpen = true;
         applyRightSidebar();
         resetInactivity();
       }
@@ -88,10 +75,10 @@ export function init(channelList, callback) {
   }
   if (rightSidebarEl) {
     rightSidebarEl.addEventListener('mouseleave', (e) => {
-      if (!isFullscreen) return;
+      if (!state.isFullscreen) return;
       const to = e.relatedTarget;
       if (to && rightZone && rightZone.contains(to)) return;
-      rightSidebarOpen = false;
+      state.rightSidebarOpen = false;
       applyRightSidebar();
     });
   }
@@ -113,36 +100,36 @@ export function extractGroups(channelList) {
       count: groupMap[name].length,
       channels: groupMap[name],
     }));
-  groups = [{ name: 'All Channels', count: visible.length, channels: visible }, ...realGroups];
+  state.groups = [{ name: 'All Channels', count: visible.length, channels: visible }, ...realGroups];
 }
 
 export function getSidebarMode() {
-  return sidebarMode;
+  return state.sidebarMode;
 }
 
 export function getGroups() {
-  return groups;
+  return state.groups;
 }
 
 export function getSelectedGroup() {
-  return selectedGroup;
+  return state.selectedGroup;
 }
 
 export function getCurrentIndex() {
-  return currentIndex;
+  return state.currentIndex;
 }
 
 export function updateSidebarTitle() {
   const el = document.getElementById('sidebar-title');
   if (!el) return;
-  if (sidebarMode === 'search') {
+  if (state.sidebarMode === 'search') {
     el.textContent = 'Search';
-  } else if (sidebarMode === 'groups') {
+  } else if (state.sidebarMode === 'groups') {
     el.textContent = 'Groups';
-  } else if (selectedGroup === 'all') {
+  } else if (state.selectedGroup === 'all') {
     el.textContent = 'All Channels';
-  } else if (selectedGroup) {
-    el.textContent = selectedGroup;
+  } else if (state.selectedGroup) {
+    el.textContent = state.selectedGroup;
   } else {
     el.textContent = 'Channels';
   }
@@ -160,7 +147,7 @@ export function renderGroupList() {
     enterSearch();
   });
   container.appendChild(searchRow);
-  groups.forEach((group, index) => {
+  state.groups.forEach((group, index) => {
     const item = document.createElement('div');
     item.className = 'group-item';
     item.dataset.index = index;
@@ -182,45 +169,43 @@ export function renderGroupList() {
 export function updateGroupFocus() {
   const items = document.querySelectorAll('#group-list .group-item');
   items.forEach((item, idx) => {
-    item.classList.toggle('focused', idx === groupFocusedIndex);
+    item.classList.toggle('focused', idx === state.groupFocusedIndex);
   });
-  if (items[groupFocusedIndex]) {
+  if (items[state.groupFocusedIndex]) {
     // Instant + minimal scroll: smooth queues animations on key-repeat (hold)
     // and the focus runs ahead of the visible scroll position; re-centering
     // on every step makes the list jump so the eye can't track focus.
     // Nearest keeps the focused row steadily in view, one step at a time.
-    items[groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    items[state.groupFocusedIndex].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
 export function navigateGroupUp() {
-  const total = groups.length + 1; // + Search row
+  const total = state.groups.length + 1; // + Search row
   if (total === 0) return;
-  groupFocusedIndex = (groupFocusedIndex - 1 + total) % total;
+  state.groupFocusedIndex = (state.groupFocusedIndex - 1 + total) % total;
   updateGroupFocus();
 }
 
 export function navigateGroupDown() {
-  const total = groups.length + 1; // + Search row
+  const total = state.groups.length + 1; // + Search row
   if (total === 0) return;
-  groupFocusedIndex = (groupFocusedIndex + 1) % total;
+  state.groupFocusedIndex = (state.groupFocusedIndex + 1) % total;
   updateGroupFocus();
 }
 
 export function selectFocusedGroup() {
-  if (groupFocusedIndex === 0) {
+  if (state.groupFocusedIndex === 0) {
     enterSearch();
     return;
   }
-  const group = groups[groupFocusedIndex - 1];
+  const group = state.groups[state.groupFocusedIndex - 1];
   if (group) showGroupChannels(group.name);
 }
 
 /* Cross-group search (T-037): the pinned Search row opens a text input;
    results span all visible groups (hidden groups excluded). */
-let searchQuery = '';
-let searchResults = [];
-let searchFocus = 0;
+
 const SEARCH_LIMIT = 60;
 
 function getSearchInput() {
@@ -233,28 +218,28 @@ function isSearchInputFocused() {
 }
 
 function computeSearchResults() {
-  const q = searchQuery.trim().toLowerCase();
+  const q = state.searchQuery.trim().toLowerCase();
   if (!q) return [];
   const hidden = getHiddenGroups();
-  return channels.filter(
+  return state.channels.filter(
     (ch) => !hidden.includes((ch && ch.group) || 'Ungrouped') && (ch.name || '').toLowerCase().includes(q),
   );
 }
 
 export function enterSearch() {
-  sidebarMode = 'search';
-  searchQuery = '';
-  searchResults = [];
-  searchFocus = 0;
+  state.sidebarMode = 'search';
+  state.searchQuery = '';
+  state.searchResults = [];
+  state.searchFocus = 0;
   renderSearch();
   updateSidebarTitle();
 }
 
 export function exitSearch() {
-  sidebarMode = 'groups';
-  searchQuery = '';
-  searchResults = [];
-  searchFocus = 0;
+  state.sidebarMode = 'groups';
+  state.searchQuery = '';
+  state.searchResults = [];
+  state.searchFocus = 0;
   const groupList = document.getElementById('group-list');
   const channelList = document.getElementById('channel-list');
   if (channelList) channelList.classList.add('hidden');
@@ -278,11 +263,11 @@ function renderSearch() {
   input.type = 'text';
   input.placeholder = 'Search channels…';
   input.setAttribute('autocomplete', 'off');
-  input.value = searchQuery;
+  input.value = state.searchQuery;
   input.addEventListener('input', () => {
-    searchQuery = input.value;
-    searchResults = computeSearchResults();
-    searchFocus = 0;
+    state.searchQuery = input.value;
+    state.searchResults = computeSearchResults();
+    state.searchFocus = 0;
     renderSearchResults();
   });
   row.appendChild(input);
@@ -305,15 +290,15 @@ function renderSearchResults() {
   const box = document.getElementById('search-results');
   if (!box) return;
   box.innerHTML = '';
-  if (!searchQuery.trim()) {
+  if (!state.searchQuery.trim()) {
     box.appendChild(searchHint('Type to search all groups'));
     return;
   }
-  if (searchResults.length === 0) {
+  if (state.searchResults.length === 0) {
     box.appendChild(searchHint('No channels found'));
     return;
   }
-  searchResults.slice(0, SEARCH_LIMIT).forEach((ch, i) => {
+  state.searchResults.slice(0, SEARCH_LIMIT).forEach((ch, i) => {
     const item = document.createElement('div');
     item.className = 'channel-item search-item';
     item.innerHTML =
@@ -324,69 +309,69 @@ function renderSearchResults() {
       escapeHtml(ch.group || 'Ungrouped') +
       '</span>';
     item.addEventListener('click', () => {
-      searchFocus = i;
+      state.searchFocus = i;
       updateSearchFocus();
       searchSelect();
     });
     box.appendChild(item);
   });
-  if (searchResults.length > SEARCH_LIMIT) {
-    box.appendChild(searchHint('+' + (searchResults.length - SEARCH_LIMIT) + ' more — keep typing'));
+  if (state.searchResults.length > SEARCH_LIMIT) {
+    box.appendChild(searchHint('+' + (state.searchResults.length - SEARCH_LIMIT) + ' more — keep typing'));
   }
   updateSearchFocus();
 }
 
 function updateSearchFocus() {
   const items = document.querySelectorAll('#search-results .search-item');
-  items.forEach((item, i) => item.classList.toggle('focused', i === searchFocus));
-  if (items[searchFocus]) {
+  items.forEach((item, i) => item.classList.toggle('focused', i === state.searchFocus));
+  if (items[state.searchFocus]) {
     // Instant + minimal scroll: see updateGroupFocus.
-    items[searchFocus].scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    items[state.searchFocus].scrollIntoView({ block: 'nearest', behavior: 'auto' });
   }
 }
 
 export function searchNavigate(dir) {
   if (isSearchInputFocused()) {
-    if (dir > 0 && searchResults.length > 0) {
+    if (dir > 0 && state.searchResults.length > 0) {
       getSearchInput().blur();
-      searchFocus = 0;
+      state.searchFocus = 0;
       updateSearchFocus();
     }
     return;
   }
-  if (searchResults.length === 0) return;
-  searchFocus += dir;
-  if (searchFocus < 0) {
-    searchFocus = 0;
+  if (state.searchResults.length === 0) return;
+  state.searchFocus += dir;
+  if (state.searchFocus < 0) {
+    state.searchFocus = 0;
     const input = getSearchInput();
     if (input) input.focus();
     updateSearchFocus();
     return;
   }
-  const shown = Math.min(searchResults.length, SEARCH_LIMIT);
-  if (searchFocus >= shown) searchFocus = shown - 1;
+  const shown = Math.min(state.searchResults.length, SEARCH_LIMIT);
+  if (state.searchFocus >= shown) state.searchFocus = shown - 1;
   updateSearchFocus();
 }
 
 export function searchSelect() {
   if (isSearchInputFocused()) {
-    if (searchResults.length === 0) return;
+    if (state.searchResults.length === 0) return;
     getSearchInput().blur();
-    searchFocus = 0;
+    state.searchFocus = 0;
     updateSearchFocus();
     return;
   }
-  const ch = searchResults[searchFocus];
+  const ch = state.searchResults[state.searchFocus];
   if (!ch) return;
-  const idx = channels.indexOf(ch);
+  const idx = state.channels.indexOf(ch);
   exitSearch();
   if (idx >= 0) selectChannel(idx);
 }
 
 export function showGroupChannels(groupName) {
-  selectedGroup = groupName === 'All Channels' ? 'all' : groupName;
-  sidebarMode = 'channels';
-  focusedIndex = 0;
+  state.selectedGroup = groupName === 'All Channels' ? 'all' : groupName;
+  state.sidebarMode = 'channels';
+  state.focusedIndex = 0;
   const groupList = document.getElementById('group-list');
   const channelList = document.getElementById('channel-list');
   if (groupList) groupList.classList.add('hidden');
@@ -397,7 +382,7 @@ export function showGroupChannels(groupName) {
 }
 
 export function showGroupList() {
-  sidebarMode = 'groups';
+  state.sidebarMode = 'groups';
   const groupList = document.getElementById('group-list');
   const channelList = document.getElementById('channel-list');
   if (channelList) channelList.classList.add('hidden');
@@ -410,15 +395,18 @@ export function showGroupList() {
    playing mark and focus. Falls back to the group list when the open group
    was just hidden. */
 export function refreshGroupVisibility() {
-  if (sidebarMode === 'search') {
-    searchResults = computeSearchResults();
+  if (state.sidebarMode === 'search') {
+    state.searchResults = computeSearchResults();
     renderSearchResults();
     return;
   }
-  extractGroups(channels);
+  extractGroups(state.channels);
   const hidden = getHiddenGroups();
-  if (sidebarMode === 'groups' || (selectedGroup && selectedGroup !== 'all' && hidden.includes(selectedGroup))) {
-    selectedGroup = null;
+  if (
+    state.sidebarMode === 'groups' ||
+    (state.selectedGroup && state.selectedGroup !== 'all' && hidden.includes(state.selectedGroup))
+  ) {
+    state.selectedGroup = null;
     showGroupList();
   } else {
     renderChannelList();
@@ -432,28 +420,29 @@ export function renderChannelList() {
   if (!container) return;
 
   let displayChannels;
-  if (selectedGroup === 'all' || !selectedGroup) {
-    displayChannels = channels;
+  if (state.selectedGroup === 'all' || !state.selectedGroup) {
+    displayChannels = state.channels;
   } else {
-    displayChannels = channels.filter((ch) => (ch.group || 'Ungrouped') === selectedGroup);
+    displayChannels = state.channels.filter((ch) => (ch.group || 'Ungrouped') === state.selectedGroup);
   }
 
   const total = displayChannels.length;
   if (total > VIRTUAL_SIZE) {
     const half = Math.floor(VIRTUAL_SIZE / 2);
-    virtualStart = Math.max(0, focusedIndex - half);
-    virtualEnd = Math.min(total, virtualStart + VIRTUAL_SIZE);
-    if (virtualEnd - virtualStart < VIRTUAL_SIZE) virtualStart = Math.max(0, virtualEnd - VIRTUAL_SIZE);
+    state.virtualStart = Math.max(0, state.focusedIndex - half);
+    state.virtualEnd = Math.min(total, state.virtualStart + VIRTUAL_SIZE);
+    if (state.virtualEnd - state.virtualStart < VIRTUAL_SIZE)
+      state.virtualStart = Math.max(0, state.virtualEnd - VIRTUAL_SIZE);
   } else {
-    virtualStart = 0;
-    virtualEnd = total;
+    state.virtualStart = 0;
+    state.virtualEnd = total;
   }
 
   container.innerHTML = '';
 
-  for (let displayIndex = virtualStart; displayIndex < virtualEnd; displayIndex++) {
+  for (let displayIndex = state.virtualStart; displayIndex < state.virtualEnd; displayIndex++) {
     const channel = displayChannels[displayIndex];
-    const originalIndex = channels.indexOf(channel);
+    const originalIndex = state.channels.indexOf(channel);
     const item = document.createElement('div');
     item.className = 'channel-item';
     item.dataset.index = displayIndex;
@@ -478,17 +467,19 @@ export function renderChannelList() {
   const stride = channelRowStride(container);
   if (stride > 0) {
     const top = document.createElement('div');
-    top.style.height = virtualStart * stride + 'px';
+    top.style.height = state.virtualStart * stride + 'px';
     container.prepend(top);
     const bottom = document.createElement('div');
-    bottom.style.height = Math.max(0, total - virtualEnd) * stride + 'px';
+    bottom.style.height = Math.max(0, total - state.virtualEnd) * stride + 'px';
     container.appendChild(bottom);
     const target =
-      virtualStart * stride + (focusedIndex - virtualStart) * stride - (container.clientHeight - stride) / 2;
+      state.virtualStart * stride +
+      (state.focusedIndex - state.virtualStart) * stride -
+      (container.clientHeight - stride) / 2;
     container.scrollTop = Math.max(0, target);
   }
-  container.dataset.virtualStart = virtualStart;
-  container.dataset.virtualEnd = virtualEnd;
+  container.dataset.virtualStart = state.virtualStart;
+  container.dataset.virtualEnd = state.virtualEnd;
   updateActiveChannel();
 }
 
@@ -502,20 +493,20 @@ function channelRowStride(container) {
 }
 
 export function selectChannel(index, skipFullscreen) {
-  if (index < 0 || index >= channels.length) return;
+  if (index < 0 || index >= state.channels.length) return;
 
-  currentIndex = index;
+  state.currentIndex = index;
   const displayChannels = getDisplayChannels();
-  focusedIndex = displayChannels.indexOf(channels[index]);
-  if (focusedIndex < 0) focusedIndex = 0;
-  if (focusedIndex < virtualStart || focusedIndex >= virtualEnd) {
+  state.focusedIndex = displayChannels.indexOf(state.channels[index]);
+  if (state.focusedIndex < 0) state.focusedIndex = 0;
+  if (state.focusedIndex < state.virtualStart || state.focusedIndex >= state.virtualEnd) {
     renderChannelList();
   }
   updateActiveChannel();
   updateFocus();
 
   if (onChannelSelect) {
-    onChannelSelect(channels[index]);
+    onChannelSelect(state.channels[index]);
   }
 
   if (!skipFullscreen) {
@@ -526,11 +517,11 @@ export function selectChannel(index, skipFullscreen) {
   const infoEl = document.getElementById('channel-info');
 
   if (nameEl) {
-    nameEl.textContent = channels[index].name;
+    nameEl.textContent = state.channels[index].name;
   }
 
   if (infoEl) {
-    const ext = channels[index].url.split('.').pop().split('?')[0];
+    const ext = state.channels[index].url.split('.').pop().split('?')[0];
     infoEl.textContent = ext.toUpperCase();
   }
 }
@@ -538,8 +529,8 @@ export function selectChannel(index, skipFullscreen) {
 export function navigateUp() {
   const displayChannels = getDisplayChannels();
   if (displayChannels.length === 0) return;
-  focusedIndex = (focusedIndex - 1 + displayChannels.length) % displayChannels.length;
-  if (focusedIndex < virtualStart || focusedIndex >= virtualEnd) {
+  state.focusedIndex = (state.focusedIndex - 1 + displayChannels.length) % displayChannels.length;
+  if (state.focusedIndex < state.virtualStart || state.focusedIndex >= state.virtualEnd) {
     renderChannelList();
   }
   updateFocus();
@@ -549,8 +540,8 @@ export function navigateUp() {
 export function navigateDown() {
   const displayChannels = getDisplayChannels();
   if (displayChannels.length === 0) return;
-  focusedIndex = (focusedIndex + 1) % displayChannels.length;
-  if (focusedIndex < virtualStart || focusedIndex >= virtualEnd) {
+  state.focusedIndex = (state.focusedIndex + 1) % displayChannels.length;
+  if (state.focusedIndex < state.virtualStart || state.focusedIndex >= state.virtualEnd) {
     renderChannelList();
   }
   updateFocus();
@@ -559,49 +550,49 @@ export function navigateDown() {
 
 export function selectFocused() {
   const displayChannels = getDisplayChannels();
-  const channel = displayChannels[focusedIndex];
+  const channel = displayChannels[state.focusedIndex];
   if (channel) {
-    selectChannel(channels.indexOf(channel));
+    selectChannel(state.channels.indexOf(channel));
   }
 }
 
 export function getDisplayChannels() {
-  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
+  return filterDisplayChannels(state.channels, getHiddenGroups(), state.selectedGroup);
 }
 
 export function jumpToNumber(num, skipFullscreen) {
   const displayChannels = getDisplayChannels();
   const channel = displayChannels.find((ch) => ch.channelNumber === num);
   if (channel) {
-    selectChannel(channels.indexOf(channel), skipFullscreen);
+    selectChannel(state.channels.indexOf(channel), skipFullscreen);
   }
 }
 
 export function toggleSidebar() {
-  if (rightSidebarOpen) {
-    rightSidebarOpen = false;
+  if (state.rightSidebarOpen) {
+    state.rightSidebarOpen = false;
     applyRightSidebar();
   }
-  sidebarOpen = !sidebarOpen;
-  if (sidebarOpen) {
-    if (groups.length > 0 && selectedGroup !== null) {
-      sidebarMode = 'channels';
+  state.sidebarOpen = !state.sidebarOpen;
+  if (state.sidebarOpen) {
+    if (state.groups.length > 0 && state.selectedGroup !== null) {
+      state.sidebarMode = 'channels';
       const displayChannels = getDisplayChannels();
-      const playingChannel = channels[currentIndex];
+      const playingChannel = state.channels[state.currentIndex];
       const idx = playingChannel ? displayChannels.indexOf(playingChannel) : -1;
-      focusedIndex = idx >= 0 ? idx : 0;
+      state.focusedIndex = idx >= 0 ? idx : 0;
       const groupList = document.getElementById('group-list');
       const channelList = document.getElementById('channel-list');
       if (groupList) groupList.classList.add('hidden');
       if (channelList) channelList.classList.remove('hidden');
       renderChannelList();
       updateFocus();
-    } else if (groups.length > 0) {
+    } else if (state.groups.length > 0) {
       showGroupList();
     } else {
-      selectedGroup = null;
-      sidebarMode = 'channels';
-      focusedIndex = currentIndex >= 0 ? currentIndex : 0;
+      state.selectedGroup = null;
+      state.sidebarMode = 'channels';
+      state.focusedIndex = state.currentIndex >= 0 ? state.currentIndex : 0;
       renderChannelList();
     }
     updateSidebarTitle();
@@ -610,27 +601,27 @@ export function toggleSidebar() {
 }
 
 export function closeAllOverlays() {
-  if (sidebarOpen) {
-    sidebarOpen = false;
+  if (state.sidebarOpen) {
+    state.sidebarOpen = false;
     applySidebar();
   }
-  if (rightSidebarOpen) {
-    rightSidebarOpen = false;
+  if (state.rightSidebarOpen) {
+    state.rightSidebarOpen = false;
     applyRightSidebar();
   }
 }
 
 export function isSidebarOpen() {
-  return sidebarOpen;
+  return state.sidebarOpen;
 }
 
 export function showSidebarWithContent() {
-  sidebarOpen = true;
+  state.sidebarOpen = true;
   applySidebar();
 }
 
 export function isFullscreenMode() {
-  return isFullscreen;
+  return state.isFullscreen;
 }
 
 export function requestFullscreen() {
@@ -638,10 +629,10 @@ export function requestFullscreen() {
   if (app) {
     app.classList.add('fullscreen');
   }
-  isFullscreen = true;
-  sidebarOpen = false;
+  state.isFullscreen = true;
+  state.sidebarOpen = false;
   applySidebar();
-  rightSidebarOpen = false;
+  state.rightSidebarOpen = false;
   applyRightSidebar();
 
   startCursorAutoHide();
@@ -657,9 +648,9 @@ export function requestFullscreen() {
 }
 
 export function exitFullscreenMode() {
-  isFullscreen = false;
-  sidebarOpen = true;
-  rightSidebarOpen = false;
+  state.isFullscreen = false;
+  state.sidebarOpen = true;
+  state.rightSidebarOpen = false;
   const app = document.getElementById('app');
   if (app) {
     app.classList.remove('fullscreen');
@@ -721,9 +712,9 @@ function resetInactivity() {
 }
 
 function autoCloseOverlays() {
-  const sidebarHasFocus = sidebarOpen && document.querySelector('#sidebar .focused, #sidebar [data-focused]');
+  const sidebarHasFocus = state.sidebarOpen && document.querySelector('#sidebar .focused, #sidebar [data-focused]');
   const rightHasFocus =
-    rightSidebarOpen && document.querySelector('#right-sidebar .focused, #right-sidebar [data-focused]');
+    state.rightSidebarOpen && document.querySelector('#right-sidebar .focused, #right-sidebar [data-focused]');
   if (sidebarHasFocus || rightHasFocus) {
     resetInactivity();
     return;
@@ -731,12 +722,12 @@ function autoCloseOverlays() {
   if (autoCloseCallback) {
     autoCloseCallback();
   }
-  if (sidebarOpen) {
-    sidebarOpen = false;
+  if (state.sidebarOpen) {
+    state.sidebarOpen = false;
     applySidebar();
   }
-  if (rightSidebarOpen) {
-    rightSidebarOpen = false;
+  if (state.rightSidebarOpen) {
+    state.rightSidebarOpen = false;
     applyRightSidebar();
   }
 }
@@ -748,7 +739,7 @@ export function resetInactivityTimer() {
 function applySidebar() {
   const sidebar = document.getElementById('sidebar');
   if (sidebar) {
-    sidebar.classList.toggle('closed', !sidebarOpen);
+    sidebar.classList.toggle('closed', !state.sidebarOpen);
   }
   applyWatermark();
 }
@@ -773,7 +764,7 @@ function applyWatermark() {
     return;
   }
   watermark.classList.remove('hidden');
-  watermark.classList.toggle('docked', !sidebarOpen);
+  watermark.classList.toggle('docked', !state.sidebarOpen);
 }
 
 function applyBadge() {
@@ -810,7 +801,7 @@ export function hideEmptyLogo() {
 export function applyRightSidebar() {
   const el = document.getElementById('right-sidebar');
   if (el) {
-    el.classList.toggle('closed', !rightSidebarOpen);
+    el.classList.toggle('closed', !state.rightSidebarOpen);
   }
 }
 
@@ -819,26 +810,26 @@ export function setAutoCloseCallback(callback) {
 }
 
 export function toggleRightSidebar() {
-  if (sidebarOpen) {
-    sidebarOpen = false;
+  if (state.sidebarOpen) {
+    state.sidebarOpen = false;
     applySidebar();
   }
-  rightSidebarOpen = !rightSidebarOpen;
+  state.rightSidebarOpen = !state.rightSidebarOpen;
   applyRightSidebar();
-  if (rightSidebarOpen) {
+  if (state.rightSidebarOpen) {
     qualityOpen = false;
     audioOpen = false;
     renderRightResolutionList();
     renderAudioList();
     buildRightItems();
-    rightFocus = 0;
+    state.rightFocus = 0;
     updateRightFocus();
     resetInactivity();
   }
 }
 
 export function isRightSidebarOpen() {
-  return rightSidebarOpen;
+  return state.rightSidebarOpen;
 }
 
 export function setResolutionCallback(cb) {
@@ -846,18 +837,18 @@ export function setResolutionCallback(cb) {
 }
 
 function clampRightFocus() {
-  if (rightItems.length === 0) {
-    rightFocus = 0;
+  if (state.rightItems.length === 0) {
+    state.rightFocus = 0;
     return;
   }
-  if (rightFocus < 0) rightFocus = 0;
-  if (rightFocus >= rightItems.length) rightFocus = rightItems.length - 1;
+  if (state.rightFocus < 0) state.rightFocus = 0;
+  if (state.rightFocus >= state.rightItems.length) state.rightFocus = state.rightItems.length - 1;
 }
 
 export function setResolutions(heights) {
-  rightResolutions = ['auto'].concat(heights || []);
+  state.rightResolutions = ['auto'].concat(heights || []);
   renderRightResolutionList();
-  if (rightSidebarOpen) {
+  if (state.rightSidebarOpen) {
     buildRightItems();
     clampRightFocus();
     updateRightFocus();
@@ -867,7 +858,7 @@ export function setResolutions(heights) {
 export function setSelectedResolution(value) {
   rightSelectedResolution = value;
   renderRightResolutionList();
-  if (rightSidebarOpen) {
+  if (state.rightSidebarOpen) {
     buildRightItems();
     clampRightFocus();
     updateRightFocus();
@@ -891,7 +882,7 @@ export function setAudioTracks(tracks) {
     rightSelectedAudioId = active ? active.id : rightAudios[0] ? rightAudios[0].id : null;
   }
   renderAudioList();
-  if (rightSidebarOpen) {
+  if (state.rightSidebarOpen) {
     buildRightItems();
     clampRightFocus();
     updateRightFocus();
@@ -901,7 +892,7 @@ export function setAudioTracks(tracks) {
 export function setSelectedAudio(id) {
   rightSelectedAudioId = id;
   renderAudioList();
-  if (rightSidebarOpen) {
+  if (state.rightSidebarOpen) {
     buildRightItems();
     clampRightFocus();
     updateRightFocus();
@@ -940,8 +931,8 @@ function renderAudioList() {
     }
     item.textContent = audioTrackLabel(track, index);
     item.addEventListener('click', () => {
-      const at = rightItems.findIndex((it) => it.element === item);
-      rightFocus = at >= 0 ? at : rightFocus;
+      const at = state.rightItems.findIndex((it) => it.element === item);
+      state.rightFocus = at >= 0 ? at : state.rightFocus;
       doRightSelect();
     });
     list.appendChild(item);
@@ -957,7 +948,7 @@ function selectAudioById(id) {
   if (rightAudioCallback) {
     rightAudioCallback(id);
   }
-  rightSidebarOpen = false;
+  state.rightSidebarOpen = false;
   applyRightSidebar();
 }
 
@@ -984,7 +975,7 @@ function renderRightResolutionList() {
   });
   list.appendChild(header);
   if (!qualityOpen) return;
-  rightResolutions.forEach((res) => {
+  state.rightResolutions.forEach((res) => {
     const item = document.createElement('div');
     item.className = 'resolution-item-right';
     if (res === rightSelectedResolution) {
@@ -992,8 +983,8 @@ function renderRightResolutionList() {
     }
     item.textContent = res === 'auto' ? 'Auto' : res + 'p';
     item.addEventListener('click', () => {
-      const at = rightItems.findIndex((it) => it.element === item);
-      rightFocus = at >= 0 ? at : rightFocus;
+      const at = state.rightItems.findIndex((it) => it.element === item);
+      state.rightFocus = at >= 0 ? at : state.rightFocus;
       doRightSelect();
     });
     list.appendChild(item);
@@ -1006,7 +997,7 @@ function setQualityOpen(open) {
   renderRightResolutionList();
   renderAudioList();
   buildRightItems();
-  rightFocus = 0; // quality header leads the menu
+  state.rightFocus = 0; // quality header leads the menu
   updateRightFocus();
   resetInactivity();
 }
@@ -1023,22 +1014,22 @@ function setAudioOpen(open) {
   renderRightResolutionList();
   renderAudioList();
   buildRightItems();
-  const at = rightItems.findIndex((it) => it.type === 'audio-header');
-  rightFocus = at >= 0 ? at : rightFocus;
+  const at = state.rightItems.findIndex((it) => it.type === 'audio-header');
+  state.rightFocus = at >= 0 ? at : state.rightFocus;
   updateRightFocus();
   resetInactivity();
 }
 
 function buildRightItems() {
-  rightItems = [];
+  state.rightItems = [];
   // Quality dropdown: header always, options only while open
   const list = document.getElementById('resolution-list-right');
   if (list) {
     Array.from(list.children).forEach((child) => {
       if (child.classList.contains('dropdown-header')) {
-        rightItems.push({ type: 'quality-header', element: child });
+        state.rightItems.push({ type: 'quality-header', element: child });
       } else {
-        rightItems.push({ type: 'resolution', element: child });
+        state.rightItems.push({ type: 'resolution', element: child });
       }
     });
   }
@@ -1048,10 +1039,10 @@ function buildRightItems() {
     let audioIndex = 0;
     Array.from(audioList.children).forEach((child) => {
       if (child.classList.contains('dropdown-header')) {
-        rightItems.push({ type: 'audio-header', element: child });
+        state.rightItems.push({ type: 'audio-header', element: child });
       } else {
         const id = rightAudios[audioIndex] ? rightAudios[audioIndex].id : null;
-        rightItems.push({ type: 'audio', element: child, audioId: id });
+        state.rightItems.push({ type: 'audio', element: child, audioId: id });
         audioIndex++;
       }
     });
@@ -1061,26 +1052,26 @@ function buildRightItems() {
   btnIds.forEach((id) => {
     const el = document.getElementById(id);
     if (el && !el.classList.contains('hidden')) {
-      rightItems.push({ type: 'button', element: el, id: id });
+      state.rightItems.push({ type: 'button', element: el, id: id });
     }
   });
 }
 
 export function rightSidebarNavigateUp() {
-  if (!rightSidebarOpen || rightItems.length === 0) return;
-  rightFocus = (rightFocus - 1 + rightItems.length) % rightItems.length;
+  if (!state.rightSidebarOpen || state.rightItems.length === 0) return;
+  state.rightFocus = (state.rightFocus - 1 + state.rightItems.length) % state.rightItems.length;
   updateRightFocus();
 }
 
 export function rightSidebarNavigateDown() {
-  if (!rightSidebarOpen || rightItems.length === 0) return;
-  rightFocus = (rightFocus + 1) % rightItems.length;
+  if (!state.rightSidebarOpen || state.rightItems.length === 0) return;
+  state.rightFocus = (state.rightFocus + 1) % state.rightItems.length;
   updateRightFocus();
 }
 
 export function rightSidebarSelect() {
-  if (!rightSidebarOpen || rightItems.length === 0) return;
-  const item = rightItems[rightFocus];
+  if (!state.rightSidebarOpen || state.rightItems.length === 0) return;
+  const item = state.rightItems[state.rightFocus];
   if (!item) return;
   if (item.type === 'quality-header') {
     setQualityOpen(!qualityOpen);
@@ -1095,7 +1086,7 @@ export function rightSidebarSelect() {
 }
 
 function doRightSelect() {
-  const item = rightItems[rightFocus];
+  const item = state.rightItems[state.rightFocus];
   if (!item) return;
   if (item.type === 'audio') {
     selectAudioById(item.audioId);
@@ -1105,10 +1096,10 @@ function doRightSelect() {
     // Focus is on a header or button, not a quality option - do nothing
     return;
   }
-  const options = rightItems.map((it, idx) => ({ it, idx })).filter(({ it }) => it.type === 'resolution');
-  const optIndex = options.findIndex(({ idx }) => idx === rightFocus);
-  if (optIndex < 0 || optIndex >= rightResolutions.length) return;
-  const value = rightResolutions[optIndex];
+  const options = state.rightItems.map((it, idx) => ({ it, idx })).filter(({ it }) => it.type === 'resolution');
+  const optIndex = options.findIndex(({ idx }) => idx === state.rightFocus);
+  if (optIndex < 0 || optIndex >= state.rightResolutions.length) return;
+  const value = state.rightResolutions[optIndex];
   rightSelectedResolution = value;
   qualityOpen = false;
   renderRightResolutionList();
@@ -1116,20 +1107,20 @@ function doRightSelect() {
   if (rightResolutionCallback) {
     rightResolutionCallback(value === 'auto' ? null : value);
   }
-  rightSidebarOpen = false;
+  state.rightSidebarOpen = false;
   applyRightSidebar();
 }
 
 function updateRightFocus() {
-  rightItems.forEach((item, index) => {
-    const focused = index === rightFocus;
+  state.rightItems.forEach((item, index) => {
+    const focused = index === state.rightFocus;
     if (item.element) {
       item.element.classList.toggle('focused', focused);
     }
   });
-  if (rightItems[rightFocus] && rightItems[rightFocus].element) {
+  if (state.rightItems[state.rightFocus] && state.rightItems[state.rightFocus].element) {
     // Instant + centered: see updateGroupFocus.
-    rightItems[rightFocus].element.scrollIntoView({ block: 'center', behavior: 'auto' });
+    state.rightItems[state.rightFocus].element.scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 }
 
@@ -1178,12 +1169,12 @@ function showOsdText(text, ms) {
 }
 
 export function getChannels() {
-  return channels;
+  return state.channels;
 }
 
 export function getCurrentChannel() {
-  if (currentIndex >= 0 && currentIndex < channels.length) {
-    return channels[currentIndex];
+  if (state.currentIndex >= 0 && state.currentIndex < state.channels.length) {
+    return state.channels[state.currentIndex];
   }
   return null;
 }
@@ -1192,21 +1183,23 @@ export function refreshChannelList(newChannels) {
   // Preserve the playing mark across playlist refreshes: match by URL
   // (stable across re-fetch/re-sort); resets when the channel is gone.
   const playingUrl =
-    currentIndex >= 0 && currentIndex < channels.length && channels[currentIndex] ? channels[currentIndex].url : null;
-  channels = newChannels;
-  currentIndex = playingUrl ? newChannels.findIndex((ch) => ch && ch.url === playingUrl) : -1;
-  focusedIndex = 0;
-  extractGroups(channels);
-  if (selectedGroup === 'all') {
-    sidebarMode = 'channels';
-  } else if (selectedGroup && !groups.find((g) => g.name === selectedGroup)) {
-    selectedGroup = null;
-    sidebarMode = 'groups';
-  } else if (groups.length <= 1) {
-    sidebarMode = 'channels';
-    selectedGroup = null;
+    state.currentIndex >= 0 && state.currentIndex < state.channels.length && state.channels[state.currentIndex]
+      ? state.channels[state.currentIndex].url
+      : null;
+  state.channels = newChannels;
+  state.currentIndex = playingUrl ? newChannels.findIndex((ch) => ch && ch.url === playingUrl) : -1;
+  state.focusedIndex = 0;
+  extractGroups(state.channels);
+  if (state.selectedGroup === 'all') {
+    state.sidebarMode = 'channels';
+  } else if (state.selectedGroup && !state.groups.find((g) => g.name === state.selectedGroup)) {
+    state.selectedGroup = null;
+    state.sidebarMode = 'groups';
+  } else if (state.groups.length <= 1) {
+    state.sidebarMode = 'channels';
+    state.selectedGroup = null;
   }
-  if (sidebarMode === 'groups') {
+  if (state.sidebarMode === 'groups') {
     showGroupList();
   } else {
     const groupList = document.getElementById('group-list');
@@ -1219,8 +1212,8 @@ export function refreshChannelList(newChannels) {
   updateFocus();
   updateActiveChannel();
   // Close right sidebar since channel list may have changed
-  if (rightSidebarOpen) {
-    rightSidebarOpen = false;
+  if (state.rightSidebarOpen) {
+    state.rightSidebarOpen = false;
     applyRightSidebar();
   }
 }
@@ -1228,7 +1221,7 @@ export function refreshChannelList(newChannels) {
 function updateActiveChannel() {
   const items = document.querySelectorAll('.channel-item');
   const displayChannels = getDisplayChannels();
-  const playingDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
+  const playingDisplayIdx = displayChannels.indexOf(state.channels[state.currentIndex]);
   items.forEach((item) => {
     const idx = parseInt(item.dataset.index, 10);
     item.classList.toggle('active', idx === playingDisplayIdx);
@@ -1277,7 +1270,7 @@ function updateFocus() {
   const items = document.querySelectorAll('.channel-item');
   items.forEach((item) => {
     const idx = parseInt(item.dataset.index, 10);
-    const nowFocused = idx === focusedIndex;
+    const nowFocused = idx === state.focusedIndex;
     item.classList.toggle('focused', nowFocused);
     if (nowFocused) {
       const textEl = item.querySelector('.channel-name-text');
@@ -1289,7 +1282,7 @@ function updateFocus() {
 }
 
 function scrollToFocused() {
-  const el = document.querySelector('.channel-item[data-index="' + focusedIndex + '"]');
+  const el = document.querySelector('.channel-item[data-index="' + state.focusedIndex + '"]');
   if (el) {
     // Instant + minimal scroll: see updateGroupFocus.
     el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
