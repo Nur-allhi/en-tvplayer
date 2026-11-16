@@ -4,7 +4,9 @@
 > the next ticket without interpreting phase headings or guessing. If a ticket
 > is not in this file, the agent does not work on it.
 > **Owner:** maintainer. **Start here:** `.opencode/agents/nightshift.md`.
-> **Command:** `/nightshift` · **Scheduled loop:** `.agents/loops/nightshift.md`
+> **Command:** `/nightshift` (interactive only) · **Loop:** `.agents/loops/nightshift.md`
+> **Task prompt:** [docs/NIGHTSHIFT_PROMPT.md](NIGHTSHIFT_PROMPT.md) — the loop
+> and the live task must both use this plain text, never the slash command.
 
 ## OpenChamber setup — DONE 2026-11-16
 
@@ -15,7 +17,7 @@ port 3000. Nothing is left for the maintainer to toggle on this machine.
 |---|---|
 | Task | `nightshift`, enabled |
 | Schedule | cron `35 23 * * *` — **11:35 PM Bangladesh time**, TZ `Asia/Dhaka` (UTC+6) |
-| Execution | prompt `/nightshift`, model `opencode/hy4-flash-free` (the current model), agent `nightshift` |
+| Execution | plain-text prompt from `docs/NIGHTSHIFT_PROMPT.md` (see trap below), model `opencode/hy4-flash-free`, agent `nightshift` |
 | Run as goal | `goalEnabled: true`, `goalTokenBudget: 400000` |
 | Global goals | enabled, default budget 400000 |
 | Question auto-delegate | enabled (backstop) |
@@ -128,6 +130,11 @@ with the exact gate output; agent skipped it.
 
 ## Known traps (read before starting)
 
+- **Never use `/nightshift` as the scheduled task's prompt.** OpenChamber's
+  scheduler sees a leading `/` and routes the run through `session.command`,
+  which fails on v2.0.8 with `Missing key at ["name"]` before the agent starts.
+  It failed four times here. Use the plain-text prompt in
+  `docs/NIGHTSHIFT_PROMPT.md`; the slash command is for interactive use only.
 - **`ui.js` is the T-130 hazard:** 21 module-level variables shared by every
   function. Slice first → each slice gets its own copy → UI silently breaks.
   Extract `ui/state.js` before any slicing, as T-129 did for `player.js`.
