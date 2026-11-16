@@ -548,6 +548,14 @@ A ticket is only `done` when it meets the **Definition of Done**
   `searchNavigate`, `searchSelect`, rendering).
 - **Acceptance:** the search flow (T-037) still works, hidden groups never
   surface, Back always lands on groups.
+- **Status:** ✅ done 2026-11-17 — `ui/sidebar.js` (~174 LOC, 13 public names)
+  and `ui/search.js` (~160 LOC, 4 public names) extracted. Group / search code
+  calls back into the channel core, so a new pure `ui/deps.js` slot registry
+  (wired by `ui.js` at boot) breaks what would otherwise be a `ui.js → slice →
+  ui.js` import cycle — the `player/deps.js` pattern from T-124 applied here.
+  `ui.js` 1227 → 929 LOC; export audit 74 before / 74 after, zero diff. All
+  gates green including `npm run tizen`; bundle +0.06 %. **No TV verification
+  claimed** — search flow, hidden groups and Back-to-groups need a device check.
 
 ### T-134 — `ui/right-menu.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~250 LOC)

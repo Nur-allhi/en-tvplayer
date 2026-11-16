@@ -44,6 +44,57 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-133: extract sidebar + search slices — @nightshift
+
+**Ticket:** T-133
+**Branch:** `feature/t-133-sidebar-search` → `dev`
+**Status:** ✅ merged · gated — no TV verification claimed
+
+**What changed**
+- `player/src/ui/sidebar.js` (new, ~174 LOC) — `extractGroups`, group list +
+  focus/navigation, `showGroupChannels`, `showGroupList`,
+  `refreshGroupVisibility` and the four sidebar getters.
+- `player/src/ui/search.js` (new, ~160 LOC) — cross-group search:
+  `enterSearch`, `exitSearch`, `searchNavigate`, `searchSelect` plus private
+  render helpers. Exports `computeSearchResults` / `renderSearchResults` for
+  `refreshGroupVisibility`.
+- `player/src/ui/deps.js` (new, 20 LOC) — pure, import-free slot registry for
+  the cross-slice calls (`renderChannelList`, `updateFocus`, `selectChannel`,
+  `renderGroupList`, `updateSidebarTitle`), wired by `ui.js` at boot. An
+  unwired slot throws loudly instead of no-op'ing.
+- `player/src/ui.js` 1227 → 929 LOC — imports the sidebar functions it still
+  calls, wires the deps slots, and re-exports all 17 moved public names.
+
+**Verified**
+- Export-surface audit (same logic as the validator): **74 before / 74 after**,
+  zero diff.
+- `npm test` → 248 passed; `npm run lint`, `npm run validate` (42 files, 0 new
+  violations, no import cycle), `npm run format:check`, `npm run build` and
+  `npm run tizen` all green.
+- Bundle 966.90 → 967.44 kB (**+0.06 %**, inside the ±2 % criterion).
+
+**Decisions**
+- Registry over merging the slices or pulling `core.js` forward. `ui.js` must
+  re-export the slices, so a slice importing `ui.js` back would be a cycle the
+  guard forbids — the same problem T-124 solved for `player/`. `search.js`
+  reaches `renderGroupList` / `updateSidebarTitle` through slots, so the two
+  new slices never import each other either.
+- No DOM unit tests added: the flow is DOM-coupled, so characterisation is the
+  74-name audit plus the full gate set, matching T-130…T-132.
+
+**Watch out**
+- Deps are wired at `ui.js` module evaluation. A future direct importer of a
+  slice that calls a slot before `ui.js` loads will throw — intended, fail loud.
+- T-134 moves the right menu; its functions call `applySidebar` and inactivity
+  helpers that stay in `ui.js`, so it needs the same registry treatment.
+- No TV connected. No TV verification claimed — the hardware check of search,
+  sidebar navigation and Back-to-groups is still owed.
+
+**Next**
+- T-134 (`ui/right-menu.js`), then T-135 (`ui/core.js` + delete `ui.js`).
+
+---
+
 ## 2026-11-17 — TV verification deferred — @maintainer
 
 **Decision:** hardware verification is postponed. T-130, T-131 and T-132 are
