@@ -7,7 +7,7 @@ import { escapeHtml } from '../utils.js';
 import { getHiddenGroups } from '../config.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
-import { enterSearch, computeSearchResults, renderSearchResults } from './search.js';
+import { enterSearch } from './search.js';
 
 export function extractGroups(channelList) {
   const hidden = getHiddenGroups();
@@ -152,8 +152,8 @@ export function showGroupList() {
    was just hidden. */
 export function refreshGroupVisibility() {
   if (state.sidebarMode === 'search') {
-    state.searchResults = computeSearchResults();
-    renderSearchResults();
+    state.searchResults = deps.computeSearchResults();
+    deps.renderSearchResults();
     return;
   }
   extractGroups(state.channels);
@@ -170,3 +170,7 @@ export function refreshGroupVisibility() {
     deps.updateFocus();
   }
 }
+
+// Wire the group callbacks the search slice calls through.
+deps.renderGroupList = renderGroupList;
+deps.updateSidebarTitle = updateSidebarTitle;

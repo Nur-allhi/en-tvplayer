@@ -580,6 +580,15 @@ A ticket is only `done` when it meets the **Definition of Done**
   fullscreen helpers, inactivity timer.
 - **Acceptance:** `ui/index.js` exports the same **74 names** as the old
   `ui.js`; a scripted checklist of remote flows passes unchanged.
+- **Status:** ✅ done 2026-11-17 — `ui.js` (620 LOC at the time) split into
+  `ui/core.js` (248), `ui/chrome.js` (194) and `ui/channel-view.js` (143), with
+  `ui/index.js` as a pure `export *` hub. One file would have been ~580 LOC
+  against the 300 cap. Transitive surface audit 74 before / 74 after, zero
+  name diff — internal helpers routed through `ui/deps.js` so the hub exposes
+  no extra names. `main.js` and `settings.js` import `./ui/index.js`; `ui.js`
+  is gone. Baseline 7 → 5 (both `ui.js` entries resolved). All gates green
+  including `npm run tizen`; bundle +0.08 %. **No TV verification claimed** —
+  the scripted remote-flow checklist still needs a device.
 
 ---
 

@@ -19,7 +19,7 @@ function isSearchInputFocused() {
   return !!el && document.activeElement === el;
 }
 
-export function computeSearchResults() {
+function computeSearchResults() {
   const q = state.searchQuery.trim().toLowerCase();
   if (!q) return [];
   const hidden = getHiddenGroups();
@@ -88,7 +88,7 @@ function searchHint(text) {
   return el;
 }
 
-export function renderSearchResults() {
+function renderSearchResults() {
   const box = document.getElementById('search-results');
   if (!box) return;
   box.innerHTML = '';
@@ -169,3 +169,7 @@ export function searchSelect() {
   exitSearch();
   if (idx >= 0) deps.selectChannel(idx);
 }
+
+// Wire the render helpers the group slice calls through.
+deps.computeSearchResults = computeSearchResults;
+deps.renderSearchResults = renderSearchResults;
