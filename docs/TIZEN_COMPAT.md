@@ -104,31 +104,52 @@ code are polyfillable; `Proxy` is not.
 
 ## 4. Capability detection (shipped in v4.0.0)
 
-Runtime probe, single source of truth for the whole app:
+Runtime probe, single source of truth for the whole app.
+
+**It is two files, not one.** The plan originally put the probe in
+`lib/capabilities.js`, but `lib/` is DOM-free by rule and
+`scripts/validate-modularity.mjs` matches `/\bwindow\b/` — which
+`typeof window !== 'undefined'` also trips. So the pure decisions live in
+`lib/` and the one function that reads platform globals lives beside
+`avplay.js`:
 
 ```js
-// player/src/lib/capabilities.js
-export function detectCapabilities() {
-  const version = parseFloat(
-    (typeof window !== 'undefined' && window.tizen && window.tizen.webAPIVersion) || '5.0',
-  );
+// player/src/capabilities.js — the ONLY place that reads window/navigator
+import { parseWebApiVersion, selectEngine } from './lib/capabilities.js';
+
+export function detectCapabilities(win) {
+  const w = win === undefined ? (typeof window !== 'undefined' ? window : null) : win;
+  // (abridged — every read is wrapped in try/catch)
   return {
-    webApiVersion: version,
-    // Chromium-derived API availability
-    hasAbortController: typeof AbortController !== 'undefined',
+    isTizen: !!(w && w.tizen),
+    webApiVersion: parseWebApiVersion(w && w.tizen && w.tizen.webAPIVersion),
+    hasAbortController: typeof w.AbortController !== 'undefined',
     hasTrimStart: typeof ''.trimStart === 'function',
-    hasResizeObserver: typeof ResizeObserver !== 'undefined',
-    hasRequestVideoFrameCallback:
-      typeof HTMLVideoElement !== 'undefined' &&
-      typeof HTMLVideoElement.prototype.requestVideoFrameCallback === 'function',
-    hasMediaCapabilities: !!(typeof navigator !== 'undefined' && navigator.mediaCapabilities),
-    // engine
-    hasShaka: typeof window !== 'undefined' && !!(window.shaka || window.ShakaPlayer),
-    hasAvplay: typeof window !== 'undefined' && !!(window.webapis && window.webapis.avplay),
-    isTizen: typeof window !== 'undefined' && !!window.tizen,
+    hasResizeObserver: typeof w.ResizeObserver !== 'undefined',
+    hasRequestVideoFrameCallback: /* HTMLVideoElement.prototype check */,
+    hasMediaCapabilities: !!(w.navigator && w.navigator.mediaCapabilities),
+    hasShaka: !!(w.shaka || w.ShakaPlayer),
+    hasAvplay: !!(w.webapis && w.webapis.avplay),
   };
 }
+
+export function capabilities() {}   // cached probe
+export function currentEngine() {}  // selectEngine(capabilities())
 ```
+
+```js
+// player/src/lib/capabilities.js — pure, DOM-free, unit-tested
+export const MIN_WEB_API_VERSION = 5.0;
+export function parseWebApiVersion(raw) {}
+export function meetsMinimumPlatform(caps) {}
+export function selectEngine(caps) {}        // 'shaka' | 'native' | 'none'
+export function engineLabel(engine) {}
+export function missingApis(caps) {}
+export function canObserveVideoFrames(caps) {}
+```
+
+Taking `win` as a parameter is what makes the probe testable in the project's
+node test env — no jsdom, no globals to stub.
 
 Consumers:
 
@@ -136,6 +157,12 @@ Consumers:
 - `player/black-watchdog.js` — `getVideoPlaybackQuality()` path when
   `!hasRequestVideoFrameCallback`
 - `app/about.js` — display "Engine: Shaka / Native / Browser" + TV API version
+
+> **Wiring status:** the probe and its decisions are shipped and tested, but
+> `avplay.isAvailable()` and `player.js`'s engine choice still have their own
+> checks. Folding them onto the probe is **T-115**. Note that
+> `player.js`'s `useAvplay` is *runtime state* (this channel fell back), which
+> is not the same as a *platform capability* — do not collapse the two.
 
 ---
 

@@ -44,6 +44,89 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-16 — M1 closed: `lib/time.js` and capabilities probe — @maintainer
+
+**Ticket:** T-113 ✅ · T-114 ✅ (new T-115 opened for the wiring)
+**Branch:** `refactor/t-113-114-lib-time-capabilities` → `dev`
+**Status:** ✅ **Phase 1 (M1) complete** — all five `lib/` modules landed
+
+**What changed**
+- **`lib/time.js` (37 LOC)** — `timeAgo`, `formatDate` extracted from
+  `settings.js`. Both now take an optional pinned `locale`, and `timeAgo`
+  takes an optional `now` reference instant so the buckets are testable
+  without freezing the clock. `settings.js` keeps calling the 1-arg form, so
+  behaviour is unchanged; 1067 → 980 LOC.
+- **`lib/capabilities.js` (78 LOC)** — pure platform decisions:
+  `parseWebApiVersion`, `meetsMinimumPlatform`, `selectEngine`,
+  `engineLabel`, `missingApis`, `canObserveVideoFrames`,
+  `MIN_WEB_API_VERSION` (5.0).
+- **`player/src/capabilities.js` (68 LOC)** — the probe: the single place that
+  reads `window`/`navigator`, with `detectCapabilities(win?)` injectable for
+  tests, every global read wrapped in `try/catch`, plus a cached
+  `capabilities()` and `currentEngine()`.
+- **48 new tests** (12 time + 24 lib/capabilities + 10 probe). Total
+  **133 → 177**.
+
+**Why capabilities is two files, not one**
+`docs/TIZEN_COMPAT.md` §4 specifies `lib/capabilities.js` for the probe, and
+`docs/v4.PLAN.md` §4 follows it. That cannot pass the guard: `lib/` is
+DOM-free by rule, and `scripts/validate-modularity.mjs` tests
+`/\bwindow\b/`, which `typeof window !== 'undefined'` trips — the exact
+pattern the spec uses. Rather than weaken the rule or exempt the file, the
+probe moved beside `avplay.js` and only the pure decisions stayed in `lib/`.
+This also happens to be better: the decisions are now testable with a plain
+object instead of a fake global.
+
+**Verified**
+- `npm test` → **177 passed**, 10 files
+- `npm run lint` → clean
+- `npm run validate` → 27 files, 0 new violations, 7 baselined
+- `npm run format:check` → clean (after `prettier --write` on 2 new files)
+- `npm run build` → ok · 931.2 KB, under budget
+- `npm run tizen` → WGT 468.5 KB
+- **Bundle inspection, because `settings.js` cannot be unit-tested:** the
+  built asset contains `Just now` (time.js) and `requestVideoFrameCallback`
+  (capabilities), confirming both modules are actually wired in and not
+  tree-shaken away. `settings.js` has the import at line 7, the two call
+  sites at 593/897, and **no remaining local definitions**.
+
+**Decisions**
+- **`timeAgo`'s `now` parameter over fake timers.** Injecting the reference
+  instant keeps `lib/` free of test-only time mocking and makes every bucket
+  assertion exact. The 1-arg call form still works, which is why `settings.js`
+  needed no edits at its call sites.
+- **Capability probe split, rule kept intact.** Exempting `capabilities.js`
+  from the DOM rule would have created the first hole in a guard that is
+  otherwise absolute, for the sake of matching a document. The document was
+  wrong; it is corrected below.
+- **Wiring left out of T-114, tracked as T-115.** Its acceptance said "every
+  platform decision reads from here". Making that true means rewriting
+  `avplay.isAvailable()` and `player.js`'s engine selection — real behaviour
+  risk against a box that cannot be tested on a TV from here. Recorded, not
+  silently dropped.
+
+**Watch out**
+- **`useAvplay` in `player.js` is runtime state, not a capability.** It
+  records that a *specific channel* fell back to native. `selectEngine()`
+  reports what the *platform* can do. T-115 must not collapse them.
+- **`detectCapabilities()` defaults `webAPIVersion` to `5.0` when there is no
+  `tizen` global.** That is a desktop-friendly default, not a detected value;
+  `meetsMinimumPlatform()` returns `true` for non-Tizen regardless.
+- **The format gate caught my new files again** (2 of them). It fires on every
+  new file — budget for `prettier --write` before the first gate run.
+- `docs/TIZEN_COMPAT.md` §4 still shows the probe living in `lib/`. Corrected
+  in a follow-up commit; if you read the §4 snippet first, it will not match
+  the tree until then.
+
+**Next**
+- **T-115** — route `avplay.isAvailable()` and `player.js`'s engine choice
+  through the probe, characterising current behaviour first.
+- Then **M2 (`player.js` split)**, where **T-129 (`player/state.js`) must land
+  before T-120** — the migration guide's warning about a naive slice
+  duplicating the 21 shared module variables.
+
+---
+
 ## 2026-11-16 — T-111 / T-112 test expansion closes the M1 loose ends — @maintainer
 
 **Ticket:** T-111 ✅ · T-112 ✅
