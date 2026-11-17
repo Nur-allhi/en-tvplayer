@@ -136,7 +136,7 @@ with the exact gate output; agent skipped it.
 | 38 | T-190 | features/tizen-compat.js | needs-tv |  |
 | 39 | T-191 | engine fallback messaging | needs-tv |  |
 | 40 | T-192 | about panel | ready |  |
-| 41 | T-200 | log ring buffer | ready |  |
+| 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | ready |  |
 | 43 | T-202 | info bar with clock | ready |  |
 | 44 | T-203 | GitHub issue templates | ready |  |

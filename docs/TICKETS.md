@@ -906,14 +906,12 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** disabling a feature removes all its UI and remote bindings
   with no other file edited.
 - **Spec detail:** `docs/v4.PLAN.md` §3.3.
-- **Status:** ✅ done 2026-11-17 — pure `app/plugins.js` with `FEATURES`,
-  `isEnabled`, `getEnabledFeatures`, `getEnabledRoutes`, `getEnabledMenuEntries`
-  and `registerFeature`; 21 registry tests. The proxy test menu now reads its
-  visibility from the registry, so flipping `enabled: false` removes it with no
-  other edit. `inlineDynamicImports: true` set in the Vite config. All gates +
-  tizen green. **Note:** full acceptance waits on T-172 (migrate features into
-  `features/`) and T-173 (dispatch remote actions through registered routes) —
-  until then most bindings are still hard-wired.
+- **Status:** ✅ done 2026-11-17 — `app/plugins.js` owns `FEATURES`,
+  `isEnabled`, route/menu helpers, `registerFeature`, and the DOM/key guards
+  applied at boot and in the remote wrapper. 31 registry tests; proxy UI reads
+  its visibility from the flag. `inlineDynamicImports: true` set. All gates +
+  tizen green. Full migration to `features/` follows in T-172/T-173.
+  No TV connected.
 
 ### T-172 — Migrate existing features to plugins
 - **Type:** refactor · **Priority:** P0 · **Size:** M
@@ -1055,6 +1053,15 @@ A ticket is only `done` when it meets the **Definition of Done**
   → "Copy diagnostics" (version, TV model, log tail).
 - **Acceptance:** no PII, no stream tokens (`redactUrl` applied); the copied
   text is directly postable in a GitHub issue.
+- **Status:** ✅ done 2026-11-17 — `lib/ring-buffer.js` bounds `[app]` lines at
+  200 and redacts URLs/tokens and email addresses on write (19 tests).
+  `lib/diagnostics.js` builds a clipboard-ready block with version, TV model
+  and a 40-line log tail (6 tests). `settings/about.js` extracts the About card
+  out of the 297-LOC `render-cards.js` (now 263) and adds a remote-focusable
+  "Copy diagnostics" button wired through a new `copyDiagnostics` settings deps
+  slot. `capabilities.js` probes the Tizen model via `systeminfo` with a safe
+  fallback (3 new tests). 408 tests, all gates green incl. WGT signing with the
+  correct certificate. No TV verification claimed.
 
 ### T-201 — Favorites feature
 - **Type:** feat · **Priority:** P1 · **Size:** M (~150 LOC)

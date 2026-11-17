@@ -1,8 +1,8 @@
 // Feature registry (T-171/T-172, docs/v4.PLAN.md §3.3). The hub is the only
-// coupling point: each feature declares its contract in features/ and the
-// enabled views below are all consumers see. Flipping `enabled` is the only
-// edit required to remove a feature's bindings. Lazy loaders are inlined into
-// the IIFE bundle by Vite's inlineDynamicImports flag.
+// coupling point: each feature declares its enabled flag, the DOM ids and
+// remote actions it owns, and (for migrated features) a contract and a lazy
+// loader. Flipping `enabled` is the only edit needed to remove its bindings.
+// Lazy loaders are inlined into the IIFE bundle by Vite's inlineDynamicImports.
 
 import proxyContract from '../features/proxy-toggle.js';
 import tizenContract from '../features/tizen-compat.js';
@@ -12,26 +12,34 @@ import avplayContract from '../features/avplay.js';
 export const FEATURES = {
   search: {
     enabled: true,
+    ui: [],
+    keys: [],
     contract: searchContract,
     load: () => import('../features/search.js'),
   },
-  favorites: { enabled: true },
-  infoBar: { enabled: true },
-  vod: { enabled: true },
+  favorites: { enabled: true, ui: [], keys: ['red'] },
+  infoBar: { enabled: true, ui: [], keys: [] },
+  vod: { enabled: true, ui: ['vod-entry'], keys: ['vod'] },
   proxyTesting: {
     enabled: true,
+    ui: ['proxy-toggle-btn', 'proxy-testing-label'],
+    keys: ['proxy'],
     contract: proxyContract,
     load: () => import('../features/proxy-toggle.js'),
   },
-  tizenCompat: {
+  avplay: {
     enabled: true,
-    contract: tizenContract,
-    load: () => import('../features/tizen-compat.js'),
-  },
-  avplayFallback: {
-    enabled: true,
+    ui: [],
+    keys: [],
     contract: avplayContract,
     load: () => import('../features/avplay.js'),
+  },
+  tizenCompat: {
+    enabled: true,
+    ui: [],
+    keys: [],
+    contract: tizenContract,
+    load: () => import('../features/tizen-compat.js'),
   },
 };
 
@@ -43,8 +51,8 @@ export function getEnabledFeatures() {
   return Object.keys(FEATURES).filter(isEnabled);
 }
 
-// Only enabled features contribute routes. This is what T-173's remote router
-// will dispatch through, so a disabled feature owns no key at all.
+// Only enabled features contribute routes. T-173's router dispatches through
+// this, so a disabled feature owns no key at all.
 export function getEnabledRoutes() {
   const routes = {};
   for (const [id, feature] of Object.entries(FEATURES)) {
@@ -62,8 +70,44 @@ export function getEnabledMenuEntries() {
   return entries;
 }
 
-// Used by a feature's own module (T-172+) to declare its contract in one place.
+// Used by a feature's own module to declare its contract in one place.
 export function registerFeature(id, config = {}) {
   FEATURES[id] = { ...config, enabled: config.enabled !== false };
   return FEATURES[id];
+}
+
+export function disabledUiIds() {
+  const ids = [];
+  for (const feature of Object.values(FEATURES)) {
+    if (!feature.enabled) ids.push(...(feature.ui || []));
+  }
+  return ids;
+}
+
+export function isActionEnabled(action) {
+  for (const feature of Object.values(FEATURES)) {
+    if (!feature.enabled && (feature.keys || []).includes(action)) return false;
+  }
+  return true;
+}
+
+// One guard for every key: a disabled feature's remote binding disappears
+// with its flag, without touching any of the handlers in remote.js.
+export function guardAction(callback) {
+  return (action, value) => {
+    if (isActionEnabled(action)) callback(action, value);
+  };
+}
+
+// Hides the DOM owned by disabled features. Called once at boot by app/index.js.
+export function applyFeatureFlags() {
+  let hidden = 0;
+  for (const id of disabledUiIds()) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) {
+      el.classList.add('hidden');
+      hidden += 1;
+    }
+  }
+  return hidden;
 }

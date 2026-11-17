@@ -6,6 +6,9 @@ import {
   getEnabledRoutes,
   getEnabledMenuEntries,
   registerFeature,
+  disabledUiIds,
+  isActionEnabled,
+  guardAction,
 } from './plugins.js';
 
 // T-171: the registry is the single coupling point for features. These tests
@@ -145,5 +148,58 @@ describe('registerFeature', () => {
     registerFeature('a', { routes: { a: () => {} } });
     registerFeature('b', { routes: { b: () => {} } });
     expect(Object.keys(getEnabledRoutes())).toEqual(['a', 'b']);
+  });
+});
+
+describe('feature-owned DOM and keys', () => {
+  it('declares each feature with a ui list and a keys list', () => {
+    for (const feature of Object.values(FEATURES)) {
+      expect(Array.isArray(feature.ui)).toBe(true);
+      expect(Array.isArray(feature.keys)).toBe(true);
+      expect(typeof feature.enabled).toBe('boolean');
+    }
+  });
+
+  it('collects UI ids only from disabled features', () => {
+    FEATURES.vod.enabled = true;
+    FEATURES.proxyTesting.enabled = false;
+    expect(disabledUiIds()).toEqual(['proxy-toggle-btn', 'proxy-testing-label']);
+  });
+
+  it('omits UI ids while a feature is enabled', () => {
+    expect(disabledUiIds()).not.toContain('proxy-toggle-btn');
+  });
+
+  it('blocks a remote key owned by a disabled feature', () => {
+    FEATURES.favorites.enabled = false;
+    expect(isActionEnabled('red')).toBe(false);
+    FEATURES.favorites.enabled = true;
+    expect(isActionEnabled('red')).toBe(true);
+  });
+
+  it('keeps keys of enabled features available', () => {
+    expect(isActionEnabled('proxy')).toBe(true);
+    expect(isActionEnabled('playpause')).toBe(true);
+  });
+
+  it('does not block a key no feature owns', () => {
+    expect(isActionEnabled('up')).toBe(true);
+    expect(isActionEnabled('select')).toBe(true);
+  });
+
+  it('blocks keys from every disabled feature at once', () => {
+    FEATURES.favorites.enabled = false;
+    FEATURES.vod.enabled = false;
+    expect(isActionEnabled('red')).toBe(false);
+    expect(isActionEnabled('vod')).toBe(false);
+  });
+
+  it('guardAction forwards enabled actions and drops disabled ones', () => {
+    const seen = [];
+    const dispatch = guardAction((action) => seen.push(action));
+    dispatch('up');
+    FEATURES.favorites.enabled = false;
+    dispatch('red');
+    expect(seen).toEqual(['up']);
   });
 });

@@ -86,11 +86,109 @@ first). Keep it short — the point is handover, not a diary.
   list — keep `lib/` and `logic.js` DOM-free and do not move DOM code there.
 - The proxy menu still needs Settings → Playback opt-in and a local host; the
   feature gate is an additional condition, not a replacement.
-- Another active run is on T-200 in its own worktree; merge conflicts in docs
-  are expected and should be resolved keeping both tickets done.
+- An overlapping run landed T-200 and reconciled the duplicate T-171 registries
+  while this ticket was in flight. `app/plugins.js` now carries both designs —
+  the `ui`/`keys` metadata and guards from T-200 plus the contracts and lazy
+  loaders from this ticket — and `app/index.js` calls both `applyFeatureFlags()`
+  and the proxy feature's `refresh()`.
 
 **Next**
 - T-173 — remote-action routing via plugins.
+
+---
+
+## 2026-11-17 — T-200: log ring buffer + copy diagnostics — @nightshift (isolated worktree)
+
+**Ticket:** T-200 ✅ · **Branch:** `feature/t-200-log-ring-buffer` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New DOM-free `player/src/lib/ring-buffer.js` — a 200-entry ring that pushes
+  level-tagged `[app]` lines and redacts stream query strings, fragments and
+  email addresses on write. `redactUrl` is applied to every line. 19 tests.
+- New DOM-free `player/src/lib/diagnostics.js` — assembles a clipboard-ready
+  block (version, TV model, 40-line tail) with 6 tests. All tail lines are
+  redacted again on the way out.
+- `player/dom.js` `logEvent()` now feeds the shared ring as well as the console.
+- New `settings/about.js` — the About/Links card moved verbatim out of the
+  297-LOC `render-cards.js` (now 263) plus a remote-focusable "Copy diagnostics"
+  button. `render.js` binds it, `nav.js` adds it to the About focus order and a
+  new `copyDiagnostics` deps slot carries the click (`select.js`' existing
+  generic `.btn` handler activates it). Clipboard falls back to `execCommand`.
+- `capabilities.js` probes the Tizen model through `systeminfo.getPropertyValue`
+  (async, injectable window) with a cached fallback; 3 new tests.
+
+**Verified**
+- All gates green in the worktree: `npm test` 408 passed (22 new), lint,
+  validate (modularity ok, a11y ok), format:check, `npm run build`, and
+  `npm run tizen` — the WGT signed with the committed
+  `40:71:40:30:…:51:43` certificate. New module LOC 22–96, all under the
+  300 cap; DOM purity holds for both new `lib/` modules.
+- **No TV is connected.** Clipboard behaviour on a real Tizen TV is not
+  verified; no playback claim made.
+
+**Decisions**
+- Worked T-200 out of queue order: other active nightshift runs owned T-171 in
+  the shared tree, so I isolated in `en-tvplayer-wt-night` and took the next
+  independent ready ticket. `NEXT` stays T-172 (first unresolved in queue).
+- Extracted the About card rather than growing `render-cards.js`, which was
+  297 LOC against the 300 cap.
+- TV model is best-effort: `systeminfo` is async on Tizen, so diagnostics shows
+  "Tizen TV" until the callback lands, never an empty string.
+
+**Watch out**
+- **Signing-key near miss:** the fresh worktree had no gitignored
+  `tizen/author-key.pem`, so the first `npm run tizen` generated a NEW cert
+  (`5C:A6:D9:…`). I removed that generated key/cert/WGT immediately and copied
+  the real key/cert/sha256 from the main tree (restoration, never minting);
+  the second `npm run tizen` signed with the correct fingerprint. Any future
+  worktree must copy the gitignored key before building a WGT. The main tree's
+  key was never touched.
+- Several overlapping nightshift runs are active; check `git worktree list`
+  and `git branch -a` before claiming a ticket.
+
+**Next**
+- T-172 — migrate existing features to plugins (queue order; another run may
+  already own it).
+
+---
+
+## 2026-11-17 — T-171: feature plugin registry — @nightshift (batch run)
+
+**Ticket:** T-171 ✅ · **Branch:** `feature/t-171-plugin-registry` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- New `app/plugins.js` — the single declaration point for features. Each
+  entry lists `enabled`, the DOM ids it owns and the remote actions it binds.
+  Helpers expose `isEnabled`, `disabledUiIds`, `isActionEnabled`,
+  `guardAction` and `applyFeatureFlags`.
+- `app/index.js` applies the flags at boot and keeps the proxy menu hidden
+  when that feature is off. `remote.js` wraps its action callback once via
+  `guardAction`, so a disabled feature's key binding disappears with its flag.
+- `vite.config.js` sets `inlineDynamicImports: true` so `import()` survives the
+  IIFE build the next tickets need.
+
+**Verified**
+- `npm test` → 375 passed (27 files), including 10 new registry tests.
+- `npm run lint`, `npm run validate` (0 new violations, a11y audit ok),
+  `npm run format:check`, `npm run build` and `npm run tizen` all green.
+  The build proves `inlineDynamicImports` works with the IIFE output.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Kept the remote guard in `plugins.js` rather than `remote.js`: the latter was
+  at 300 LOC and the guard pushed it to 304, a new modularity violation.
+- Declared UI/keys per feature now; T-172 moves the feature modules themselves
+  and T-173 routes keys through the registry's contract.
+
+**Watch out**
+- `applyFeatureFlags()` runs at boot only. A feature toggled at runtime needs
+  a fresh call plus a `refreshProxyMenu()` for the proxy UI.
+- `remote.js` is back to 298 LOC — any further additions there break the cap.
+
+**Next**
+- T-172 — migrate existing features into `features/` (landed in the same window; see entry above).
 
 ---
 

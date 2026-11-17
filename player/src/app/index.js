@@ -5,7 +5,7 @@ import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
-import { isEnabled } from './plugins.js';
+import { applyFeatureFlags, isEnabled } from './plugins.js';
 import { refresh as refreshProxyFeature } from '../features/proxy-toggle.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
@@ -69,8 +69,13 @@ function showSettingsPage() {
   settings.show();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => deps.init());
-} else {
+function boot() {
+  applyFeatureFlags();
   deps.init();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
 }

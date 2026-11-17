@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { detectCapabilities, capabilities, resetCapabilities, currentEngine } from './capabilities.js';
+import {
+  detectCapabilities,
+  capabilities,
+  resetCapabilities,
+  currentEngine,
+  probeTvModel,
+  getTvModel,
+  resetTvModel,
+} from './capabilities.js';
 
 // A minimal fake window. detectCapabilities() takes an explicit window so it
 // can be tested without jsdom (the project runs vitest in a node env).
@@ -122,5 +130,36 @@ describe('capabilities cache', () => {
 
   it('picks an engine from the cached capabilities', () => {
     expect(['shaka', 'native', 'none']).toContain(currentEngine());
+  });
+});
+
+describe('TV model probe (T-200)', () => {
+  beforeEach(() => resetTvModel());
+
+  it('uses the callback result from systeminfo', () => {
+    probeTvModel({
+      tizen: {
+        systeminfo: {
+          getPropertyValue: (_key, ok) => ok({ model: 'UE55TU8000' }),
+        },
+      },
+    });
+    expect(getTvModel()).toBe('UE55TU8000');
+  });
+
+  it('falls back to a generic label when systeminfo errors', () => {
+    probeTvModel({
+      tizen: {
+        systeminfo: {
+          getPropertyValue: (_key, _ok, fail) => fail(new Error('no')),
+        },
+      },
+    });
+    expect(getTvModel()).toBe('Tizen TV');
+  });
+
+  it('never throws when the platform has no systeminfo', () => {
+    expect(() => probeTvModel({})).not.toThrow();
+    expect(() => probeTvModel(null)).not.toThrow();
   });
 });

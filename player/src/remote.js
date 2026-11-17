@@ -1,12 +1,13 @@
 import { capabilities } from './capabilities.js';
 import { hasTvKeyInput } from './lib/capabilities.js';
+import { guardAction } from './app/plugins.js';
 
 let onKeyAction = null;
 let numberBuffer = '';
 let numberTimeout = null;
 
 export function init(callback) {
-  onKeyAction = callback;
+  onKeyAction = guardAction(callback);
 
   document.addEventListener('keydown', handleKeyDown, true);
 }

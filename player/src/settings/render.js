@@ -3,7 +3,8 @@ import { state } from './state.js';
 import { getSettings, saveSettings, APP_VERSION } from '../config.js';
 import * as ui from '../ui/index.js';
 import { bindPlaybackToggles } from './playback.js';
-import { renderSourceCard, renderPlaybackCard, renderAboutCard } from './render-cards.js';
+import { renderSourceCard, renderPlaybackCard } from './render-cards.js';
+import { renderAboutCard } from './about.js';
 import { timeAgo } from '../lib/time.js';
 import { NAV_ITEMS } from './state.js';
 
@@ -183,6 +184,9 @@ export function render() {
     document.getElementById('settings-fetch-btn').addEventListener('click', () => deps.handleFetch());
   } else if (state.activeSection === 'playback') {
     bindPlaybackToggles();
+  } else {
+    const copyBtn = document.getElementById('about-copy-diagnostics');
+    if (copyBtn) copyBtn.addEventListener('click', () => deps.copyDiagnostics());
   }
 
   if (typeof state.onRender === 'function') state.onRender();
