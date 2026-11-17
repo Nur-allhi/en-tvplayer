@@ -44,6 +44,59 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-151: app/remote.js slice split — @nightshift
+
+**Ticket:** T-151 ✅ · **Branch:** `feature/t-151-app-remote` → `dev`
+**Status:** ✅ done — batch 1 of 3
+
+**What changed**
+- `app/remote.js` (165 LOC) — `registerTizenKeys`, `zapChannel` and the
+  `handleRemoteAction` dispatcher. Owns the modal/settings branches
+  (onboarding, What's New, confirm dialog, Settings) and self-registers all
+  three functions into `deps`, including `zapChannel` (a slot that existed but
+  was never wired until now).
+- `app/remote-views.js` (218 LOC) — the view-specific switches (right sidebar,
+  sidebar search/groups/channels, default player view). Calls
+  `deps.zapChannel(±1)` instead of importing its sibling, so the import graph
+  stays one-way and zero-cycle.
+- `main.js` 438 → 89 LOC; its five remaining slots (boot ×2, showPlayer,
+  showSettingsPage, refreshProxyMenu) are still wired there. Removed the four
+  imports that became unused (player, capabilities, hasTvKeyInput, state).
+- `scripts/modularity-baseline.json` shrunk — the `loc:main.js` violation is
+  genuinely resolved. One tracked violation remains (`logic.js` exports).
+
+**Verified**
+- `npm test` → 333 passed; lint, format, validate (0 new violations), build,
+  `npm run tizen` all green. Bundle 979.53 kB, well under the 1126 kB budget.
+- Browser (Playwright, isolated contexts, dev server on :5199): dialog dismiss,
+  ArrowDown + ChannelUp zap (Alpha↔Beta), sidebar / right-sidebar open-close,
+  Blue→Settings and Back, onboarding hide. No `app deps` or reference errors;
+  the only console errors are the expected `$WEBAPIS` 404 and fake-stream DNS.
+- **No TV is connected.** Colour/media keys were dispatched as synthetic DOM
+  events; no hardware verification claimed.
+
+**Decisions**
+- Two files, not one: `handleRemoteAction` alone is 301 LOC, over the 300 cap.
+  Splitting by routing layer (modals vs views) keeps both files under cap and
+  makes `zapChannel` callable from both through its deps slot without a cycle.
+- Kept `applyResponsiveScale`, `refreshProxyMenu`, `showPlayer` and
+  `showSettingsPage` in `main.js` for T-152 (thin entry) rather than moving
+  them into this slice.
+
+**Watch out**
+- `start.js` calls `deps.registerTizenKeys()` / `deps.handleRemoteAction()` only
+  inside `init()`, which runs on DOMContentLoaded — so self-registration at
+  module load is in place well before any call. `deps.zapChannel` is now wired;
+  dropping this slice's self-registration would break CH± zapping silently.
+- T-211 (add-form null container on a fresh install) is still pre-existing and
+  untouched; the Tizen `$WEBAPIS` 404 is expected on a desktop browser.
+
+**Next**
+- T-152 — `app/index.js` hub + thin `main.js` (≤60 LOC); T-153 in the same
+  commit to point `scripts/release.mjs` at `app/changelog.js`.
+
+---
+
 ## 2026-11-17 — T-152c: startup slice split — @nightshift
 
 **Ticket:** T-152c ✅ · **Branch:** `feature/t-152c-startup-slice` → `dev`

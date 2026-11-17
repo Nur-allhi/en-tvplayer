@@ -811,6 +811,22 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** `handleRemoteAction` routing, `registerTizenKeys`, `zapChannel`.
 - **Acceptance:** every documented remote key works (arrows, OK, Back, digits,
   CH ±, colour keys, media keys, `R`).
+- **Status:** ✅ done 2026-11-17 — `app/remote.js` (165 LOC) owns the three
+  functions and self-registers them into `deps`, including the `zapChannel`
+  slot that existed but was never wired. `handleRemoteAction` was 301 LOC, so
+  its view-specific switches moved to `app/remote-views.js` (218 LOC); that
+  file calls `deps.zapChannel(±1)` rather than importing its sibling, keeping
+  the import graph one-way and zero-cycle. Modal/settings routing (onboarding,
+  What's New, confirm dialog, Settings) stays in `remote.js` and reaches
+  `main.js`-owned helpers through their existing deps slots. All five services
+  main.js wires were kept. `main.js` is 89 LOC — the `loc:main.js` violation is
+  genuinely resolved and the baseline shrunk (one violation remains,
+  `logic.js` exports). 333 tests, lint, format, validate (0 new), build and WGT
+  signing all green; bundle within budget. Browser-smoked: dialog dismiss,
+  ArrowDown/ChannelUp zap, sidebar and right-sidebar open/close, Blue→Settings
+  and Back, onboarding hide — no `app deps` or reference errors. **No TV
+  verification claimed** — colour/media keys were synthetic DOM events, not
+  hardware.
 
 ### T-152 — `app/index.js` + `main.js` entry
 - **Type:** refactor · **Priority:** P0 · **Size:** S (~160 LOC combined)
