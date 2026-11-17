@@ -1,3 +1,13 @@
+@import './layout.css';
+@import './sidebar.css';
+@import './library.css';
+@import './player.css';
+@import './overlays.css';
+@import './settings.css';
+@import './components.css';
+@import './playlist.css';
+@import './dialogs.css';
+
 :root {
   /* Kept by the responsive boot code — every px size below goes through it. */
   --tv-scale: 1;

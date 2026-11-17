@@ -867,6 +867,9 @@ A ticket is only `done` when it meets the **Definition of Done**
   imported from `base.css`.
 - **Acceptance:** each file ≤ 300 LOC; visual output unchanged (screenshot
   before/after).
+- **Status:** ✅ done 2026-11-17 — 10 files under `styles/`, max 293 LOC.
+  All 273 rules preserved; frozen-animation browser A/B screenshots
+  pixel-identical. All gates + tizen green.
 
 ### T-162 — Accessibility pass
 - **Type:** feat · **Priority:** P1 · **Size:** M

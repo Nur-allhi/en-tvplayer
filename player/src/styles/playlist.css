@@ -1,0 +1,148 @@
+/* === Playlist list (for Channel Source card) === */
+.settings-page .playlist-list {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  margin-bottom: calc(23px * var(--tv-scale));
+  min-width: 0;
+}
+.playlist-list > * + * {
+  margin-top: calc(12px * var(--tv-scale));
+}
+.settings-page .playlist-list > * + * {
+  margin-top: 0;
+  margin-left: calc(12px * var(--tv-scale));
+}
+
+.settings-page .playlist-entry {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(16px * var(--tv-scale)) calc(20px * var(--tv-scale));
+  margin: calc(4px * var(--tv-scale)) calc(12px * var(--tv-scale));
+  background: var(--c-surface-0);
+  border: calc(2px * var(--tv-scale)) solid var(--c-border);
+  border-radius: calc(12px * var(--tv-scale));
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.playlist-entry > * + * {
+  margin-top: calc(10px * var(--tv-scale));
+}
+.playlist-entry > * + * {
+  margin-left: 0;
+}
+
+.settings-page .playlist-header {
+  display: flex;
+  align-items: center;
+}
+.playlist-header > * + * {
+  margin-left: 10px;
+}
+
+.settings-page .playlist-entry.active {
+  border-color: var(--c-accent);
+  background: rgba(var(--c-accent-rgb), 0.06);
+}
+
+.settings-page .playlist-entry[data-focused] {
+  border-color: var(--c-white);
+  box-shadow: 0 0 0 3px rgba(var(--c-white-rgb), 0.3);
+}
+
+.settings-page .playlist-entry .btn-group {
+  margin-top: auto;
+  padding-top: calc(20px * var(--tv-scale));
+  display: flex;
+  justify-content: center;
+}
+.btn-group > * + * {
+  margin-left: 24px;
+}
+
+.settings-page .playlist-indicator {
+  font-size: calc(15px * var(--tv-scale));
+  color: var(--c-text-dim);
+}
+
+.settings-page .playlist-entry.active .playlist-indicator {
+  color: var(--c-text-dim);
+}
+
+.settings-page .selected-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: calc(14px * var(--tv-scale));
+  font-weight: 600;
+  color: var(--c-success);
+  background: rgba(var(--c-success-rgb), 0.1);
+  border: 1px solid rgba(var(--c-success-rgb), 0.3);
+  border-radius: calc(19px * var(--tv-scale));
+  padding: 3px 12px;
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.selected-badge > * + * {
+  margin-left: 6px;
+}
+
+.settings-page .playlist-entry.active .selected-badge {
+  display: inline-flex;
+}
+.selected-badge > * + * {
+  margin-left: 6px;
+}
+
+.settings-page .playlist-name {
+  font-size: calc(19px * var(--tv-scale));
+  font-weight: 590;
+  color: var(--c-white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-page .playlist-url {
+  font-size: calc(15px * var(--tv-scale));
+  color: var(--c-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.settings-page .playlist-meta {
+  font-size: calc(14px * var(--tv-scale));
+  color: var(--c-text-mid);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Standalone btn-group (Add Playlist + Fetch) */
+.settings-main > .btn-group {
+  margin-top: calc(24px * var(--tv-scale));
+  display: flex;
+}
+.btn-group > * + * {
+  margin-left: 24px;
+}
+
+.settings-page .playlist-actions {
+  display: flex;
+  margin-top: calc(10px * var(--tv-scale));
+}
+.playlist-actions > * + * {
+  margin-left: 12px;
+}
+
+.settings-page .playlist-actions .btn {
+  padding: calc(12px * var(--tv-scale)) calc(23px * var(--tv-scale));
+  font-size: calc(17px * var(--tv-scale));
+  min-height: calc(46px * var(--tv-scale));
+}

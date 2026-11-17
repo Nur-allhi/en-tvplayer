@@ -44,6 +44,54 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-161: split styles.css into modules — @nightshift (batch run)
+
+**Ticket:** T-161 ✅ · **Branch:** `feature/t-161-split-styles` → `dev`
+**Status:** ✅ done — continuous run, ticket 2 of this session
+
+**What changed**
+- `player/src/styles.css` deleted; its 273 rules moved verbatim into ten files
+  under `player/src/styles/`: the seven the ticket names (`base`, `layout`,
+  `sidebar`, `player`, `settings`, `library`, `overlays`) plus `components`,
+  `playlist` and `dialogs`. Every file is ≤ 293 LOC after Prettier.
+- `styles/base.css` now imports the nine content files before its `:root`
+  tokens; `index.html` links `styles/base.css`. `.prettierignore` no longer
+  lists the deleted `styles.css`.
+
+**Verified**
+- All gates green: `npm test` 333 passed, lint, format:check, validate (0 new),
+  `npm run build`, `npm run tizen` (WGT signed with the expected cert).
+- Static audit: all 273 CSS rules preserved byte-for-byte after whitespace
+  normalisation; no rule lost or altered.
+- Browser A/B with animations frozen (Vite dev server, 1920×1080): injected the
+  pre-split stylesheet in place of the split one and compared screenshots —
+  **pixel-identical** (95 183 bytes each). Body computed styles matched too.
+  The unfrozen screenshots differ only because CSS animations advance between
+  captures.
+- **No TV is connected.** This is a file-layout refactor with proven identical
+  rendering; no playback claim made.
+
+**Decisions**
+- The ticket names seven files, but Prettier expands the CSS to ~1 950 lines;
+  six 300-LOC content files cannot hold it. Added `components`, `playlist` and
+  `dialogs` so every file stays under the cap while all seven named files
+  still exist. Import order follows each file's first original line to keep
+  cascade order as close to the original as possible.
+- Removed the `styles.css` line from `.prettierignore` as the list only shrinks;
+  the new files are Prettier-formatted and `format:check` passes.
+
+**Watch out**
+- `base.css` is now the single stylesheet entry point. Keeping the `@import`
+  block above `:root` matters: CSS requires imports first, and the boot code
+  reads `--tv-scale` from the imported tokens.
+- A separate `scripts/autonomy-watchdog.mjs` (not authored by this session)
+  appeared untracked and is still untracked; it was not staged.
+
+**Next**
+- T-162 — accessibility pass.
+
+---
+
 ## 2026-11-17 — T-160: design tokens — @nightshift (batch run)
 
 **Ticket:** T-160 ✅ · **Branch:** `feature/t-160-design-tokens` → `dev`

@@ -1,0 +1,204 @@
+/* What's New modal */
+.whats-new-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  background: rgba(var(--c-black-rgb), 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: wnFadeIn 0.3s ease-out;
+}
+
+.whats-new-modal.hidden {
+  display: none;
+}
+
+@keyframes wnFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.whats-new-box {
+  background: var(--c-surface-card);
+  border: 1px solid var(--c-border-strong);
+  border-radius: calc(14px * var(--tv-scale));
+  width: calc(600px * var(--tv-scale));
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: wnSlideUp 0.35s ease-out;
+}
+
+@keyframes wnSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.whats-new-header {
+  padding: calc(24px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-bottom: 1px solid var(--c-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.whats-new-header h2 {
+  font-size: calc(24px * var(--tv-scale));
+  font-weight: 700;
+  color: var(--c-white);
+  margin: 0;
+}
+
+.whats-new-version {
+  font-size: calc(14px * var(--tv-scale));
+  color: var(--c-accent);
+  background: rgba(var(--c-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--c-accent-rgb), 0.25);
+  border-radius: calc(20px * var(--tv-scale));
+  padding: 3px 14px;
+  font-weight: 600;
+}
+
+.whats-new-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(20px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) transparent;
+}
+
+.whats-new-body::-webkit-scrollbar {
+  width: 6px;
+}
+.whats-new-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.whats-new-body::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 3px;
+}
+
+.wn-section {
+  margin-bottom: calc(20px * var(--tv-scale));
+}
+
+.wn-section:last-child {
+  margin-bottom: 0;
+}
+
+.wn-section-title {
+  font-size: calc(15px * var(--tv-scale));
+  font-weight: 600;
+  color: var(--c-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: calc(10px * var(--tv-scale));
+}
+
+.wn-item {
+  display: flex;
+  align-items: flex-start;
+  padding: calc(6px * var(--tv-scale)) 0;
+  font-size: calc(17px * var(--tv-scale));
+  color: var(--c-text-muted);
+  line-height: 1.45;
+}
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.wn-item > * + * {
+  margin-left: calc(10px * var(--tv-scale));
+}
+
+.wn-icon {
+  flex-shrink: 0;
+  width: calc(22px * var(--tv-scale));
+  text-align: center;
+  font-size: calc(16px * var(--tv-scale));
+  margin-top: 2px;
+}
+
+.wn-icon.added {
+  color: var(--c-success);
+}
+.wn-icon.fixed {
+  color: var(--c-warning);
+}
+.wn-icon.changed {
+  color: var(--c-info);
+}
+
+.whats-new-footer {
+  padding: calc(16px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-top: 1px solid var(--c-line);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* First-run picker: centered choice buttons */
+.onboarding-actions {
+  justify-content: center;
+}
+.onboarding-actions > * + * {
+  margin-left: 16px;
+}
+
+/* First-run picker: centered title */
+#onboarding-modal .whats-new-header {
+  justify-content: center;
+}
+
+.confirm-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  background: rgba(var(--c-black-rgb), 0.7);
+}
+.confirm-dialog.hidden {
+  display: none;
+}
+.confirm-dialog-box {
+  background: var(--c-surface-dialog);
+  border: 1px solid var(--c-border-strong);
+  border-radius: calc(12px * var(--tv-scale));
+  padding: calc(32px * var(--tv-scale));
+  min-width: calc(400px * var(--tv-scale));
+  max-width: 90vw;
+  text-align: center;
+}
+.confirm-dialog-message {
+  font-size: calc(20px * var(--tv-scale));
+  color: var(--c-white);
+  margin: 0 0 24px 0;
+}
+.confirm-dialog-buttons {
+  display: flex;
+  justify-content: center;
+}
+.confirm-dialog-buttons > * + * {
+  margin-left: 16px;
+}
+.confirm-dialog-buttons .btn.focused {
+  box-shadow: 0 0 0 calc(3px * var(--tv-scale)) var(--c-white);
+}

@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-161      # first unresolved row — no decision needed
+NEXT        = T-162      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # continuous run inside the 13:30-19:30 Dhaka window
+LAST_RUN    = 2026-11-17 # T-161 by night shift (continuous run)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -120,8 +120,8 @@ with the exact gate output; agent skipped it.
 | 22 | T-152 | app/index.js, thin main.js | done | merged + gated + browser-smoked |
 | 23 | T-153 | release script follows changelog | done | same commit as T-152; static-verified |
 | 24 | T-160 | design tokens | done | merged + gated |
-| 25 | T-161 | split styles.css | ready | **NEXT** |
-| 26 | T-162 | accessibility pass | ready |  |
+| 25 | T-161 | split styles.css | done | merged + gated |
+| 26 | T-162 | accessibility pass | ready | **NEXT** |
 | 27 | T-170 | state/ reactive store | ready |  |
 | 28 | T-171 | app/plugins.js registry | ready |  |
 | 29 | T-172 | migrate features to plugins | ready |  |

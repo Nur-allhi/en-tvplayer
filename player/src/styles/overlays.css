@@ -1,0 +1,160 @@
+/* Channel OSD (brief overlay when switching channels from remote) */
+.channel-osd {
+  position: absolute;
+  bottom: calc(80px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(var(--c-black-rgb), 0.85);
+  padding: calc(16px * var(--tv-scale)) calc(36px * var(--tv-scale));
+  border-radius: calc(12px * var(--tv-scale));
+  font-size: calc(28px * var(--tv-scale));
+  font-weight: 700;
+  color: var(--c-white);
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  text-align: center;
+  border: 1px solid rgba(var(--c-white-rgb), 0.1);
+}
+
+.channel-osd.fade {
+  opacity: 0;
+}
+
+.channel-osd .osd-number {
+  color: var(--c-accent);
+  margin-right: 12px;
+}
+
+/* Progress toast for right sidebar actions */
+.progress-toast {
+  position: absolute;
+  bottom: calc(80px * var(--tv-scale));
+  right: calc(20px * var(--tv-scale));
+  display: flex;
+  align-items: center;
+  background: rgba(var(--c-black-rgb), 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: calc(10px * var(--tv-scale)) calc(18px * var(--tv-scale));
+  border-radius: calc(10px * var(--tv-scale));
+  font-size: calc(16px * var(--tv-scale));
+  font-weight: 500;
+  color: var(--c-white);
+  z-index: 100;
+  pointer-events: none;
+  border: 1px solid rgba(var(--c-white-rgb), 0.08);
+}
+.progress-toast > * + * {
+  margin-left: 10px;
+}
+
+.progress-spinner {
+  width: 18px;
+  height: 18px;
+  border: calc(2px * var(--tv-scale)) solid rgba(var(--c-white-rgb), 0.2);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Resolution badge (top-right corner) */
+.resolution-badge {
+  position: absolute;
+  top: calc(20px * var(--tv-scale));
+  right: calc(20px * var(--tv-scale));
+  padding: 4px 12px;
+  font-size: calc(15px * var(--tv-scale));
+  font-weight: 500;
+  color: rgba(var(--c-white-rgb), 0.7);
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* Status/error pill — same bottom-center home as the buffering pill */
+.error {
+  position: absolute;
+  bottom: calc(20px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  background: rgba(var(--c-black-rgb), 0.85);
+  border: calc(2px * var(--tv-scale)) solid var(--c-danger);
+  padding: calc(14px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-radius: calc(28px * var(--tv-scale));
+  font-size: calc(20px * var(--tv-scale));
+  font-weight: 500;
+  color: var(--c-white);
+  max-width: 86%;
+  text-align: center;
+  z-index: 40;
+}
+/* Footer */
+.settings-footer {
+  margin-top: calc(31px * var(--tv-scale));
+  padding-top: calc(19px * var(--tv-scale));
+  border-top: 1px solid var(--c-surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-info {
+  font-size: calc(15px * var(--tv-scale));
+  color: var(--c-text-faint);
+  letter-spacing: 0.02em;
+}
+
+.footer-version {
+  font-size: calc(15px * var(--tv-scale));
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* === Remote hints === */
+.settings-page #remote-hints {
+  position: absolute;
+  bottom: calc(17px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  padding: calc(8px * var(--tv-scale)) calc(19px * var(--tv-scale));
+  background: rgba(var(--c-black-rgb), 0.5);
+  border-radius: calc(8px * var(--tv-scale));
+  z-index: 200;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+
+.settings-page #remote-hints.hidden {
+  opacity: 0;
+}
+
+.hint-group {
+  display: flex;
+  align-items: center;
+  font-size: calc(12px * var(--tv-scale));
+  color: rgba(var(--c-white-rgb), 0.5);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hint-group > * + * {
+  margin-left: 6px;
+}
+
+.hint-group kbd {
+  font: 12px/1 var(--font-mono);
+  color: rgba(var(--c-white-rgb), 0.6);
+  background: rgba(var(--c-white-rgb), 0.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+  min-width: calc(21px * var(--tv-scale));
+  text-align: center;
+}
+
+.hint-group .sep {
+  color: rgba(var(--c-white-rgb), 0.15);
+}

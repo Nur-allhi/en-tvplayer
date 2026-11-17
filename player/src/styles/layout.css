@@ -1,0 +1,293 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-black);
+  color: var(--c-white);
+  font-family: var(--font-sans);
+  font-size: calc(26px * var(--tv-scale));
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app.fullscreen .now-playing {
+  display: none;
+}
+.now-playing > * + * {
+  margin-left: 16px;
+}
+
+/* Left-edge hover zone (fullscreen only) that reveals the channel list */
+.sidebar-hover-zone {
+  display: none;
+}
+
+#app.fullscreen .sidebar-hover-zone {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 15%;
+  z-index: 45;
+}
+
+/* Right-edge hover zone (fullscreen only) that reveals the right sidebar */
+.right-hover-zone {
+  display: none;
+}
+
+#app.fullscreen .right-hover-zone {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 15%;
+  z-index: 45;
+}
+
+/* Fullscreen: auto-hide the cursor while watching */
+#app.fullscreen {
+  cursor: none;
+}
+
+#app.fullscreen.show-cursor,
+#app.fullscreen.show-cursor * {
+  cursor: auto;
+}
+/* Main */
+.main {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.hidden {
+  display: none !important;
+}
+/* Now Playing Bar */
+.now-playing {
+  height: calc(68px * var(--tv-scale));
+  background: var(--c-surface-2);
+  border-top: 1px solid var(--c-line);
+  display: flex;
+  align-items: center;
+  padding: 0 calc(28px * var(--tv-scale));
+}
+.now-playing > * + * {
+  margin-left: 16px;
+}
+
+.now-playing .channel-name {
+  font-size: calc(24px * var(--tv-scale));
+  font-weight: 600;
+  color: var(--c-white);
+}
+
+.now-playing .channel-info {
+  font-size: calc(18px * var(--tv-scale));
+  color: var(--c-text-secondary);
+}
+
+/* Boot splash overlay */
+.boot-splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--c-bg-grad) 0%, var(--c-surface-0) 50%, var(--c-bg-grad) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  transition: opacity 0.5s ease;
+}
+
+.boot-splash.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Logo container — icon stacked over the name, centered (same pattern as
+   the centered player brand mark) */
+.boot-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  animation: bootLogoIn 0.6s ease-out forwards;
+  animation-delay: 0.2s;
+}
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.boot-logo > * + * {
+  margin-left: 0;
+  margin-top: calc(16px * var(--tv-scale));
+}
+
+@keyframes bootLogoIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Exit: fly into the logo — it rushes toward the viewer and dissolves */
+.boot-logo.zoom-in {
+  animation: bootLogoZoom 0.7s ease-in forwards;
+}
+
+@keyframes bootLogoZoom {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+
+/* While zooming, sink the tagline and spinner so the logo owns the screen */
+.boot-splash.zooming .boot-loading,
+.boot-splash.zooming .boot-typewriter {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.boot-logo-icon {
+  flex-shrink: 0;
+  border-radius: calc(12px * var(--tv-scale));
+}
+
+.boot-logo-text {
+  font-size: calc(54px * var(--tv-scale));
+  font-weight: 700;
+  color: var(--c-white);
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-align: center;
+  min-width: calc(300px * var(--tv-scale));
+  min-height: calc(60px * var(--tv-scale));
+}
+
+.boot-logo-text span {
+  color: var(--c-accent);
+}
+
+/* Caret while the title is typing — removed on completion */
+.boot-logo-text.typing::after {
+  content: '|';
+  animation: bootBlink 0.6s step-end infinite;
+  color: var(--c-accent);
+  margin-left: 1px;
+}
+
+/* Version pill — bottom center, same spot as the buffering toast */
+.boot-version {
+  position: absolute;
+  bottom: calc(20px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(var(--c-black-rgb), 0.7);
+  padding: calc(14px * var(--tv-scale)) calc(28px * var(--tv-scale));
+  border-radius: calc(28px * var(--tv-scale));
+  font-size: calc(23px * var(--tv-scale));
+  color: rgba(var(--c-white-rgb), 0.65);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* Tagline below the logo row, centered on the logo + name lockup */
+.boot-typewriter {
+  display: block;
+  width: 100%;
+  margin-top: calc(12px * var(--tv-scale));
+  text-align: center;
+  font-size: calc(21px * var(--tv-scale));
+  color: rgba(var(--c-white-rgb), 0.35);
+  letter-spacing: 0.04em;
+  min-height: calc(26px * var(--tv-scale));
+}
+
+.boot-typewriter::after {
+  content: '|';
+  animation: bootBlink 0.6s step-end infinite;
+  color: var(--c-accent);
+  margin-left: 1px;
+}
+
+.boot-typewriter.done::after {
+  display: none;
+}
+
+@keyframes bootBlink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Loading section (spinner + status) — fades in after both typewriters */
+.boot-loading {
+  display: flex;
+  align-items: center;
+  margin-top: calc(32px * var(--tv-scale));
+  opacity: 0;
+  animation: bootLoadingIn 0.4s ease-out forwards;
+  animation-delay: 2.9s;
+}
+/* No flex gap: unsupported on Tizen's Chromium — explicit sibling margin */
+.boot-loading > * + * {
+  margin-left: calc(12px * var(--tv-scale));
+}
+
+@keyframes bootLoadingIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boot-spinner {
+  width: calc(28px * var(--tv-scale));
+  height: calc(28px * var(--tv-scale));
+  border: calc(3px * var(--tv-scale)) solid rgba(var(--c-white-rgb), 0.08);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.boot-status {
+  font-size: calc(18px * var(--tv-scale));
+  color: rgba(var(--c-white-rgb), 0.45);
+  letter-spacing: 0.02em;
+}
