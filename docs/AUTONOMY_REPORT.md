@@ -41,3 +41,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T14:20:25.645Z | `cdae79a` | docs(roadmap): close T-150 and T-211 in the queue | 41/46 | 0 | none |
 | 2026-11-17T14:50:31.628Z | `9a59bf6` | docs(agents): record the final report rows | 41/46 | 0 | none |
 | 2026-11-17T14:50:50.280Z | `7336533` | docs(agents): record the report commit row | 41/46 | 0 | none |
+| 2026-11-17T14:53:06.561Z | `380d490` | chore(tooling): stop the report hook from logging its own commits | 41/46 | 0 | none |
