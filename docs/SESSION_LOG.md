@@ -44,6 +44,31 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-212: the Library can now add a source — @maintainer
+
+**Ticket:** T-212 ✅ · **Branch:** `fix/t-212-library-add-source`
+
+**Problem:** the user opened the Library and found no way to add a URL. The
+form existed, but only under Settings → About — undiscoverable from the place
+where you actually want it.
+
+**Fix** (smallest change that keeps navigation pure):
+- `lib/library-nav.js` — third root row, `LEVELS.ADD`, pure `select()` case.
+- `ui/library.js` — the Add row calls a new `deps.showMediaAdd()` slot.
+- `settings/lifecycle.js` — `showMediaAdd()` selects About, renders and
+  applies the existing remote focus order (URL field then Add button).
+- `app/deps.js` + hub — one new slot, wired to `showMediaAdd`.
+
+**Verified:** 667 tests (2 new), lint, validate, format, a11y, build all green.
+Browser: Library → down to "➕ Add movie or series" → Enter opens Settings →
+About with the URL field and Add button visible; no page errors.
+
+**Watch out:** browser testing needed a clean modal state — an open What's New
+modal keeps a keydown listener that swallows Enter even after the DOM node is
+removed. Always close it via its button before testing remote keys.
+
+---
+
 ## 2026-11-17 — VOD plan audited; stale docs brought up to date — @maintainer
 
 **Request:** re-examine the code against the movies/series plan and update.

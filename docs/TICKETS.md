@@ -1063,6 +1063,21 @@ A ticket is only `done` when it meets the **Definition of Done**
   loads under v4 with the new keys defaulted and **every existing key
   preserved**; running the migration twice changes nothing (idempotent);
   the `en_settings` key name is unchanged.
+### T-212 — Add-source entry point inside the Library
+- **Type:** fix · **Priority:** P1 · **Size:** XS
+- **Spec:** the "Add movie or series" form existed only in Settings → About,
+  so a user opening the Library saw no way to add a URL. Add a third root row
+  "➕ Add movie or series" that jumps straight to that form.
+- **Acceptance:** reachable by remote from Library root; Enter opens the URL
+  field with no console error; Back returns to the Library.
+- **Depends:** T-182, T-181
+- **Status:** ✅ done 2026-11-17 — `lib/library-nav.js` gained an `ADD` level
+  and third root row; `ui/library.js` routes it through a new
+  `deps.showMediaAdd()` slot; `settings/lifecycle.js` exports
+  `showMediaAdd()` which selects the About section and applies remote focus.
+  Two new pure tests; 667 total, all gates green. Browser-verified: Library →
+  Add source → URL field + Add button, zero page errors.
+
 - **Notes:** `docs/MIGRATION.md` §4 Risk B · `docs/BRANCHING.md` §5.
 - **Renumbered 2026-11-16:** this ticket was originally T-181, colliding with
   "Add media by URL / manifest" in Phase 8. Git history uses T-181 for both

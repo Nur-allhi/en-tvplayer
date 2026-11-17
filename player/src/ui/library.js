@@ -55,6 +55,7 @@ function rows() {
     return [
       { label: '🎬 Movies', count: itemsFor('movie').length },
       { label: '📺 Series', count: itemsFor('series').length },
+      { label: '➕ Add movie or series', count: '' },
     ];
   }
   if (frame.level === LEVELS.LIST) {
@@ -118,6 +119,13 @@ export function libraryNavigate(delta) {
 
 export function librarySelect() {
   const frame = current(nav);
+  // The Add row opens the form in Settings → About. Close the sidebar so the
+  // focused URL field is visible; the form is already in the focus order.
+  if (frame.level === LEVELS.ADD) {
+    exitLibrary();
+    deps.showMediaAdd();
+    return;
+  }
   const next = select(nav, context());
   if (next === nav) {
     // Play / Resume rows (and an episode row) hand off to the app, which owns

@@ -60,6 +60,7 @@ export const deps = {
   refreshProxyMenu: unwired('refreshProxyMenu'),
   showPlayer: unwired('showPlayer'),
   showSettingsPage: unwired('showSettingsPage'),
+  showMediaAdd: unwired('showMediaAdd'),
   showProgress: unwired('showProgress'),
   hideProgress: unwired('hideProgress'),
   updateProgressPercent: unwired('updateProgressPercent'),

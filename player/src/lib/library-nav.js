@@ -7,9 +7,14 @@ export const LEVELS = {
   LIST: 'list',
   DETAIL: 'detail',
   EPISODES: 'episodes',
+  ADD: 'add',
 };
 
-const ROOT_ROWS = 2; // Movies, Series
+// Third root row: jump to the "Add movie or series" form in Settings → About.
+// The library itself has no text input; on a TV this is the only discoverable
+// way to add a source from the Library screen.
+export const ADD_ROW = 'add';
+const ROOT_ROWS = 3; // Movies, Series, Add source
 
 export function initialNav() {
   return { stack: [{ level: LEVELS.ROOT, index: 0, selected: null }], exit: false };
@@ -29,6 +34,8 @@ const rowCount = (frame, ctx) => {
       return ctx.detailCount || 1;
     case LEVELS.EPISODES:
       return ctx.episodeCount || 0;
+    case LEVELS.ADD:
+      return 0; // the form lives in Settings; no rows to move here
     default:
       return 0;
   }
@@ -54,6 +61,9 @@ export function select(nav, ctx = {}) {
   const frame = current(nav);
   switch (frame.level) {
     case LEVELS.ROOT:
+      if (frame.index === ROOT_ROWS - 1) {
+        return push(nav, { level: LEVELS.ADD, index: 0, selected: ADD_ROW });
+      }
       if (!ctx.listCount) return nav;
       return push(nav, {
         level: LEVELS.LIST,

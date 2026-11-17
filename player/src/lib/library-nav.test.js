@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, initialNav, current, move, select, back } from './library-nav.js';
+import { LEVELS, ADD_ROW, initialNav, current, move, select, back } from './library-nav.js';
 
 // T-182: Back must always return one level and never leave the user in an
 // empty or undefined view. The navigation stack is pure so this is testable
@@ -26,7 +26,7 @@ describe('move', () => {
   it('clamps at the last row instead of wrapping', () => {
     let nav = initialNav();
     nav = move(nav, 9, {});
-    expect(current(nav).index).toBe(1);
+    expect(current(nav).index).toBe(2); // Movies, Series, Add source
   });
 
   it('clamps at zero', () => {
@@ -65,6 +65,12 @@ describe('select from root', () => {
     const nav = select(initialNav(), { listCount: 0 });
     expect(current(nav).level).toBe(LEVELS.ROOT);
     expect(nav.stack).toHaveLength(1);
+  });
+
+  it('opens the Add source level from the third row', () => {
+    const nav = select(move(initialNav(), 2, {}), { listCount: 0 });
+    expect(current(nav).level).toBe(LEVELS.ADD);
+    expect(current(nav).selected).toBe(ADD_ROW);
   });
 });
 
