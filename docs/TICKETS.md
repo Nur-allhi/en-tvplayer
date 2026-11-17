@@ -949,6 +949,10 @@ A ticket is only `done` when it meets the **Definition of Done**
   `media-id.js` slug helper, and a `vodState` store persisted under
   `en_settings.movies`.
 - **Acceptance:** ≥ 20 tests; ids are stable across reordering and re-fetch.
+- **Status:** ✅ done 2026-11-17 — pure `lib/media-id.js` + `state/vod.js`
+  transforms and debounced `app/vod-store.js` persistence under
+  `en_settings.movies`. 37 new tests; ids stable across reorder/re-fetch.
+  All gates + tizen green; no TV connected.
 
 ### T-181 — Add media by URL / manifest
 - **Type:** feat · **Priority:** P0 · **Size:** M (~250 LOC)

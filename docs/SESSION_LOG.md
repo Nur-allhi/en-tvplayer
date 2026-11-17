@@ -44,6 +44,46 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-180: VOD data model + storage — @nightshift (batch run)
+
+**Ticket:** T-180 ✅ · **Branch:** `feature/t-180-vod-model` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- `lib/media-id.js` — pure URL normalisation and FNV-1a hashing. `mediaId(url)`
+  derives a stable `m-xxxxxxxx` id from the scheme/host/query (sorted), ignoring
+  whitespace and fragments. `episodeId(entryId, season, number)` for episodes.
+  MediaEntry/Episode JSDoc typedefs per v4.PLAN §8.1.
+- `state/vod.js` — pure transforms over `vodState`: normalise, add, merge
+  (re-fetch preserving resumeAt), remove, reorder, clear and search.
+- `app/vod-store.js` — the only storage coupling: hydrates `en_settings.movies`
+  on boot and debounces saves back through `saveSettings`. Wired into app boot.
+
+**Verified**
+- `npm test` → 485 passed (33 files): 23 new media-id tests + 14 store tests
+  (37 total, exceeding the ≥20 requirement). lint, validate (0 new, a11y ok),
+  format:check, build and tizen all green.
+- Stability proven by tests: reorder and re-fetch keep the same ids; query
+  param order and fragments do not change an id.
+- **No TV is connected.** Data-model/storage work with no playback change;
+  no TV claim made.
+
+**Decisions**
+- Kept the hash and transforms pure under `lib/` and `state/` so the DOM-purity
+  gate passes; localStorage access is confined to `app/vod-store.js`, where
+  config is already used.
+- Reuse the existing `vodState` store rather than defining a second one, so
+  T-181+ can subscribe immediately.
+
+**Watch out**
+- IDs are URL-derived: changing a stream URL gives a new id (by design — it is
+  a different source). Title/order changes do not affect identity.
+
+**Next**
+- T-181 — add media by URL / manifest.
+
+---
+
 ## 2026-11-17 — T-186: v4 settings schema migration — @nightshift (isolated worktree)
 
 **Ticket:** T-186 ✅ · **Branch:** `feature/t-186-settings-schema-migration` → `dev`

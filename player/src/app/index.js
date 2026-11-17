@@ -7,6 +7,7 @@ import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
 import { applyFeatureFlags } from './plugins.js';
 import { refreshProxyMenu } from '../features/proxy.js';
+import { hydrateVod, startVodPersistence } from './vod-store.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
 import './onboarding.js';
@@ -64,6 +65,8 @@ function showSettingsPage() {
 
 function boot() {
   applyFeatureFlags();
+  hydrateVod();
+  startVodPersistence();
   deps.init();
 }
 
