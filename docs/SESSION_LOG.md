@@ -75,7 +75,42 @@ first). Keep it short — the point is handover, not a diary.
   up on device, clear the reference from `handleChannelSelect`.
 
 **Next**
-- T-190 — Tizen compat shims, then T-191.
+- T-190 — Tizen compat shims (landed in the same window; see entry below), then T-191.
+
+---
+
+## 2026-11-17 — T-190: Tizen compat shims — @nightshift (resumed batch)
+
+**Ticket:** T-190 🔶 needs-tv · **Branch:** `feature/t-190-tizen-compat` → `dev`
+**Status:** ✅ code merged + all gates green; TV verification still owed
+
+**What changed**
+- New `features/tizen-shims.js` — `installShims(target)` installs `AbortController`
+  (+ `AbortSignal`), `String.prototype.trimStart` and `ResizeObserver` only when
+  the target lacks them. The target is injectable so it is testable in node env.
+- `app/index.js` calls `installShims(window)` at the start of `boot()`, before
+  `capabilities()` is first cached, so the probe sees the shims.
+
+**Verified**
+- `npm test` → 631 passed (43 files): 11 new shim tests (missing APIs installed,
+  modern target untouched, idempotent, null target, working abort signal).
+- lint, validate (0 new, a11y ok), format:check, build all green.
+- **No TV is connected.** The acceptance needs a Tizen 5.0 boot, so the ticket
+  stays `needs-tv`; no boot or playback claim was made.
+
+**Decisions**
+- Kept shims in `features/` (not `lib/`) so the DOM-purity gate is untouched and
+  the injectable-target design still allows unit tests without jsdom.
+- ResizeObserver is a no-op stub: the only production consumer is Shaka, which
+  degrades gracefully without observations — a full layout shim would be
+  speculative.
+
+**Watch out**
+- Shims must be installed before `capabilities()` is first called; that cache is
+  module-level and never invalidated outside tests.
+
+**Next**
+- T-191 — engine fallback messaging.
 
 ---
 
