@@ -127,7 +127,7 @@ with the exact gate output; agent skipped it.
 | 29 | T-172 | migrate features to plugins | done | merged + gated; both approaches reconciled |
 | 30 | T-173 | remote-action routing | done | merged + gated; bindRoute + dispatchRoute |
 | 31 | T-180 | VOD data model + storage | done | merged + gated; taken early to avoid a concurrent-run collision |
-| 32 | T-181 | add media by URL | ready | first T-181 |
+| 32 | T-181 | add media by URL | done | merged + gated; first T-181 |
 | 33 | T-182 | ui/library.js | done | merged + gated; pure nav stack |
 | 34 | T-183 | episode browsing | ready |  |
 | 35 | T-184 | audio/subtitle/quality pickers | needs-tv |  |

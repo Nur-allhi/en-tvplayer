@@ -206,6 +206,8 @@ function buildFocusOrder() {
     }
   } else if (state.activeSection === 'about') {
     state.focusOrder.push(document.getElementById('about-copy-diagnostics'));
+    state.focusOrder.push(document.getElementById('vod-add-url'));
+    state.focusOrder.push(document.getElementById('vod-add-btn'));
   }
 }
 
