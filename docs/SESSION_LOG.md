@@ -44,6 +44,41 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-173: route remote actions through plugins — @nightshift (batch run)
+
+**Ticket:** T-173 ✅ · **Branch:** `feature/t-173-remote-routing` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- `app/plugins.js` gains `dispatchRoute(action, value)`: looks up the enabled
+  routes, calls one if present and reports whether it claimed the action.
+- `app/remote.js` calls it just before the default player-view handler, after
+  modal/settings/sidebar guards. With no route registered the behaviour is
+  unchanged.
+- `features/proxy.js` now declares its own key and route via `registerFeature`,
+  demonstrating that a new binding can be added entirely in a feature module.
+
+**Verified**
+- `npm test` → 425 passed (30 files), including 4 new dispatch tests and a
+  feature-module binding test. lint, validate (0 new, a11y ok),
+  format:check, build and tizen all green.
+- **No TV is connected.** Pure dispatch addition with no handler changes;
+  no playback claim made.
+
+**Decisions**
+- Kept route dispatch at the terminal edge of `handleRemoteAction`: modals,
+  settings and sidebars keep their precedence, so a feature can only claim an
+  action in the player view. No deps slot or new registry import was needed.
+
+**Watch out**
+- `remote.js` (low-level key decoder) is at 298 LOC — do not add code there.
+- A self-registering feature must be imported at boot to install its route.
+
+**Next**
+- T-180 — VOD data model + storage.
+
+---
+
 ## 2026-11-17 — T-200: log ring buffer + copy diagnostics — @nightshift (isolated worktree)
 
 **Ticket:** T-200 ✅ · **Branch:** `feature/t-200-log-ring-buffer` → `dev`
