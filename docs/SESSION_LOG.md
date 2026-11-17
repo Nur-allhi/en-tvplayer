@@ -111,23 +111,26 @@ settings.init` runs first, and the form DID render. The actual stack was
 
 ---
 
-## 2026-11-17 — TV verification passed on UA43AU8000RSFS — @maintainer
+## 2026-11-17 — TV check on UA43AU8000RSFS: IPTV + DRM confirmed — @maintainer
 
-**Result:** ✅ maintainer installed the v4 WGT manually on the TV and reports
-**everything working**. This closes the hardware gap for the M2–M5 refactor and
-the Tizen 5.0 compatibility work.
+**Result:** ✅ maintainer installed the v4 WGT manually on the TV and confirmed
+**IPTV channels play and DRM works**. This closes the hardware gap for the
+M2–M5 refactor and the Tizen 5.0 compatibility work.
 
 **What was verified on hardware**
 - Install path: manual (sdb push failed with a certificate error — expected for
   a Developer Mode push; the manual installer handled it). WGT signed with the
   restored key, so settings were preserved — no new app, no data loss.
-- Boot/first-run, playback/DRM, remote input, settings toggles, playlist CRUD,
-  Tizen shims (T-190) and engine fallback messaging (T-191): all working.
+- **Confirmed:** IPTV channel playback, DRM-protected channels, general app
+  operation after the refactor.
 
-**Scope note:** this is one Tizen model (UA43AU8000RSFS). `needs-tv` tickets
-T-184, T-185 and T-191 remain marked as such in `docs/TICKETS.md` because
-verification on *this* TV does not cover every TV model or every feature path.
-The maintainer's report is recorded here as the authoritative verification.
+**Explicitly NOT verified:** VOD playback, movie/series browsing, resume,
+audio/subtitle/quality pickers. The maintainer later clarified the check was
+limited to IPTV channels and DRM. Those paths remain `needs-tv` in
+`docs/TICKETS.md` (T-183, T-184, T-185).
+
+**Scope note:** this is one Tizen model (UA43AU8000RSFS). Verification on this
+TV does not cover every model, and VOD was not exercised at all.
 
 **Watch out**
 - The signing key was never regenerated — fingerprint still
