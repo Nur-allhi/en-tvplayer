@@ -19,4 +19,5 @@ export const deps = {
   applyFocus: unwired('applyFocus'),
   buildFocusOrder: unwired('buildFocusOrder'),
   clearFocus: unwired('clearFocus'),
+  copyDiagnostics: unwired('copyDiagnostics'),
 };

@@ -1,11 +1,15 @@
-// DOM and logging helpers (T-123).
+// DOM and logging helpers (T-123, log ring added in T-200).
 import { deps } from './deps.js';
 import { state } from './state.js';
+import { appLogRing } from '../lib/ring-buffer.js';
 
 export function logEvent(level, message) {
   try {
+    const safe = typeof message === 'string' ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1') : message;
+    // The ring redacts again (idempotent) — keeping the redaction there means
+    // any future log caller is safe even if it forgets to scrub its message.
+    appLogRing.push(level, safe);
     if (typeof console !== 'undefined' && console.debug) {
-      const safe = typeof message === 'string' ? message.replace(/(https?:\/\/[^\s'"]+?)[?#][^\s'"]*/g, '$1') : message;
       console.debug('[app][' + level + ']', safe);
     }
   } catch {}

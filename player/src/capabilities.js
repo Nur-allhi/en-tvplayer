@@ -51,12 +51,44 @@ export function detectCapabilities(win) {
 let cached = null;
 
 export function capabilities() {
-  if (!cached) cached = detectCapabilities();
+  if (!cached) {
+    cached = detectCapabilities();
+    probeTvModel();
+  }
   return cached;
 }
 
 export function resetCapabilities() {
   cached = null;
+}
+
+// TV model (T-200 diagnostics). Tizen exposes it only through the async
+// systeminfo API, so the probe caches the answer and diagnostics falls back to
+// a generic label until the callback lands. `win` is injectable for tests.
+let tvModel = '';
+
+export function probeTvModel(win) {
+  const w = win === undefined ? (typeof window !== 'undefined' ? window : null) : win;
+  safe(() => {
+    if (!w || !w.tizen || !w.tizen.systeminfo || typeof w.tizen.systeminfo.getPropertyValue !== 'function') return;
+    w.tizen.systeminfo.getPropertyValue(
+      'DEVICE',
+      (device) => {
+        tvModel = (device && (device.model || device.product)) || 'Tizen TV';
+      },
+      () => {
+        tvModel = 'Tizen TV';
+      },
+    );
+  }, null);
+}
+
+export function getTvModel() {
+  return tvModel || (capabilities().isTizen ? 'Tizen TV' : 'Not a Tizen device');
+}
+
+export function resetTvModel() {
+  tvModel = '';
 }
 
 export function currentEngine() {

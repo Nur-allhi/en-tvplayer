@@ -204,6 +204,8 @@ function buildFocusOrder() {
     for (let i = 0; i < gn.length; i++) {
       state.focusOrder.push(document.getElementById('show-group-' + i));
     }
+  } else if (state.activeSection === 'about') {
+    state.focusOrder.push(document.getElementById('about-copy-diagnostics'));
   }
 }
 

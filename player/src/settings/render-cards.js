@@ -1,7 +1,6 @@
 import { state } from './state.js';
-import { getSettings, APP_VERSION } from '../config.js';
+import { getSettings } from '../config.js';
 import { escapeHtml } from '../utils.js';
-import * as player from '../player/index.js';
 import { timeAgo, formatDate } from '../lib/time.js';
 import { MAX_PLAYLISTS } from './state.js';
 
@@ -261,37 +260,4 @@ export function groupNames() {
 
 export function groupChannelCount(name) {
   return (getSettings().channels || []).filter((ch) => ((ch && ch.group) || 'Ungrouped') === name).length;
-}
-
-export function renderAboutCard() {
-  let html = '';
-  html += '<div class="setting-card">';
-  html += '<div class="card-header"><h3><span class="card-icon">\u2139</span> About</h3></div>';
-  html += '<div class="card-body">';
-  html +=
-    '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' +
-    APP_VERSION +
-    '</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' +
-    (player.isNativeAvailable() ? 'Available' : 'Not available') +
-    '</div></div>';
-  html += '</div></div>';
-  html += '<div class="setting-card">';
-  html += '<div class="card-header"><h3><span class="card-icon">\u{1F517}</span> Links</h3></div>';
-  html += '<div class="card-body">';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Developer</div></div><div class="toggle-value">Nur-allhi</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">GitHub</div></div><div class="toggle-value"><a class="about-link" href="https://github.com/Nur-allhi" target="_blank" rel="noopener">github.com/Nur-allhi</a></div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Telegram</div></div><div class="toggle-value"><a class="about-link" href="https://t.me/eniptvplayer" target="_blank" rel="noopener">t.me/eniptvplayer</a></div></div>';
-  html += '</div></div>';
-  return html;
 }
