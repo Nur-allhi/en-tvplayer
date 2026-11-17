@@ -697,6 +697,45 @@ A ticket is only `done` when it meets the **Definition of Done**
   `restoreLastSession`.
 - **Acceptance:** splash staging still chains on completion callbacks (never
   fixed sleeps) — `docs/TIZEN_GUIDE.md` §7.
+- **Status:** ⚠️ partial 2026-11-17 — the three splash-staging functions
+  (`showBootSplash`, `startTypewriter`, `hideBootSplash") moved verbatim into
+  `app/boot.js` (116 LOC) with `app/state.js` for the three shared timers.
+  `main.js` 1500 → 1397 LOC. Byte-comparison confirmed all three bodies are
+  identical modulo `state.` prefixes; browser check confirmed the typewriter
+  completes and the splash hides via callbacks, with no new console errors.
+  303 tests, all gates green, bundle +0.02 %, WGT signs.
+  - **The rest of T-150 is NOT done:** `init`, `startPlayer`, first-run,
+    onboarding, What's New and `restoreLastSession` still live in `main.js`.
+    They are heavily entangled with remote/channel slices (the call graph has
+    multiple cycles), so extracting them needs the same deps-registry treatment
+    T-123 gave the player. Attempting it with a text transform produced
+    cascading errors and was reverted — no broken code was committed.
+  - Follow-up ticket needed: **T-150b** for the remaining boot/startup slices.
+
+### T-150b — App boot/startup registry and remaining boot slices
+- **Type:** refactor · **Priority:** P0 · **Size:** L
+- **Spec:** T-150 landed only the three splash-staging functions. This ticket
+  finishes it. The remaining functions still in `main.js` are `init`,
+  `startPlayer`, `restoreLastSession`, first-run (`showFirstRun`),
+  onboarding (`showOnboarding`/`hideOnboarding`/`updateOnboardFocus`/
+  `selectOnboarding`/`isOnboardingOpen`) and What's New (`checkWhatsNew`/
+  `showWhatsNew`/`closeWhatsNew`/`markVersionSeen`/`isWhatsNewOpen`/`
+  hideBootSplashAndMaybeWhatsNew`).
+- **Why a separate ticket:** these functions form cycles through the remote and
+  channel slices: `init → registerTizenKeys → handleRemoteAction → startPlayer →
+  init`, and `handleRemoteAction` (301 LOC) also exceeds the 300 cap. A plain
+  text move produced cascading errors on 2026-11-17 and was reverted.
+- **Approach (decided):** create `app/deps.js` registry following `player/deps.js`
+  and `settings/deps.js`; add every app-level shared variable to `app/state.js`;
+  split into `app/boot.js` (init + startup), `app/onboarding.js`,
+  `app/whats-new.js`, `app/remote.js` (T-151) and `app/channels.js`, each
+  ≤300 LOC, each self-wiring its deps slots. Only this ticket's `app/index.js`
+  (T-152) imports all slices.
+- **Acceptance:** `main.js` ≤ 60 LOC (T-152 target); zero import cycles;
+  all gates green; boot/resume/first-run/onboarding verified in a browser;
+  every documented remote key still works (T-151).
+- **Depends:** T-150 (partial) · **Must land before T-152.**
+- **Status:** proposed — needs a maintainer decision on scope/order.
 
 ### T-151 — `app/remote.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~200 LOC)

@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-150      # first unresolved row below
+NEXT        = none        # T-150 partial, T-150b proposed — awaiting maintainer decision
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
 LAST_RUN    = 2026-11-17 # T-124 + T-125 + T-126 by night shift; T-127 manual
 ```
@@ -104,8 +104,9 @@ with the exact gate output; agent skipped it.
 | 14 | T-140 | `settings/nav.js` + `select.js` | done | merged + gated 2026-11-17; settings.js 698 LOC |
 | 15 | T-141 | `settings/render.js` + `playlists.js` + `render-cards.js` | done | merged + gated 2026-11-17; settings.js 56 LOC |
 | 16 | T-142 | `settings/playback.js` + `settings/index.js` | done | merged + gated 2026-11-17; M4 complete |
-| 17 | T-150 | `app/boot.js` | ready | |
-| 18 | T-151 | `app/remote.js` | ready | |
+| 17 | T-150 | `app/boot.js` splash staging | partial | merged + gated 2026-11-17; rest needs T-150b |
+| 18 | T-150b | app boot/startup registry + remaining slices | proposed | needs human decision; before T-152 |
+| 19 | T-151 | `app/remote.js` | ready | depends on T-150b |
 | 19 | T-152 | `app/index.js` + `main.js` entry | ready | |
 | 20 | T-153 | release script follows changelog move | ready | **same commit as T-152** — release path must never break |
 | 21 | T-160 | design tokens | ready | |
