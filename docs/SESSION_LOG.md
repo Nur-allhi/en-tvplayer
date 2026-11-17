@@ -44,6 +44,43 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — VOD plan audited; stale docs brought up to date — @maintainer
+
+**Request:** re-examine the code against the movies/series plan and update.
+
+**Audit result: the implementation is in place and matches the plan.**
+- Data model: `lib/media-id.js` (stable FNV-1a slug), `state/vod.js`
+  (MediaEntry/Episode normalisation, per-episode resumeAt preserved on re-fetch).
+- Sources: `lib/media-source.js` supports exactly the three planned kinds —
+  direct URL, M3U, user JSON — with no scraper. Plain-English errors.
+- UI: `ui/library.js` + `lib/library-nav.js` render Movies/Series in the
+  sidebar with detail/episode levels and guaranteed one-level Back.
+- Playback: `lib/media-channel.js` maps a media entry to the existing channel
+  shape; `app/vod-resume.js` captures position and seeks on loadedmetadata;
+  DRM/headers/auth survive import and re-fetch. Same engine, no second player.
+- Pickers: audio/quality in `ui/right-menu.js`, subtitles in
+  `ui/subtitle-picker.js` (all list real stream tracks).
+- Migration: T-186 `config.js` schema v4, additive and idempotent.
+
+**Docs updated (they still described the v1.0 pre-refactor app):**
+- `docs/PRD.md` — v2.0; VOD in the feature set and workflows, scraping in
+  non-goals, new success criteria.
+- `docs/TAD.md` — v2.0; actual v4 module map, VOD data model, deps registries,
+  zero-violation rule. The old doc listed `player.js`/`ui.js` as 300-LOC files.
+- `docs/FRONTEND_SPEC.md` — added LIBRARY, LIBRARY_DETAIL and EPISODES states,
+  their key map, and the VOD right-menu pickers.
+- `docs/v4.PLAN.md` — doc-status table marks PRD/TAD/FRONTEND_SPEC/README current;
+  change-log entry added.
+- `README.md` — VOD feature rows plus a short "Movies & Series" usage section.
+
+**Watch out**
+- T-183/T-184/T-185 remain `needs-tv`: the code is audited and gated, but
+  actual VOD playback, ClearKey CDM and caption rendering were not part of the
+  maintainer's earlier TV check.
+- Automation is off, worktrees cleaned, no key touched.
+
+---
+
 ## 2026-11-17 — T-211: first-run crash fixed — @maintainer
 
 **Ticket:** T-211 ✅ · **Branch:** `fix/t-211-onboarding` → `dev`

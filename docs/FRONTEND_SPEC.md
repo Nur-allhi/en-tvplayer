@@ -20,10 +20,13 @@
 | State | Visible | Notes |
 |-------|---------|-------|
 | `PLAYER` | Video + OSD | Default after boot |
-| `SIDEBAR_GROUPS` | Left sidebar (groups) | From PLAYER via Left |
+| `SIDEBAR_GROUPS` | Left sidebar (groups + 🎬 Library) | From PLAYER via Left |
 | `SIDEBAR_CHANNELS` | Left sidebar (channels) | From SIDEBAR_GROUPS via Enter |
-| `RIGHT_MENU` | Right sidebar (Quality + Actions) | From PLAYER via Right |
-| `SETTINGS` | Full-screen settings (4 tabs) | From RIGHT_MENU → Settings |
+| `LIBRARY` | Movies / Series list | From SIDEBAR_GROUPS → 🎬 Library |
+| `LIBRARY_DETAIL` | Detail + Resume + Episodes | OK on a title |
+| `EPISODES` | Season/episode list | OK on a series |
+| `RIGHT_MENU` | Right sidebar (Audio, Subtitles, Quality, Actions) | From PLAYER via Right |
+| `SETTINGS` | Full-screen settings (3 sections) | From RIGHT_MENU → Settings |
 | `DIALOG` | Modal over any state | Confirm exit/delete |
 
 ---
@@ -40,10 +43,17 @@
 | ChUp/ChDown | prev/next channel | — | — | — | — |
 | Play/Pause | toggle playback | toggle playback | — | — | — |
 | 0-9 | tune by number | same | — | — | — |
-| Red | favorite (v1.2) | — | — | — | — |
+| Red | favorite | — | — | — | — |
 | Green | open SIDEBAR | — | — | — | — |
 | Yellow | toggle proxy | — | — | — | — |
 | Blue | open SETTINGS | — | — | — | — |
+
+**Library states:** Up/Down moves through titles/episodes, OK enters a level,
+Back returns exactly one level (never strands), Left exits to groups. On a
+detail card, "▶ Play" and "↻ Resume at m:ss" are separate focusable rows.
+
+**Right menu (VOD):** Audio and Quality list real tracks from the loaded stream;
+Subtitles is a remote-friendly cycle button (`Off` → available tracks).
 
 ---
 

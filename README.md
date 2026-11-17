@@ -59,6 +59,21 @@ tizen install -n EN-IPTV_Player.wgt -s <TV_IP>
 | 📶 Smart playback | Auto quality, stream-format auto-detection, live-token retry |
 | 🔔 Update checker | Opt-in notice when a new version is available |
 | 🎮 Remote-first | Full Samsung remote support incl. color keys & channel up/down |
+| 🎬 Movies & Series | Add a direct URL, M3U or your own JSON library; browse titles, episodes, resume where you left off |
+| 🎧 Track pickers | Audio, subtitle and quality selection on the loaded stream |
+| 🩺 Diagnostics | Copy a bounded log from Settings → About when reporting a problem |
+
+### Movies & Series
+
+Open the left sidebar and choose **🎬 Library**. To add titles, go to
+Settings → About → **Add movie or series** and enter a **direct stream URL**,
+an **M3U playlist URL**, or a **JSON library URL** (a list of entries, or
+`{ "movies": [...] }`). The TV fetches the source directly — arbitrary web
+pages are not supported because TVs cannot read them across origins.
+
+Pick a title → **Play**, or **Resume at m:ss** to continue. Series open a
+season/episode list; Back always returns one level. The Right menu offers
+Audio, Subtitles and Quality pickers for the loaded stream.
 
 ---
 
