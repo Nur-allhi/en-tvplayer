@@ -36,6 +36,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         format: 'iife',
+        // The feature registry uses import() (T-171). Rollup cannot split
+        // chunks under IIFE, so inline them into the single bundle.
+        inlineDynamicImports: true,
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
       },
@@ -46,9 +49,7 @@ export default defineConfig({
       name: 'tizen-html-transform',
       closeBundle() {
         const html = fs.readFileSync(path.resolve(__dirname, 'dist/index.html'), 'utf-8');
-        const fixed = html
-          .replace(/\s+type="module"/g, '')
-          .replace(/\s+crossorigin/g, '');
+        const fixed = html.replace(/\s+type="module"/g, '').replace(/\s+crossorigin/g, '');
         fs.writeFileSync(path.resolve(__dirname, 'dist/index.html'), fixed);
       },
     },

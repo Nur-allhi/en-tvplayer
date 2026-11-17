@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-171: app/plugins.js registry — @nightshift (isolated worktree)
+
+**Ticket:** T-171 ✅ · **Branch:** `feature/t-171-plugins-registry` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New `player/src/app/plugins.js` — pure registry with `FEATURES`, `isEnabled`,
+  `getEnabledFeatures`, `getEnabledRoutes`, `getEnabledMenuEntries` and
+  `registerFeature`. 21 tests in `plugins.test.js`, including the acceptance
+  contract: disabling a feature drops both its remote routes and sidebar rows
+  with no other edit.
+- `app/index.js` — `refreshProxyMenu()` now asks `isEnabled('proxyTesting')`
+  first, so one flag hides both the button and its label. Default-on, so this
+  is behaviour-identical today.
+- `player/vite.config.js` — `inlineDynamicImports: true` under
+  `rollupOptions.output`, so the registry's future `import()` calls survive
+  the IIFE build.
+
+**Verified**
+- All gates green: `npm test` 363 passed (21 new), lint, format:check, validate
+  (92 files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- Build confirmed the IIFE bundle still emits one JS asset.
+- **No TV connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Full acceptance cannot land in this ticket alone: features are still
+  hard-wired into `app/remote*.js` and `shell.js`, and no `features/` folder
+  exists. T-172 migrates them, T-173 routes keys through `getEnabledRoutes()`.
+  Gated the one existing UI-only feature (proxy test menu) so the registry is
+  live and the mechanism is exercised in the app today.
+- `FEATURES` has no `load: () => import(...)` yet — those files do not exist,
+  and an unresolved dynamic import would break the build. Added them with the
+  feature modules in T-172 instead.
+- Worked on T-171 while another active nightshift session held T-170 in the
+  main worktree. Used a separate git worktree (`en-tvplayer-wt-t171`) and
+  linked `node_modules` by junction; no shared files were edited here.
+
+**Watch out**
+- Two runs merged to `dev` in the same window. T-170's docs edits and this
+  ticket's may conflict in `AUTONOMY.md`, `TICKETS.md` and `SESSION_LOG.md`;
+  resolve by keeping both tickets done and `NEXT = T-172`.
+- The proxy menu stays hidden on TV hosts regardless of the flag — the
+  localhost/setting checks still apply after the registry gate.
+
+**Next**
+- T-172 — migrate existing features to plugins.
+
+---
+
 ## 2026-11-17 — T-162: accessibility pass — @nightshift (batch run)
 
 **Ticket:** T-162 ✅ · **Branch:** `feature/t-162-accessibility` → `dev`

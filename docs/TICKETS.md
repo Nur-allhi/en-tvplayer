@@ -903,6 +903,14 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** disabling a feature removes all its UI and remote bindings
   with no other file edited.
 - **Spec detail:** `docs/v4.PLAN.md` §3.3.
+- **Status:** ✅ done 2026-11-17 — pure `app/plugins.js` with `FEATURES`,
+  `isEnabled`, `getEnabledFeatures`, `getEnabledRoutes`, `getEnabledMenuEntries`
+  and `registerFeature`; 21 registry tests. The proxy test menu now reads its
+  visibility from the registry, so flipping `enabled: false` removes it with no
+  other edit. `inlineDynamicImports: true` set in the Vite config. All gates +
+  tizen green. **Note:** full acceptance waits on T-172 (migrate features into
+  `features/`) and T-173 (dispatch remote actions through registered routes) —
+  until then most bindings are still hard-wired.
 
 ### T-172 — Migrate existing features to plugins
 - **Type:** refactor · **Priority:** P0 · **Size:** M

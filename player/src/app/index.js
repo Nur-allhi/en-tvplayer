@@ -6,6 +6,7 @@ import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
+import { isEnabled } from './plugins.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
 import './onboarding.js';
@@ -39,6 +40,15 @@ applyResponsiveScale();
 // Settings → Playback → Proxy menu enabled. Called on boot and every time
 // Settings closes (settings.hide() never fires the onClose callback).
 function refreshProxyMenu() {
+  const btn = document.getElementById('proxy-toggle-btn');
+  const label = document.getElementById('proxy-testing-label');
+  // The registry owns visibility: disabling proxyTesting here hides both rows
+  // without editing this file or the shell's click binding.
+  if (!isEnabled('proxyTesting')) {
+    if (btn) btn.classList.add('hidden');
+    if (label) label.classList.add('hidden');
+    return;
+  }
   const host = (typeof window !== 'undefined' && window.location.hostname) || '';
   const isLocalhost =
     host === 'localhost' ||
@@ -47,9 +57,7 @@ function refreshProxyMenu() {
     host.endsWith('.local') ||
     /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
   const show = isLocalhost && getSettings().showProxyMenu === true;
-  const btn = document.getElementById('proxy-toggle-btn');
   if (btn) btn.classList.toggle('hidden', !show);
-  const label = document.getElementById('proxy-testing-label');
   if (label) label.classList.toggle('hidden', !show);
 }
 
