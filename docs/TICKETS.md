@@ -959,6 +959,9 @@ A ticket is only `done` when it meets the **Definition of Done**
   exposes add/remove/find/search on the T-170 `vodState` store. 29 new tests
   (13 media-id + 16 store), 469 total, all gates green incl. WGT signing with
   the correct certificate. No TV verification claimed.
+- **Note:** two runs designed T-180 independently. This merge keeps the pure
+  `lib/` + `state/` split with debounced `app/vod-store.js` persistence; the
+  alternative self-persisting store was dropped. Boot calls `hydrateVod()`.
 
 ### T-181 — Add media by URL / manifest
 - **Type:** feat · **Priority:** P0 · **Size:** M (~250 LOC)

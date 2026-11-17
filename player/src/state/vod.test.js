@@ -1,177 +1,139 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { vodState } from './index.js';
 import {
-  toMediaEntry,
-  loadLibrary,
-  getLibrary,
+  normalizeMediaEntry,
+  normalizeEpisodes,
   addMedia,
+  mergeMedia,
   removeMedia,
+  reorderMedia,
+  clearMedia,
   findMedia,
   setVodSearch,
-  persistLibrary,
+  library,
 } from './vod.js';
-import { vodState } from './index.js';
-import { mediaId } from '../lib/media-id.js';
 
-const KEY = 'en_settings';
-const store = new Map();
+const movie = (url, title) => ({ url, title, type: 'movie' });
 
 beforeEach(() => {
-  store.clear();
-  globalThis.localStorage = {
-    getItem: (k) => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: (k) => store.delete(k),
-    clear: () => store.clear(),
-  };
-  vodState.set({ library: [], search: '' });
+  clearMedia();
+  setVodSearch('');
 });
 
-const stored = () => (store.has(KEY) ? JSON.parse(store.get(KEY)) : {});
-
-describe('toMediaEntry', () => {
-  it('derives a stable id and defaults the title from the URL', () => {
-    const entry = toMediaEntry({ url: 'https://host/a.mp4' });
-    expect(entry).toMatchObject({
-      id: mediaId('https://host/a.mp4'),
-      url: 'https://host/a.mp4',
-      title: 'https://host/a.mp4',
-      type: 'movie',
-    });
+describe('normalise', () => {
+  it('derives an id from the url when none is given', () => {
+    const entry = normalizeMediaEntry(movie('https://a.example/1', 'One'));
+    expect(entry.id).toMatch(/^m-[0-9a-f]{8}$/);
   });
 
-  it('keeps a supplied id, title and optional fields', () => {
-    const entry = toMediaEntry({
-      id: 'custom',
-      title: 'Film',
-      url: 'https://host/a.mp4',
-      type: 'movie',
-      year: 2024,
-      genres: ['Drama'],
-      duration: 3600,
-      resumeAt: 120,
-    });
-    expect(entry).toMatchObject({
-      id: 'custom',
-      title: 'Film',
-      year: 2024,
-      genres: ['Drama'],
-      duration: 3600,
-      resumeAt: 120,
-    });
+  it('keeps a supplied id', () => {
+    expect(normalizeMediaEntry({ ...movie('https://a.example/1', 'One'), id: 'custom' }).id).toBe('custom');
   });
 
-  it('normalizes series episodes with stable ids', () => {
-    const entry = toMediaEntry({
-      url: 'https://host/series.m3u8',
+  it('rejects an entry without a url', () => {
+    expect(normalizeMediaEntry({ title: 'No URL' })).toBeNull();
+  });
+
+  it('copies genres instead of sharing the input array', () => {
+    const genres = ['Action'];
+    const entry = normalizeMediaEntry({ ...movie('https://a.example/1', 'One'), genres });
+    expect(entry.genres).not.toBe(genres);
+  });
+
+  it('normalises series episodes with stable ids', () => {
+    const entry = normalizeMediaEntry({
+      url: 'https://a.example/show',
+      title: 'Show',
       type: 'series',
-      episodes: [
-        { title: 'Pilot', url: 'https://host/e1.mp4', season: 1, number: 1 },
-        { title: 'Two', url: 'https://host/e2.mp4', season: 1, number: 2 },
-      ],
+      episodes: [{ url: 'https://a.example/e1', title: 'Pilot', season: 1, number: 1 }],
     });
-    expect(entry.type).toBe('series');
-    expect(entry.episodes).toHaveLength(2);
-    expect(entry.episodes[0].id).toMatch(/_s1e1$/);
-    expect(entry.episodes[1].id).toMatch(/_s1e2$/);
-    expect(entry.episodes[0].id).toBe(entry.episodes[0].id);
+    expect(entry.episodes[0].id).toBe(entry.id + '-s1e1');
   });
 
-  it('rejects an entry without a URL', () => {
-    expect(toMediaEntry({ title: 'No URL' })).toBeNull();
-    expect(toMediaEntry(null)).toBeNull();
-    expect(toMediaEntry({ url: '   ' })).toBeNull();
-  });
-
-  it('does not attach episodes to a movie', () => {
-    const entry = toMediaEntry({ url: 'https://host/a.mp4', episodes: [{ url: 'https://host/e.mp4' }] });
-    expect(entry.episodes).toBeUndefined();
+  it('ignores invalid episodes', () => {
+    expect(normalizeEpisodes([{ title: 'no url' }, { url: 'https://a/e' }], 'm-x')).toHaveLength(1);
   });
 });
 
-describe('VOD library store and persistence', () => {
-  it('loads and normalizes the library from en_settings.movies', () => {
-    store.set(KEY, JSON.stringify({ movies: [{ url: 'https://host/a.mp4' }] }));
-    const library = loadLibrary();
-    expect(library).toHaveLength(1);
-    expect(library[0].id).toBe(mediaId('https://host/a.mp4'));
-    expect(getLibrary()).toBe(library);
+describe('library storage', () => {
+  it('adds entries to the store', () => {
+    addMedia([movie('https://a.example/1', 'One'), movie('https://a.example/2', 'Two')]);
+    expect(library()).toHaveLength(2);
   });
 
-  it('returns an empty library when nothing is stored', () => {
-    expect(loadLibrary()).toEqual([]);
-    expect(getLibrary()).toEqual([]);
-  });
-
-  it('adds media and persists it under en_settings.movies', () => {
-    const entry = addMedia({ url: 'https://host/a.mp4', title: 'A' });
-    expect(entry.id).toBe(mediaId('https://host/a.mp4'));
-    expect(getLibrary()).toHaveLength(1);
-    expect(stored().movies).toHaveLength(1);
-    expect(stored().movies[0].id).toBe(entry.id);
-  });
-
-  it('updates an existing entry instead of duplicating it', () => {
-    addMedia({ url: 'https://host/a.mp4', resumeAt: 10 });
-    addMedia({ url: 'https://host/a.mp4', resumeAt: 99 });
-    expect(getLibrary()).toHaveLength(1);
-    expect(getLibrary()[0].resumeAt).toBe(99);
-  });
-
-  it('keeps ids stable when entries are added in a different order', () => {
-    addMedia({ url: 'https://host/a.mp4' });
-    addMedia({ url: 'https://host/b.mp4' });
-    const first = getLibrary().map((m) => m.id);
-    store.clear();
-    vodState.set({ library: [], search: '' });
-    addMedia({ url: 'https://host/b.mp4' });
-    addMedia({ url: 'https://host/a.mp4' });
-    expect(new Set(getLibrary().map((m) => m.id))).toEqual(new Set(first));
-  });
-
-  it('keeps ids stable across a re-fetch of the same manifest', () => {
-    const manifest = [{ url: 'https://host/a.mp4?token=one' }, { url: 'https://host/b.mp4' }];
-    store.set(KEY, JSON.stringify({ movies: manifest }));
-    const ids = loadLibrary().map((m) => m.id);
-    store.set(
-      KEY,
-      JSON.stringify({ movies: [{ url: 'https://host/a.mp4?token=two' }, { url: 'https://host/b.mp4' }] }),
-    );
-    expect(loadLibrary().map((m) => m.id)).toEqual(ids);
-  });
-
-  it('removes media and persists the removal', () => {
-    const entry = addMedia({ url: 'https://host/a.mp4' });
-    expect(removeMedia(entry.id)).toBe(true);
-    expect(getLibrary()).toHaveLength(0);
-    expect(stored().movies).toHaveLength(0);
-  });
-
-  it('reports when there is nothing to remove', () => {
-    expect(removeMedia('missing')).toBe(false);
+  it('does not duplicate an id on a second add', () => {
+    const entry = movie('https://a.example/1', 'One');
+    addMedia([entry]);
+    addMedia([entry]);
+    expect(library()).toHaveLength(1);
   });
 
   it('finds an entry by id', () => {
-    const entry = addMedia({ url: 'https://host/a.mp4', title: 'A' });
-    expect(findMedia(entry.id)).toMatchObject({ title: 'A' });
+    addMedia(movie('https://a.example/1', 'One'));
+    expect(findMedia(library()[0].id).title).toBe('One');
+  });
+
+  it('returns null for a missing id', () => {
     expect(findMedia('missing')).toBeNull();
   });
 
-  it('stores the cross-item search string separately', () => {
-    setVodSearch('film');
-    expect(vodState.get().search).toBe('film');
+  it('removes an entry by id', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    expect(removeMedia(library()[0].id)).toBe(1);
+    expect(library()).toHaveLength(0);
+  });
+
+  it('reports zero when removing an unknown id', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    expect(removeMedia('missing')).toBe(0);
+  });
+
+  it('clears the library', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    clearMedia();
+    expect(library()).toEqual([]);
+  });
+
+  it('keeps ids stable across a reorder', () => {
+    addMedia([movie('https://a.example/1', 'One'), movie('https://a.example/2', 'Two')]);
+    const before = library().map((entry) => entry.id);
+    expect(reorderMedia(0, 1)).toBe(true);
+    expect(library().map((entry) => entry.id)).toEqual([before[1], before[0]]);
+  });
+
+  it('rejects an out-of-range reorder', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    expect(reorderMedia(0, 5)).toBe(false);
+    expect(reorderMedia(-1, 0)).toBe(false);
+  });
+
+  it('keeps ids stable across a re-fetch', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    const id = library()[0].id;
+    mergeMedia([movie('https://a.example/1', 'One remastered')]);
+    expect(library()[0].id).toBe(id);
+    expect(library()[0].title).toBe('One remastered');
+  });
+
+  it('preserves resumeAt across a re-fetch', () => {
+    addMedia({ ...movie('https://a.example/1', 'One'), resumeAt: 42 });
+    mergeMedia([movie('https://a.example/1', 'One')]);
+    expect(library()[0].resumeAt).toBe(42);
+  });
+
+  it('adds new entries found during a re-fetch', () => {
+    addMedia(movie('https://a.example/1', 'One'));
+    mergeMedia([movie('https://a.example/2', 'Two')]);
+    expect(library()).toHaveLength(2);
+  });
+
+  it('stores the search query', () => {
+    setVodSearch('sea');
+    expect(vodState.get().search).toBe('sea');
+  });
+
+  it('normalises a non-string query', () => {
     setVodSearch(null);
     expect(vodState.get().search).toBe('');
-  });
-
-  it('loadLibrary resets the search', () => {
-    setVodSearch('film');
-    loadLibrary();
-    expect(vodState.get().search).toBe('');
-  });
-
-  it('persistLibrary writes the current library back', () => {
-    addMedia({ url: 'https://host/a.mp4' });
-    persistLibrary();
-    expect(stored().movies).toHaveLength(1);
   });
 });
