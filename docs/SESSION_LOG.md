@@ -44,6 +44,45 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-150 partial: splash slice landed, rest re-scoped — @maintainer
+
+**Ticket:** T-150 ⚠️ partial · **Branch:** `refactor/t-150-app-boot` → `dev`
+
+**What changed**
+- `app/state.js` — one shared object for the three boot timers.
+- `app/boot.js` (116 LOC) — `showBootSplash`, `startTypewriter`,
+  `hideBootSplash` moved verbatim; the boot constants they use.
+- `main.js` 1500 → 1397 LOC, importing the three functions.
+
+**Verified**
+- A byte-comparison script confirmed all three function bodies are identical to
+  HEAD modulo `state.` prefixes. 303 tests, lint, format, 0 new violations;
+  bundle +0.02 %; WGT signs.
+- Browser check: on a fresh profile the splash appears, the typewriter writes
+  "Smart IPTV Player for Samsung TV", and the splash hides itself. That is the
+  callback-chain acceptance (no fixed sleeps) with a real DOM. Only the
+  expected Tizen `$WEBAPIS` 404 in console.
+
+**Why partial, not full**
+T-150 also names `init`, `startPlayer`, first-run, onboarding, What's New and
+`restoreLastSession`. Those form a call graph with cycles through remote and
+channel functions (`init → handleRemoteAction → startPlayer → init`). A scripted
+text transform produced cascading parse/undefined errors; I reverted everything
+rather than commit broken code. This is the same class of problem T-121 hit and
+needs the same solution: an `app/deps.js` registry built deliberately, not a
+regex move. Needs a new ticket (T-150b) and a human decision on ordering.
+
+**Watch out**
+- `main.js` is still baselined at >300 LOC. T-152 was going to clear it; it
+  cannot until the rest of T-150 and T-151 land.
+- Machine-side: night shift disabled, dev servers stopped.
+
+**Next**
+- Create T-150b with the registry design, or reconsider the M5 order.
+- T-211 (onboarding crash) remains proposed and untouched.
+
+---
+
 ## 2026-11-17 — T-142: settings.js deleted, M4 complete — @maintainer
 
 **Ticket:** T-142 ✅ · **Branch:** `refactor/t-142-settings-playback` → `dev`
