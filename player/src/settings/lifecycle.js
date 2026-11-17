@@ -52,6 +52,7 @@ export function isVisible() {
 // remote action can reach those slices.
 import { saveAddPlaylist, saveEditPlaylist, setFormType, testXtreamLogin, handleFetch } from './playlists.js';
 import { groupNames } from './render-cards.js';
+import { saveAddMedia } from './media.js';
 
 Object.assign(deps, {
   render,
@@ -61,4 +62,5 @@ Object.assign(deps, {
   testXtreamLogin,
   handleFetch,
   groupNames,
+  importMediaSource: saveAddMedia,
 });

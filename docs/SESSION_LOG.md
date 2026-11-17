@@ -44,6 +44,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-181: add media by URL / manifest — @nightshift (isolated worktree)
+
+**Ticket:** T-181 ✅ · **Branch:** `feature/t-181-add-media` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New DOM-free `player/src/lib/media-source.js` — `detectSourceKind` (direct /
+  m3u / json / unknown), `m3uToMediaEntries` (maps `parseM3u` channels to
+  `{title,url}`) and `parseMediaManifest` (JSON array or `{movies:[…]}`, M3U,
+  or a single direct URL). All failures are plain-English sentences — never a
+  `SyntaxError` or a stack trace. 15 tests.
+- New `player/src/settings/media.js` — `importMediaSource` fetches playlist /
+  JSON text with the existing `fetchWithTimeout` helper and feeds each entry to
+  T-180's `addMedia`; `renderVodAddCard`, `setVodAddStatus` and `saveAddMedia`
+  provide a remote-reachable "Add movie or series" card with a live status line.
+- Wiring: `utils.js` exports `fetchWithTimeout`; a new `importMediaSource`
+  settings deps slot is wired in `lifecycle.js`; the About screen renders the
+  card and binds its button; the About focus order includes the field + button.
+
+**Verified**
+- All gates green: `npm test` 489 passed (15 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate.
+- **No TV is connected.** Import/fetch runs through a pure parser pinned by unit
+  tests; the on-TV add flow was not smoke-tested on hardware. No playback claim.
+
+**Decisions**
+- Took T-181 out of queue order: other active runs owned the earlier tickets,
+  so this was the next unclaimed ready item.
+- Reused `fetchWithTimeout` from `utils.js` (exported it) rather than inventing a
+  second fetch path; kept parsing pure in `lib/` so it is fully unit-testable.
+- Put the new card in the new `settings/media.js` instead of `render-cards.js`,
+  which had only 37 LOC of headroom under the 300 cap.
+
+**Watch out**
+- No page scraping by design — pages are not CORS-readable from the TV. Users
+  must supply a direct URL, M3U playlist or a JSON manifest they control.
+- The add form lives on the About screen (temporary home until T-182 builds the
+  dedicated Movies/Series browser).
+
+**Next**
+- T-182 — ui/library.js movies & series browser (queue order).
+
+---
+
 ## 2026-11-17 — T-173: remote-action routing via plugins — @nightshift (isolated worktree)
 
 **Ticket:** T-173 ✅ · **Branch:** `feature/t-173-remote-routing` → `dev`
@@ -85,6 +130,7 @@ first). Keep it short — the point is handover, not a diary.
 
 **Next**
 - T-180 — VOD data model + storage (landed in the same window; see entry below).
+
 
 ---
 

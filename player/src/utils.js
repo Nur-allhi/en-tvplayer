@@ -1,7 +1,7 @@
 import { fetchXtreamChannels } from './xtream.js';
 import { parseM3u } from './lib/m3u.js';
 
-function fetchWithTimeout(url, ms) {
+export function fetchWithTimeout(url, ms) {
   return Promise.race([
     fetch(url),
     new Promise((_, reject) =>

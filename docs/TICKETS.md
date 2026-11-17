@@ -970,6 +970,14 @@ A ticket is only `done` when it meets the **Definition of Done**
   the TV.
 - **Acceptance:** all three source kinds import; a malformed manifest shows a
   plain-English error, not a stack trace.
+- **Status:** ✅ done 2026-11-17 — DOM-free `lib/media-source.js` detects the
+  source kind (direct / M3U / JSON), maps M3U channels to media entries and
+  parses JSON arrays or `{ movies: […] }`, with 15 tests including plain-English
+  errors that never expose a `SyntaxError`. `settings/media.js` fetches with
+  the existing timeout helper, calls `addMedia` per entry and renders a
+  remote-reachable "Add movie or series" card on the About screen with a status
+  line. 489 tests, all gates green incl. WGT signing with the correct
+  certificate. No TV verification claimed.
 
 ### T-182 — `ui/library.js` — movies & series browser
 - **Type:** feat · **Priority:** P0 · **Size:** M (~250 LOC)
