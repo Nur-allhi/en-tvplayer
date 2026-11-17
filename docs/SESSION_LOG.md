@@ -80,6 +80,34 @@ first). Keep it short — the point is handover, not a diary.
 **Next**
 - Nothing in the ready queue. Human should review the `needs-tv` tickets on a
   TV and decide whether to reopen T-211.
+## 2026-11-17 — batch end: ready queue exhausted — @nightshift
+
+**Status:** ✅ stop condition met — `NEXT = none`
+
+**What changed**
+- `docs/AUTONOMY.md` — `NEXT` set to `none`: no `ready` rows remain. Every
+  ticket is `done`, `needs-tv`, `partial` (T-150, covered by the done T-152a…c)
+  or `proposed` (T-211, agent skips). The `needs-tv` rows cannot be completed
+  from this machine — no TV is connected.
+
+**Verified**
+- Final `dev` tip green on both GitHub checks (`Test · Lint · Build ·
+  Modularity` and `WGT packaging`); 620 tests passing.
+- No branch was left pointing at unmerged work from this run.
+
+**Decisions**
+- Did not start a `needs-tv` or `proposed` ticket: neither is agent-actionable,
+  and claiming TV verification is forbidden. That ends the run per stop
+  condition 3 (empty queue), well before the 19:30 clock cap.
+
+**Watch out**
+- `docs/REFINED_UX_REPORT.md` remains untouched (pre-existing user work).
+- Several overlapping nightshift runs worked this tree; check `origin/dev`
+  before any new ticket.
+
+**Next**
+- None — restart the queue only if new ready tickets are added or a TV becomes
+  available for the `needs-tv` rows.
 
 ---
 

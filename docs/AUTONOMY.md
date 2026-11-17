@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = none       # queue exhausted — ready rows all done
+NEXT        = none       # ready queue exhausted; remaining rows need TV or are proposed
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-202 by night shift (continuous run)
+LAST_RUN    = 2026-11-17 # T-202 by night shift; ready queue empty
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
