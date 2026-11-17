@@ -44,6 +44,54 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-201: Favorites feature — @nightshift (isolated worktree)
+
+**Ticket:** T-201 ✅ · **Branch:** `feature/t-201-favorites` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New `features/favorites.js` — owns the red-key route via T-173's `bindRoute`,
+  toggles the current channel URL in `en_settings.favorites` through
+  `getSettings`/`saveSettings`, and exports a contract. It self-registers at
+  boot (imported from `app/index.js`). **No change to `app/remote.js`** — the
+  acceptance proof that feature-owned keys work. 9 tests.
+- New DOM-free `lib/favorites.js` — `isFavorite`, `toggleFavorite` (returns a
+  new array, never mutates), `filterFavorites` and `favoritesGroup`. 12 tests.
+- Thin integration hooks for the pinned group: `ui/sidebar.js` prepends a
+  "Favourites" group when any exist; `ui/core.js` and `app/channels.js` filter
+  to favourited channels when that group is selected. No logic moved into app
+  slices — all feature decisions stay in the feature/lib modules.
+
+**Verified**
+- All gates green: `npm test` 543 passed (22 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate.
+- **No TV is connected.** The red-key toggle and group were exercised through
+  unit tests and the route dispatcher, not a hardware remote. No playback
+  claim made.
+
+**Decisions**
+- Took T-201 out of queue order: T-182/183 were claimed by other active runs,
+  so this was the next unclaimed ready item.
+- Used scout first (remote routing + group model, ~8 functions). It confirmed
+  red is reserved/unconsumed and dispatched before player actions, so binding a
+  route needs no remote.js edit.
+- Kept all feature behaviour in `features/favorites.js` + pure `lib/favorites.js`;
+  the sidebar/channel edits are thin delegation hooks only. The pinned group
+  cannot be done purely via the existing deps slots, so those three hook lines
+  were the minimum needed to surface it.
+
+**Watch out**
+- Channel identity is the URL string (matches resume). A URL change on playlist
+  refresh drops the favourite — same trade-off as resume.
+- Disabling the `favorites` feature leaves `en_settings.favorites` data intact;
+  only its red route and group disappear.
+
+**Next**
+- T-202 — info bar with clock (queue order; another run may own it).
+
+---
+
 ## 2026-11-17 — batch handover: parallel-run reconciliation — @nightshift
 
 **Status:** ✅ final `dev` green on both CI checks
@@ -114,6 +162,7 @@ first). Keep it short — the point is handover, not a diary.
 
 **Next**
 - T-181 — add media by URL (landed in the same window; see entry below), then T-183.
+
 
 ---
 

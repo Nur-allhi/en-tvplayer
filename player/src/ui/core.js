@@ -3,8 +3,9 @@
 // imported one-way; calls back from them come through deps.js, wired locally.
 
 import { escapeHtml } from '../utils.js';
-import { getHiddenGroups } from '../config.js';
+import { getHiddenGroups, getSettings } from '../config.js';
 import { filterDisplayChannels } from '../logic.js';
+import { FAVORITES_GROUP, filterFavorites } from '../lib/favorites.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
 import { extractGroups, renderGroupList, updateSidebarTitle } from './sidebar.js';
@@ -230,6 +231,9 @@ export function selectFocused() {
 }
 
 export function getDisplayChannels() {
+  if (state.selectedGroup === FAVORITES_GROUP) {
+    return filterFavorites(state.channels, getSettings().favorites);
+  }
   return filterDisplayChannels(state.channels, getHiddenGroups(), state.selectedGroup);
 }
 

@@ -1113,6 +1113,14 @@ A ticket is only `done` when it meets the **Definition of Done**
   stored in `en_settings.favorites`; implemented as a plugin.
 - **Acceptance:** implemented entirely inside `features/favorites.js` — no
   change to `app/remote.js` (proves T-173).
+- **Status:** ✅ done 2026-11-17 — `features/favorites.js` binds the red key
+  through T-173's route dispatch (app/remote.js untouched), toggles the current
+  channel URL in `en_settings.favorites` and exports its contract; 9 feature
+  tests. Pure helpers in `lib/favorites.js` (12 tests) build a pinned
+  "Favourites" group; thin hooks in `ui/sidebar.js`, `ui/core.js` and
+  `app/channels.js` surface that group and filter its channels. 543 tests, all
+  gates green incl. WGT signing with the correct certificate. No TV
+  verification claimed.
 
 ### T-202 — Info bar with clock
 - **Type:** feat · **Priority:** P2 · **Size:** S (~120 LOC)

@@ -4,12 +4,16 @@
 import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups } from '../config.js';
 import { fetchPlaylistEntry, fetchPlaylistWithRetry } from '../utils.js';
 import { filterDisplayChannels, findIntentIndex } from '../logic.js';
+import { FAVORITES_GROUP, filterFavorites } from '../lib/favorites.js';
 import * as player from '../player/index.js';
 import * as ui from '../ui/index.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
 
 function getDisplayChannels() {
+  if (state.selectedGroup === FAVORITES_GROUP) {
+    return filterFavorites(state.channels, getSettings().favorites);
+  }
   return filterDisplayChannels(state.channels, getHiddenGroups(), state.selectedGroup);
 }
 async function refreshChannelsInBackground() {
