@@ -25,3 +25,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T10:02:57.826Z | `4d837c9` | merge: include concurrent T-186 and reconciliation (T-173) | 33/46 | 7 | T-180 |
 | 2026-11-17T10:05:11.864Z | `9fe093d` | merge: include concurrent T-180 VOD store (T-173) | 34/46 | 6 | T-181 |
 | 2026-11-17T10:15:17.871Z | `9610612` | merge: include concurrent T-181 media import (T-182) | 36/46 | 4 | T-181 |
+| 2026-11-17T10:17:51.844Z | `9f2ac80` | fix(ui): read the library from the reconciled VOD store (T-182) | 36/46 | 4 | T-181 |
