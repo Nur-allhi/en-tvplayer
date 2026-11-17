@@ -895,6 +895,9 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** `createStore` + `subscribe`. Convert `ui/state.js` (T-130) and
   `app` globals into `appState`, `uiState`, `vodState`.
 - **Acceptance:** ≥ 15 tests on the store; no behaviour change.
+- **Status:** ✅ done 2026-11-17 — `state/createStore.js` with 19 tests;
+  `appState`/`uiState`/`vodState` exported and wired behind the unchanged
+  `state` objects. All gates + tizen green; no TV connected.
 
 ### T-171 — `app/plugins.js` registry
 - **Type:** feat · **Priority:** P0 · **Size:** S (~60 LOC)

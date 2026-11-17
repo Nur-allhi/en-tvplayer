@@ -1,29 +1,12 @@
-// Shared app state, one object (Risk C). Every M5 slice imports this instead
-// of owning its own copy of the mutable boot/tune/remote variables — a
-// per-slice copy would make the fast-zap guard and boot-resume comparisons
-// silently stop working. Extracted in T-152a; behaviour-neutral.
-export const state = {
-  // T-150 boot timers
-  bootTypewriterTimer: null,
-  bootShownAt: 0,
-  bootTypewriterEnd: 0,
+// Shared app state (T-152a, now store-backed in T-170). Every M5 slice imports
+// this exact reference; a per-slice copy would break the fast-zap guard and
+// boot-resume comparisons. The Proxy from state/ keeps that identity stable.
 
-  // T-152a shared app variables
-  currentIndex: 0,
-  channels: undefined,
-  selectedGroup: null,
-  bufferingInterval: null,
-  bufferingActive: false,
-  cleanupListeners: [],
-  playbackStarted: false,
-  tuneSucceeded: false,
-  lastIntent: null,
-  tuneSeq: 0,
-  pendingUpdate: null,
-  onboardFocus: 0,
-  progressActive: false,
-  lastBackTime: 0,
-};
+import { appState } from '../state/index.js';
+
+export { appState };
+
+export const state = appState.get();
 
 // Extra hold after the tagline when no playlist fetch runs (was main.js:314).
 // Lives here so the onboarding and startup slices share one value.

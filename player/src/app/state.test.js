@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state, BOOT_IDLE_HOLD_MS } from './state.js';
+import { state, appState, BOOT_IDLE_HOLD_MS } from './state.js';
 
 // T-152a: `state` is the shared object every app slice imports. These tests
 // pin the two properties that make the M5 split survivable: one stable
@@ -29,6 +29,18 @@ describe('app state — shared identity', () => {
   it('is a single object, not a factory result', () => {
     expect(typeof state).toBe('object');
     expect(state).toBe(state);
+  });
+
+  it('is the live value of the appState store (T-170)', () => {
+    expect(state).toBe(appState.getState());
+  });
+
+  it('lets a slice setState() without losing the shared reference', () => {
+    const other = state;
+    appState.setState({ tuneSeq: 5 });
+    expect(state).toBe(other);
+    expect(state.tuneSeq).toBe(5);
+    state.tuneSeq = 0;
   });
 
   it('holds every shared variable', () => {
