@@ -1135,6 +1135,10 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** a brief OSD after a channel switch showing name, group,
   resolution, stream type, and the clock.
 - **Acceptance:** auto-hides after 8 s; plugin-implemented.
+- **Status:** ✅ done 2026-11-17 — `features/info-bar.js` plugin subscribes to
+  the reactive `uiState` (no core edit), shows name/group/resolution/stream
+  type/clock and auto-hides after 8 s; pure formatter + 30 tests. Browser smoke
+  confirmed render and 8 s hide. All gates + tizen green; no TV claim.
 
 ### T-203 — GitHub issue templates
 - **Type:** chore · **Priority:** P1 · **Size:** XS
