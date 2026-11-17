@@ -952,6 +952,13 @@ A ticket is only `done` when it meets the **Definition of Done**
   `media-id.js` slug helper, and a `vodState` store persisted under
   `en_settings.movies`.
 - **Acceptance:** ≥ 20 tests; ids are stable across reordering and re-fetch.
+- **Status:** ✅ done 2026-11-17 — `lib/media-id.js` derives a stable FNV-1a
+  slug from a normalized URL (query/fragment stripped, host lowercased); ids
+  survive re-fetch and reordering. `state/vod.js` canonicalizes MediaEntry /
+  Episode objects, loads and saves the library through `en_settings.movies` and
+  exposes add/remove/find/search on the T-170 `vodState` store. 29 new tests
+  (13 media-id + 16 store), 469 total, all gates green incl. WGT signing with
+  the correct certificate. No TV verification claimed.
 
 ### T-181 — Add media by URL / manifest
 - **Type:** feat · **Priority:** P0 · **Size:** M (~250 LOC)
