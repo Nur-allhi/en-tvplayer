@@ -36,6 +36,10 @@ const SLOT_NAMES = [
   'loadViaAvplay',
   'switchToAvplay',
   'shouldTryNative',
+  // T-123 additions (index hub wires these cross-slice).
+  'reloadChannel',
+  'scheduleForbiddenReload',
+  'showTerminal',
 ];
 
 // Snapshot every slot before each test and restore afterwards so registration

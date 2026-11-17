@@ -4,11 +4,6 @@
     "file": "player/src/main.js",
     "detail": "1590 LOC exceeds 300"
   },
-  "loc:player/src/player.js": {
-    "rule": "loc",
-    "file": "player/src/player.js",
-    "detail": "1465 LOC exceeds 300"
-  },
   "loc:player/src/settings.js": {
     "rule": "loc",
     "file": "player/src/settings.js",
@@ -18,10 +13,5 @@
     "rule": "exports",
     "file": "player/src/logic.js",
     "detail": "17 exports exceeds 15"
-  },
-  "exports:player/src/player.js": {
-    "rule": "exports",
-    "file": "player/src/player.js",
-    "detail": "24 exports exceeds 15"
   }
 }

@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-123: the M2 hub lands, player.js deleted — @maintainer
+
+**Ticket:** T-123 ✅ · **Branch:** `refactor/t-123-index-hub` → `dev`
+**Status:** ✅ done — **Milestone 2 complete**
+
+**What changed**
+- **`player/src/player.js` deleted.** `player/index.js` is the only entry;
+  both importers (`main.js`, `settings.js`) now use `./player/index.js`.
+- Six new slices under 300 LOC each: `dom.js`, `watchdog.js`, `recover.js`,
+  `native.js`, `probe.js`, `controls.js`. The remaining functions moved
+  verbatim; cross-slice calls go through `deps` slots.
+- **Every slice self-wires its own deps slots.** `index.js` is therefore a
+  pure `export *` hub, which is the shape `npm run validate` recognises as
+  legitimate. It exports exactly the 24 public names — verified by script.
+- `init.js` no longer exports `destroyPlayer`/`notifyBufferingProgress`:
+  they are internal, used only through deps. That keeps the hub's surface at 24.
+- **Modularity baseline 7 → 3.** The `player.js` LOC and exports violations
+  are genuinely gone (file deleted), not suppressed. `--update` run.
+
+**Verified**
+- 291 tests (3 new hub-wiring tests), lint clean, format clean, zero cycles.
+- Bundle 947.8 → 948.7 kB (**+0.09 %**), WGT signs (472.1 KB).
+- A static audit confirms all **31 deps slots are wired exactly once** and
+  every wiring slice is reachable from the hub. A runtime test of the hub was
+  impossible in node because `init.js` imports Shaka, which needs `self`.
+
+**Decisions**
+- **Pure hub via `export *`** rather than named re-exports: the validator
+  exempts a zero-own-export hub and still resolves/checks surface at the
+  owning slices. Named re-exports would have looked like 24 own exports on
+  the hub and tripped the 15-export rule.
+- **Self-wiring slices** instead of a central Object.assign: it keeps the hub
+  pure and means adding a slice cannot forget to wire its slots elsewhere.
+
+**Watch out**
+- Deleting `player.js` means the old import path is gone. Any external tool
+  or snippet still importing `./player.js` will break — grep showed only the
+  two updated importers in this repo.
+- The WGT name still carries the last commit hash (`745a24c`), not this work.
+  It only proves signing works.
+- No TV attached. All of M2 owes a hardware smoke test.
+
+**Next**
+- M2 is done. Queue **NEXT = T-140** (settings split), then app layer, design
+  system, state store, VOD, Tizen 5.0 compatibility.
+- The scheduled task remains disabled at the maintainer's request.
+
+---
+
 ## 2026-11-17 — T-127: the last hard M2 slice, done manually — @maintainer
 
 **Ticket:** T-127 ✅ · **Branch:** `refactor/t-127-player-load` → `dev`

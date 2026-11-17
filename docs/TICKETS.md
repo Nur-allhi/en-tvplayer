@@ -462,8 +462,13 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Type:** refactor · **Priority:** P0 · **Size:** XS
 - **Acceptance:** `player.js` gone; `player/index.js` is the only entry;
   every importer updated; full suite green.
-- **Status:** ✅ unblocked 2026-11-17 — T-124…T-127 landed. Still owns
-  watchdog/recovery paths and DOM helpers; those can move in T-128 if needed.
+- **Status:** ✅ done 2026-11-17 — `player.js` deleted;
+  `player/index.js` is the only entry and re-exports the same 24 names via
+  `export *`. Both importers updated. Remaining functions moved into six
+  slices (dom, watchdog, recover, native, probe, controls), all under 300 LOC;
+  each slice self-wires its deps slots. 291 tests (3 new hub-wiring tests);
+  bundle +0.09 %; zero cycles; WGT signs. Modularity baseline 5 → 3 — the two
+  `player.js` violations are genuinely resolved, not suppressed.
   **Previously:** ⛔ blocked 2026-11-16 — still owned `initPlayer`, `loadChannel`,
   the recovery/watchdog paths and the DOM helpers that T-121 was meant to
   extract. It cannot be deleted until **T-124 → T-127** land in order; the
