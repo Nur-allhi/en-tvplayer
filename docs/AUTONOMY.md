@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = none        # T-150 partial, T-150b proposed — awaiting maintainer decision
+NEXT        = T-152a     # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
 LAST_RUN    = 2026-11-17 # T-124 + T-125 + T-126 by night shift; T-127 manual
 ```
@@ -56,12 +56,20 @@ then commits those doc changes with the ticket's work.
 ## Stop conditions — any one ends the run
 
 1. `BATCH_LIMIT` tickets processed.
-2. Two consecutive tickets blocked.
+2. Clock reaches **19:30 Asia/Dhaka** — do not start another ticket.
 3. Queue empty (`NEXT = none`).
-4. `dev` CI red after three fix attempts.
-5. Any step would require overriding a hard policy (main, release, signing key).
+4. A hard policy would have to be overridden (main, release, signing key).
 
-A goal is **not** complete while `dev` has a red check.
+**A blocked ticket is NOT a stop condition.** Record it with the gate output,
+set `NEXT` to the next `ready` row, and continue. Never wait for the maintainer.
+`dev` CI must be green before moving on; retry a fix up to three times, then
+mark blocked and continue.
+
+## Reporting
+
+The `post-commit` hook appends one row to `docs/AUTONOMY_REPORT.md` after every
+commit: timestamp, SHA, subject, queue done/total, ready count and `NEXT`.
+That is the report the maintainer reads — no chat reply is required.
 
 ## Hard rules (also enforced by `.opencode/opencode.jsonc` policies)
 
@@ -88,51 +96,52 @@ with the exact gate output; agent skipped it.
 
 | Order | Ticket | Scope | State | Depends / note |
 |------:|--------|-------|-------|----------------|
-| 1 | T-121 | M2 engine split — now an umbrella | done | re-scoped 2026-11-17; closed by T-124…T-127 |
-| 2 | T-122 | `player/events.js` + `player/stream.js` | done | merged + gated 2026-11-16 |
-| 3 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
-| 4 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
-| 5 | T-132 | `ui/osd.js` | done | z-index contract intact (CSS untouched); merged + gated 2026-11-16 |
-| 6 | T-133 | `ui/sidebar.js` + `ui/search.js` | done | merged + gated 2026-11-17; deps registry added |
-| 7 | T-134 | `ui/right-menu.js` | done | merged + gated 2026-11-17 |
-| 8 | T-135 | `ui/core.js` + delete `ui.js` | done | merged + gated 2026-11-17; hub is 74 names |
-| 9 | T-124 | `player/deps.js` — dependency registry | done | merged + gated 2026-11-17 |
-| 10 | T-125 | pure helpers out of `loadChannel` | done | merged + gated 2026-11-17 |
-| 11 | T-126 | `player/init.js` — init + destroy | done | merged + gated 2026-11-17 |
-| 12 | T-127 | `player/load.js` + `load-error.js` | done | merged + gated 2026-11-17; 24-name API intact |
-| 13 | T-123 | delete `player.js`, `player/index.js` hub | done | merged + gated 2026-11-17; M2 complete |
-| 14 | T-140 | `settings/nav.js` + `select.js` | done | merged + gated 2026-11-17; settings.js 698 LOC |
-| 15 | T-141 | `settings/render.js` + `playlists.js` + `render-cards.js` | done | merged + gated 2026-11-17; settings.js 56 LOC |
-| 16 | T-142 | `settings/playback.js` + `settings/index.js` | done | merged + gated 2026-11-17; M4 complete |
-| 17 | T-150 | `app/boot.js` splash staging | partial | merged + gated 2026-11-17; rest needs T-150b |
-| 18 | T-150b | app boot/startup registry + remaining slices | proposed | needs human decision; before T-152 |
-| 19 | T-151 | `app/remote.js` | ready | depends on T-150b |
-| 19 | T-152 | `app/index.js` + `main.js` entry | ready | |
-| 20 | T-153 | release script follows changelog move | ready | **same commit as T-152** — release path must never break |
-| 21 | T-160 | design tokens | ready | |
-| 22 | T-161 | split `styles.css` | ready | |
-| 23 | T-162 | accessibility pass | ready | |
-| 24 | T-170 | `state/` store | ready | T-170 is the reactive store, not T-160 |
-| 25 | T-171 | `app/plugins.js` registry | ready | |
-| 26 | T-172 | migrate features to plugins | ready | |
-| 27 | T-173 | remote-action routing via plugins | ready | |
-| 28 | T-180 | VOD data model + storage | ready | |
-| 29 | T-181 | add media by URL / manifest | ready | the *first* T-181 (VOD), not the settings one |
-| 30 | T-182 | `ui/library.js` — movies & series | ready | |
-| 31 | T-183 | episode browsing + resume | ready | |
-| 32 | T-184 | audio / subtitle / quality pickers | needs-tv | hardware pickers |
-| 33 | T-185 | VOD playback integration | needs-tv | |
-| 34 | T-186 | v4 settings schema migration | ready | was T-181; additive + idempotent, never change `en_settings` key |
-| 35 | T-190 | `features/tizen-compat.js` | needs-tv | no TV here — gated code only |
-| 36 | T-191 | engine fallback messaging | needs-tv | |
-| 37 | T-192 | about panel: engine + platform info | ready | |
-| 38 | T-200 | log ring buffer + copy diagnostics | ready | |
-| 39 | T-201 | favorites feature | ready | |
-| 40 | T-202 | info bar with clock | ready | |
-| 41 | T-203 | GitHub issue templates | ready | |
-| 42 | T-209 | enforced commit message format | done | hook exists and is machine-checked |
-| 43 | T-211 | first-run onboarding null container | proposed | browser bug; agent must not pick up until prioritised |
-| — | T-100…T-115, T-120, T-129, T-208, T-210 | Phase 0–1 + recovery/state | done | see `docs/TICKETS.md` status lines |
+| 1 | T-121 | M2 engine split — umbrella | done | closed by T-124…T-127 |
+| 2 | T-122 | player/events + stream | done | merged + gated |
+| 3 | T-130 | ui/state.js | done | merged + gated |
+| 4 | T-131 | ui/dialogs.js | done | merged + gated |
+| 5 | T-132 | ui/osd.js | done | merged + gated |
+| 6 | T-133 | ui/sidebar + search | done | merged + gated |
+| 7 | T-134 | ui/right-menu.js | done | merged + gated |
+| 8 | T-135 | ui/core.js, delete ui.js | done | merged + gated |
+| 9 | T-124 | player/deps.js registry | done | cycle breaker |
+| 10 | T-125 | pure load helpers | done | merged + gated |
+| 11 | T-126 | player/init.js | done | merged + gated |
+| 12 | T-127 | player/load.js + load-error.js | done | merged + gated |
+| 13 | T-123 | delete player.js, index hub | done | M2 complete |
+| 14 | T-140 | settings/nav + select | done | merged + gated |
+| 15 | T-141 | settings/render + cards | done | merged + gated |
+| 16 | T-142 | settings/playback + index | done | M4 complete |
+| 17 | T-150 | app/boot.js splash slice | partial | rest is T-152a…c |
+| 18 | T-152a | app/deps.js registry | ready | **NEXT** — land first |
+| 19 | T-152b | onboarding + What's New | ready | after T-152a |
+| 20 | T-152c | startup slice | ready | after T-152b |
+| 21 | T-151 | app/remote.js | ready | after T-152c |
+| 22 | T-152 | app/index.js, thin main.js | ready | after T-151 |
+| 23 | T-153 | release script follows changelog | ready | **same commit as T-152** |
+| 24 | T-160 | design tokens | ready |  |
+| 25 | T-161 | split styles.css | ready |  |
+| 26 | T-162 | accessibility pass | ready |  |
+| 27 | T-170 | state/ reactive store | ready |  |
+| 28 | T-171 | app/plugins.js registry | ready |  |
+| 29 | T-172 | migrate features to plugins | ready |  |
+| 30 | T-173 | remote-action routing | ready |  |
+| 31 | T-180 | VOD data model + storage | ready |  |
+| 32 | T-181 | add media by URL | ready | first T-181 |
+| 33 | T-182 | ui/library.js | ready |  |
+| 34 | T-183 | episode browsing | ready |  |
+| 35 | T-184 | audio/subtitle/quality pickers | needs-tv |  |
+| 36 | T-185 | VOD playback integration | needs-tv |  |
+| 37 | T-186 | settings schema migration | ready | was T-181 |
+| 38 | T-190 | features/tizen-compat.js | needs-tv |  |
+| 39 | T-191 | engine fallback messaging | needs-tv |  |
+| 40 | T-192 | about panel | ready |  |
+| 41 | T-200 | log ring buffer | ready |  |
+| 42 | T-201 | favorites feature | ready |  |
+| 43 | T-202 | info bar with clock | ready |  |
+| 44 | T-203 | GitHub issue templates | ready |  |
+| 45 | T-209 | enforced commit format | done | hook exists |
+| 46 | T-211 | first-run onboarding crash | proposed | agent skips |
 
 ## M2 note — why the engine split is four tickets
 

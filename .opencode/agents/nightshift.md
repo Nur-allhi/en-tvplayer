@@ -24,6 +24,12 @@ Read, in this order:
 
 ## The loop
 
+**Operating window: 13:30–19:30 Asia/Dhaka.** Before starting a ticket, check
+the current Dhaka time (`new Date().toLocaleString('en-GB',{timeZone:'Asia/Dhaka'})`
+in a shell node one-liner). If it is at or past 19:30, stop immediately: write
+the STATUS block with `STATE: idle`, `NEXT: <ticket>`, and finish. Do not start
+a new ticket after 19:30. A ticket already in flight may finish.
+
 For one ticket per iteration:
 
 1. **Select** the next ticket using the queue in `docs/AUTONOMY.md`. Do not
@@ -67,10 +73,19 @@ For one ticket per iteration:
 ## When something fails
 
 Retry a failed gate up to **three** times with a genuine attempt to fix it.
-If still red, do not leave the tree broken: reset your feature branch work
-away from `dev` (or delete the branch), record a `blocked` entry in the
-ticket and session log stating the exact gate output, and move to the next
-ticket. Stop the whole run if two consecutive tickets block.
+Use the `scout` subagent (read-only) before any ticket that moves more than five
+functions — it maps the call graph and names cycles so you do not repeat a
+failed text move.
+
+If still red, do not ask anyone: record a `blocked` entry in the ticket with the
+exact gate output, append a session log entry, set `NEXT` to the following
+`ready` ticket, and continue. A blocked ticket never ends the run and never
+waits for the maintainer. Only the batch limit, an empty queue, or the 19:30
+deadline ends the run.
+
+After **every commit**, the post-commit hook appends a row to
+`docs/AUTONOMY_REPORT.md` with the SHA, what landed, and how many tickets are
+done. Do not write that file yourself — the hook does it.
 
 ## Ending your turn
 

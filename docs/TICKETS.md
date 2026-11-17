@@ -713,6 +713,49 @@ A ticket is only `done` when it meets the **Definition of Done**
   - Follow-up ticket needed: **T-150b** for the remaining boot/startup slices.
 
 ### T-150b — App boot/startup registry and remaining boot slices
+- **Type:** refactor · **Priority:** P0 · **Size:** L — split into T-152a…T-152c
+- **Spec:** T-150 landed only the three splash-staging functions. This ticket
+  finishes it. The remaining functions still in `main.js` are `init`,
+  `startPlayer`, `restoreLastSession`, first-run, onboarding and What's New.
+- **Why a separate ticket:** these form cycles through the remote slice:
+  `init → registerTizenKeys → handleRemoteAction → startPlayer → init`, and
+  `handleRemoteAction` (301 LOC) exceeds the 300 cap. A text move produced
+  cascading errors on 2026-11-17 and was reverted.
+- **Status:** ✅ re-scoped 2026-11-17 into three atomic tickets, in order:
+
+### T-152a — `app/deps.js` registry
+- **Type:** refactor · **Priority:** P0 · **Size:** XS (~90 LOC)
+- **Spec:** create `app/deps.js` with a slot for every cross-slice app call,
+  following `player/deps.js`. Add every app-level shared variable to
+  `app/state.js`. Register no implementations yet — the hub does that in T-152c.
+- **Acceptance:** ≥ 10 tests (slots fail loudly when unwired, identity stable);
+  no imports from other slices; no cycles; no behaviour change.
+- **Depends:** T-150 · **Must land before T-152b.**
+- **Status:** ready
+
+### T-152b — onboarding and What's New slices
+- **Type:** refactor · **Priority:** P0 · **Size:** M (~260 LOC across two files)
+- **Spec:** move `showFirstRun`, `showOnboarding`/`hideOnboarding`/
+  `updateOnboardFocus`/`selectOnboarding`/`isOnboardingOpen` into
+  `app/onboarding.js`, and `checkWhatsNew`/`showWhatsNew`/`closeWhatsNew`/
+  `markVersionSeen`/`isWhatsNewOpen`/`hideBootSplashAndMaybeWhatsNew` into
+  `app/whats-new.js`. Cross-slice calls through `deps`. Move `CHANGELOG`
+  into `app/changelog.js` (needed by T-153).
+- **Acceptance:** every file ≤ 300 LOC; onboarding and What's New verified in a
+  browser; no new console errors; gates green.
+- **Depends:** T-152a
+- **Status:** ready
+
+### T-152c — startup slice (`init`, `startPlayer`)
+- **Type:** refactor · **Priority:** P0 · **Size:** M (~330 LOC, may split)
+- **Spec:** move `init`, `startPlayer`, `restoreLastSession` and the channel
+  refresh helpers into `app/start.js`. `handleRemoteAction` goes to T-151.
+  Register all deps slots in `app/index.js` (built in T-152).
+- **Acceptance:** `main.js` shrinks further; boot, resume and first-run verified
+  in a browser; zero cycles; gates green.
+- **Depends:** T-152b · **Must land before T-152 (hub).**
+- **Status:** ready
+
 - **Type:** refactor · **Priority:** P0 · **Size:** L
 - **Spec:** T-150 landed only the three splash-staging functions. This ticket
   finishes it. The remaining functions still in `main.js` are `init`,
