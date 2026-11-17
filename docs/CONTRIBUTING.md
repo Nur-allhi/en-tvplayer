@@ -249,6 +249,9 @@ When a user reports an issue, ask for:
   stream URLs with tokens)
 - Whether it happens every time or only sometimes
 
+These are also encoded in `.github/ISSUE_TEMPLATE/bug_report.yml`, so a user
+opening a GitHub issue is asked for the same details.
+
 Log it in `docs/BUGS.md`.
 
 ---

@@ -1072,6 +1072,11 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** `.github/ISSUE_TEMPLATE/` asking for app version, TV model, Tizen
   version, playlist type, and log lines.
 - **Acceptance:** the template matches the info `docs/CONTRIBUTING.md` §8 asks for.
+- **Status:** ✅ done 2026-11-17 — `bug_report.yml` asks for app version, TV
+  model, Tizen version, playlist type, channel name, expected vs actual,
+  frequency and a redacted log block; a privacy checkbox reminds users to strip
+  tokens and full stream URLs. `config.yml` routes questions to Discussions.
+  Both parse as valid YAML; a pointer added to `CONTRIBUTING.md` §8.
 
 ---
 
