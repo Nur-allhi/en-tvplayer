@@ -12,7 +12,6 @@
 #
 # Verified 2026-11-16 — these are the only player/src files that fail
 # `prettier --check` once line endings are normalised (endOfLine: auto).
-player/src/styles.css
 player/src/xtream.js
 
 # Build output and vendored code, if ever present.
