@@ -112,7 +112,7 @@ with the exact gate output; agent skipped it.
 | 14 | T-140 | settings/nav + select | done | merged + gated |
 | 15 | T-141 | settings/render + cards | done | merged + gated |
 | 16 | T-142 | settings/playback + index | done | M4 complete |
-| 17 | T-150 | app/boot.js splash slice | partial | rest is T-152a…c |
+| 17 | T-150 | app boot slices + T-152a…c | done | M5 complete; main.js 4 LOC |
 | 18 | T-152a | app/deps.js registry | done | merged + gated |
 | 19 | T-152b | onboarding + What's New | done | merged + gated + browser-smoked |
 | 20 | T-152c | startup slice | done | merged + gated + browser-smoked |
@@ -141,7 +141,7 @@ with the exact gate output; agent skipped it.
 | 43 | T-202 | info bar with clock | done | merged + gated; taken out of order |
 | 44 | T-203 | GitHub issue templates | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 45 | T-209 | enforced commit format | done | hook exists |
-| 46 | T-211 | first-run onboarding crash | proposed | agent skips |
+| 46 | T-211 | first-run onboarding crash | done | fixed + browser verified 2026-11-17 |
 
 ## M2 note — why the engine split is four tickets
 

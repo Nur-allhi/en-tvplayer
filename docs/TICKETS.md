@@ -697,7 +697,8 @@ A ticket is only `done` when it meets the **Definition of Done**
   `restoreLastSession`.
 - **Acceptance:** splash staging still chains on completion callbacks (never
   fixed sleeps) — `docs/TIZEN_GUIDE.md` §7.
-- **Status:** ⚠️ partial 2026-11-17 — the three splash-staging functions
+- **Status:** ✅ done 2026-11-17 (T-152a…c completed the rest; `main.js` 4 LOC).
+  **Previously:** ⚠️ partial 2026-11-17 — the three splash-staging functions
   (`showBootSplash`, `startTypewriter`, `hideBootSplash") moved verbatim into
   `app/boot.js` (116 LOC) with `app/state.js` for the three shared timers.
   `main.js` 1500 → 1397 LOC. Byte-comparison confirmed all three bodies are
