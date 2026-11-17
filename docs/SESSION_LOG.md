@@ -44,6 +44,36 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — batch handover: parallel-run reconciliation — @nightshift
+
+**Status:** ✅ final `dev` green on both CI checks
+
+**What happened**
+- This unattended batch authored and landed T-160 (design tokens), T-161
+  (stylesheet split), T-162 (accessibility), T-170 (state store), T-171
+  (plugin registry), T-172 (feature modules), T-173 (route dispatch) and T-180
+  (VOD model), each on its own branch with every gate green before merge.
+- A second nightshift run was active in the same tree throughout. It advanced
+  T-186, T-192, T-200, T-203, T-181 and T-182 out of order and wrote competing
+  versions of several tickets. Every conflict was reconciled without
+  `--force`, `--hard` or a reset; both API surfaces were kept where possible.
+- Final shared state: 543+ tests, modularity 0 new violations, a11y audit ok,
+  build and signed WGT green; both GitHub checks report success on the tip.
+
+**Decisions**
+- Where the two runs disagreed, the design satisfying acceptance more fully
+  was kept (combined plugin registry, query-insensitive VOD ids).
+- `docs/REFINED_UX_REPORT.md` and the watchdog script were never staged.
+
+**Watch out**
+- The watchdog keeps dispatching overlapping runs. Until fixed, one tree
+  cannot be safely owned by a single agent — check `origin/dev` before a push.
+
+**Next**
+- Continue the queue from `NEXT` in `docs/AUTONOMY.md`, one branch per ticket.
+
+---
+
 ## 2026-11-17 — T-182: ui/library.js — movies & series browser — @nightshift (isolated worktree)
 
 **Ticket:** T-182 ✅ · **Branch:** `feature/t-182-library-ui` → `dev`
