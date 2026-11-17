@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   FEATURES,
   isEnabled,
@@ -6,6 +6,7 @@ import {
   getEnabledRoutes,
   getEnabledMenuEntries,
   registerFeature,
+  dispatchRoute,
   disabledUiIds,
   isActionEnabled,
   guardAction,
@@ -148,6 +149,36 @@ describe('registerFeature', () => {
     registerFeature('a', { routes: { a: () => {} } });
     registerFeature('b', { routes: { b: () => {} } });
     expect(Object.keys(getEnabledRoutes())).toEqual(['a', 'b']);
+  });
+});
+
+describe('route dispatch (T-173)', () => {
+  it('returns false and does nothing when no feature owns an action', () => {
+    expect(dispatchRoute('unclaimed')).toBe(false);
+  });
+
+  it('calls the route registered by a feature', () => {
+    const fn = vi.fn();
+    registerFeature('owned', { routes: { custom: fn } });
+    expect(dispatchRoute('custom', 7)).toBe(true);
+    expect(fn).toHaveBeenCalledWith(7);
+  });
+
+  it('does not dispatch a route owned by a disabled feature', () => {
+    const fn = vi.fn();
+    registerFeature('disabledOwner', { enabled: false, routes: { gone: fn } });
+    expect(dispatchRoute('gone')).toBe(false);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('lets a later feature replace a route', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    registerFeature('firstOwner', { routes: { shared: first } });
+    registerFeature('secondOwner', { routes: { shared: second } });
+    dispatchRoute('shared');
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });
 

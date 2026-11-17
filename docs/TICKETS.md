@@ -929,6 +929,9 @@ A ticket is only `done` when it meets the **Definition of Done**
   feature can own a key without editing `app/remote.js`.
 - **Acceptance:** a new remote binding is added entirely inside a feature
   module.
+- **Status:** ✅ done 2026-11-17 — `dispatchRoute` added to the plugin registry
+  and called at the edge of `handleRemoteAction`; `features/proxy.js` declares
+  its own key/route. 5 new tests, all gates + tizen green; no TV connected.
 
 ---
 

@@ -8,6 +8,7 @@ import { hasTvKeyInput } from '../lib/capabilities.js';
 import * as settings from '../settings/index.js';
 import * as ui from '../ui/index.js';
 import { deps } from './deps.js';
+import { dispatchRoute } from './plugins.js';
 import { state } from './state.js';
 import { handlePlayerViewAction, handleRightSidebarAction, handleSidebarAction } from './remote-views.js';
 
@@ -153,6 +154,10 @@ export function handleRemoteAction(action, value) {
     handleSidebarAction(action, value);
     return;
   }
+
+  // A feature may own an action by registering a route from its own module.
+  // With no routes registered this is a no-op and the default handler runs.
+  if (dispatchRoute(action, value)) return;
 
   handlePlayerViewAction(action, value);
 }

@@ -3,7 +3,15 @@
 // entirely when the `proxyTesting` feature is disabled. The app hub wires
 // refreshProxyMenu into deps; it no longer owns these details.
 import { getSettings } from '../config.js';
-import { isEnabled } from '../app/plugins.js';
+import { FEATURES, isEnabled, registerFeature } from '../app/plugins.js';
+
+// The feature declares its own remote binding here — adding a key needs no
+// edit to app/remote.js. Nothing currently emits 'proxy', so this is inert
+// until a remote maps the key, and the default view handler stays untouched.
+registerFeature('proxyTesting', {
+  ...FEATURES.proxyTesting,
+  routes: { proxy: () => refreshProxyMenu() },
+});
 
 const LOCAL_HOSTS = /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/;
 

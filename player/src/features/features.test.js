@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getEnabledRoutes } from '../app/plugins.js';
 import * as search from './search.js';
 import * as avplay from './avplay.js';
 import * as tizenCompat from './tizen-compat.js';
@@ -25,5 +26,9 @@ describe('feature boundaries (T-172)', () => {
 
   it('exposes the proxy menu refresh', () => {
     expect(typeof proxy.refreshProxyMenu).toBe('function');
+  });
+
+  it('lets a feature add a remote binding from its own module', () => {
+    expect(getEnabledRoutes()).toHaveProperty('proxy');
   });
 });
