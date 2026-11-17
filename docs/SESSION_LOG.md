@@ -44,6 +44,46 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-202: info bar with clock — @nightshift (batch run)
+
+**Ticket:** T-202 ✅ · **Branch:** `feature/t-202-info-bar` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- `lib/info-bar.js` — pure formatter: derives stream type from the URL, builds
+  an info-bar view model (name, group, resolution, stream type, channel number,
+  clock) and formats it with bullet separators.
+- `features/info-bar.js` — the plugin. Subscribes to the reactive `uiState`, so
+  a channel switch shows the bar with no edit to `ui/core.js`; auto-hides after
+  8 s. Disabling the `infoBar` flag stops both the effect and its DOM.
+- `#info-bar` element in `index.html` + CSS in `styles/overlays.css`; imported
+  from `app/index.js` for boot registration.
+
+**Verified**
+- `npm test` → 589 passed (41 files): 22 pure info-bar tests + 8 plugin tests.
+  lint, validate (0 new, a11y ok), format:check, build and tizen all green.
+- Browser smoke (Vite dev server): the bar rendered
+  `7 • Test Channel • [News] • 1080p • M3U8 • 20:15`, was visible on show, and
+  was hidden + faded again after 8.6 s — confirming the auto-hide contract.
+- **No TV is connected.** This is an OSD overlay, not a playback change;
+  no TV claim made.
+
+**Decisions**
+- Subscribed to `uiState` instead of adding a deps slot: `selectChannel` already
+  writes `currentIndex` through the reactive store, so the feature is truly
+  self-contained and needs no core edit to add or remove.
+- Clock text is supplied by the caller and injectable in tests, keeping the
+  formatter pure and deterministic.
+
+**Watch out**
+- The bar subscribes at import time; `showInfoBar` guards on a present DOM
+  element so an early store write before boot cannot throw.
+
+**Next**
+- Continue the queue from `NEXT` in `docs/AUTONOMY.md`.
+
+---
+
 ## 2026-11-17 — T-201: Favorites feature — @nightshift (isolated worktree)
 
 **Ticket:** T-201 ✅ · **Branch:** `feature/t-201-favorites` → `dev`

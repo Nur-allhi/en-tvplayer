@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-183      # first unresolved row — no decision needed
+NEXT        = T-183      # T-202 done out of order; T-183 claimed by another worktree
 MODE        = unattended # agent must not ask questions; no human retry needed
 LAST_RUN    = 2026-11-17 # T-182 by night shift (continuous run)
 ```
@@ -138,7 +138,7 @@ with the exact gate output; agent skipped it.
 | 40 | T-192 | about panel | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | done | merged + gated; taken early to avoid a concurrent-run collision |
-| 43 | T-202 | info bar with clock | ready |  |
+| 43 | T-202 | info bar with clock | done | merged + gated; taken out of order |
 | 44 | T-203 | GitHub issue templates | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 45 | T-209 | enforced commit format | done | hook exists |
 | 46 | T-211 | first-run onboarding crash | proposed | agent skips |

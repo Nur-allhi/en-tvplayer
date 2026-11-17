@@ -26,6 +26,31 @@
   margin-right: 12px;
 }
 
+/* Info bar (T-202): richer post-zap overlay — name, group, resolution,
+   stream type and the clock. Sits above the channel OSD home. */
+.info-bar {
+  position: absolute;
+  bottom: calc(150px * var(--tv-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(var(--c-black-rgb), 0.85);
+  padding: calc(12px * var(--tv-scale)) calc(26px * var(--tv-scale));
+  border-radius: calc(10px * var(--tv-scale));
+  font-size: calc(20px * var(--tv-scale));
+  font-weight: 500;
+  color: var(--c-white);
+  z-index: 90;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  text-align: center;
+  border: 1px solid rgba(var(--c-white-rgb), 0.1);
+  max-width: 86%;
+}
+
+.info-bar.fade {
+  opacity: 0;
+}
+
 /* Progress toast for right sidebar actions */
 .progress-toast {
   position: absolute;

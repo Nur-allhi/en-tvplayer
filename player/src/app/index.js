@@ -8,6 +8,7 @@ import { deps } from './deps.js';
 import { applyFeatureFlags } from './plugins.js';
 import { refreshProxyMenu } from '../features/proxy.js';
 import '../features/favorites.js';
+import '../features/info-bar.js';
 import { hydrateVod, startVodPersistence } from './vod-store.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
