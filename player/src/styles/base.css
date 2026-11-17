@@ -17,6 +17,10 @@
   --c-black: #000;
   --c-white: #fff;
   --c-accent: #ed421f;
+  /* Lighter accent for text on dark cards; the brand accent is 4.45:1 there. */
+  --c-accent-text: #f2573a;
+  /* Deeper accent behind white button labels — the brand accent is 3.89:1. */
+  --c-accent-strong: #d93a19;
   --c-border: #333;
   --c-border-strong: #30363d;
   --c-line: #222;
@@ -27,13 +31,15 @@
   --c-surface-card: #161b22;
   --c-surface-dialog: #1c2128;
   --c-bg-grad: #0a0e14;
+  /* Text tones are held to >= 4.5:1 on every dark surface, including the
+     lightest hover card (#242424) — the old values failed that audit. */
   --c-text-muted: #c9d1d9;
-  --c-text-secondary: #888;
+  --c-text-secondary: #9aa4ae;
   --c-text-soft: #8b949e;
-  --c-text-subtle: #666;
-  --c-text-dim: #555;
-  --c-text-faint: #444;
-  --c-text-mid: #777;
+  --c-text-mid: #9aa4ae;
+  --c-text-subtle: #969da6;
+  --c-text-dim: #949ba4;
+  --c-text-faint: #939aa2;
   --c-success: #2ea043;
   --c-warning: #d29922;
   --c-info: #58a6ff;
@@ -68,4 +74,29 @@
   /* Elevation. */
   --shadow-sidebar: 2px 0 20px rgba(var(--c-black-rgb), 0.7);
   --shadow-sidebar-right: -2px 0 20px rgba(var(--c-black-rgb), 0.7);
+}
+
+/* A 10-foot UI must show one unambiguous focus ring for native keyboard focus
+   and for the .focused / [data-focused] classes the remote handler moves. */
+button:focus,
+input:focus,
+a:focus,
+[tabindex]:focus,
+.focused,
+[data-focused] {
+  outline: 3px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+/* Honour the platform motion preference; boot staging itself is timer-driven,
+   so collapsing animations cannot desynchronise the launch sequence. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

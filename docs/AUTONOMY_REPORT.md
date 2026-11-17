@@ -15,3 +15,5 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T08:36:38.054Z | `ffbfe86` | docs(session): record verification and duplicate-run handover | 23/46 | 17 | T-160 |
 | 2026-11-17T08:37:18.279Z | `a44a3fd` | docs(session): record the T-153 handover separately (T-153) | 23/46 | 17 | T-160 |
 | 2026-11-17T08:49:41.914Z | `7e95c07` | chore(agents): remove the three-ticket cap for continuous autonomy | 24/46 | 16 | T-161 |
+| 2026-11-17T08:54:55.750Z | `8da319a` | chore(agents): add an overlap-safe autonomy watchdog | 25/46 | 15 | T-162 |
+| 2026-11-17T08:56:27.412Z | `2429888` | chore(agents): add the Windows watchdog launcher | 25/46 | 15 | T-162 |

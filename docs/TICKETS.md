@@ -879,6 +879,12 @@ A ticket is only `done` when it meets the **Definition of Done**
   error/success); `prefers-reduced-motion` respected.
 - **Acceptance:** every screen fully usable by remote alone; contrast audit
   passes.
+- **Status:** ✅ done 2026-11-17 — aria-live on loading/buffering/progress,
+  role=alert on error, aria-label on play/pause; focus ring, reduced-motion,
+  contrast-raised text/accent tokens, ⚠/✓/✕ status glyphs and a new
+  `npm run a11y` audit wired into `validate`. All four modals carry
+  role=dialog + aria-modal. 9 contrast unit tests pass; all gates + tizen
+  green. No TV connected — no playback claim.
 
 ---
 

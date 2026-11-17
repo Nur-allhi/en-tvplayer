@@ -22,7 +22,7 @@
 }
 
 .channel-osd .osd-number {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   margin-right: 12px;
 }
 
@@ -90,6 +90,15 @@
   max-width: 86%;
   text-align: center;
   z-index: 40;
+}
+/* A glyph, not just the red border, marks this as an error. A pseudo-element
+   survives showError() replacing the pill's textContent. */
+.error::before {
+  content: '\26A0';
+  margin-right: calc(10px * var(--tv-scale));
+  color: var(--c-warning);
+  font-size: calc(22px * var(--tv-scale));
+  line-height: 1;
 }
 /* Footer */
 .settings-footer {

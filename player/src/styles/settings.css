@@ -68,7 +68,7 @@
 }
 
 .nav-logo .text span {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 .nav-sub {
@@ -115,13 +115,13 @@
 }
 
 .nav-item.active {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   background: rgba(var(--c-accent-rgb), 0.06);
   border-left-color: var(--c-accent);
 }
 
 .nav-item.active .nav-icon {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 .nav-item[data-focused] {
@@ -184,7 +184,7 @@
   align-items: center;
   justify-content: center;
   font-size: calc(15px * var(--tv-scale));
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   margin-right: calc(10px * var(--tv-scale));
   flex-shrink: 0;
 }

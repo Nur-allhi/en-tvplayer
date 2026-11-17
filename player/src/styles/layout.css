@@ -197,14 +197,14 @@ body {
 }
 
 .boot-logo-text span {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 /* Caret while the title is typing — removed on completion */
 .boot-logo-text.typing::after {
   content: '|';
   animation: bootBlink 0.6s step-end infinite;
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   margin-left: 1px;
 }
 
@@ -230,7 +230,7 @@ body {
   margin-top: calc(12px * var(--tv-scale));
   text-align: center;
   font-size: calc(21px * var(--tv-scale));
-  color: rgba(var(--c-white-rgb), 0.35);
+  color: rgba(var(--c-white-rgb), 0.7);
   letter-spacing: 0.04em;
   min-height: calc(26px * var(--tv-scale));
 }
@@ -238,7 +238,7 @@ body {
 .boot-typewriter::after {
   content: '|';
   animation: bootBlink 0.6s step-end infinite;
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   margin-left: 1px;
 }
 
@@ -288,6 +288,6 @@ body {
 
 .boot-status {
   font-size: calc(18px * var(--tv-scale));
-  color: rgba(var(--c-white-rgb), 0.45);
+  color: rgba(var(--c-white-rgb), 0.7);
   letter-spacing: 0.02em;
 }
