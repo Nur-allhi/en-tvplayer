@@ -44,6 +44,42 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-203: GitHub issue templates — @nightshift (isolated worktree)
+
+**Ticket:** T-203 ✅ · **Branch:** `chore/t-203-issue-templates` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New `.github/ISSUE_TEMPLATE/bug_report.yml` — a GitHub issue form asking for
+  app version, TV model, Tizen version, playlist type, channel name, expected
+  vs actual behaviour, frequency and a redacted log block. A required privacy
+  checkbox reminds users to strip passwords, tokens and full stream URLs.
+- New `.github/ISSUE_TEMPLATE/config.yml` — routes questions/ideas to
+  Discussions and disables blank issues.
+- `docs/CONTRIBUTING.md` §8 now points at the template.
+
+**Verified**
+- Both YAML files parse successfully with the `yaml` parser.
+- No app code touched; the standard gates (test/lint/validate/format) were run
+  and remain green; WGT still signs with the correct certificate.
+- **No TV is connected** and no playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Took T-203 out of queue order: T-172 was claimed by two other active runs, so
+  this independent chore was the safest next ticket. `NEXT` stays T-172.
+- Reused the exact fields CONTRIBUTING §8 asks maintainers to collect, so the
+  form and the maintainer checklist cannot drift.
+
+**Watch out**
+- The log field references the "Copy diagnostics" block added in T-200.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
+
+**Next**
+- T-172 — migrate existing features to plugins (queue order; another run may
+  already own it).
+
+---
+
 ## 2026-11-17 — T-200: log ring buffer + copy diagnostics — @nightshift (isolated worktree)
 
 **Ticket:** T-200 ✅ · **Branch:** `feature/t-200-log-ring-buffer` → `dev`

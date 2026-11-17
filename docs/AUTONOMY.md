@@ -139,7 +139,7 @@ with the exact gate output; agent skipped it.
 | 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | ready |  |
 | 43 | T-202 | info bar with clock | ready |  |
-| 44 | T-203 | GitHub issue templates | ready |  |
+| 44 | T-203 | GitHub issue templates | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 45 | T-209 | enforced commit format | done | hook exists |
 | 46 | T-211 | first-run onboarding crash | proposed | agent skips |
 
