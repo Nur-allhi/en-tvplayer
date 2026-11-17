@@ -47,6 +47,7 @@ const SLOT_NAMES = [
   'refreshProxyMenu',
   'showPlayer',
   'showSettingsPage',
+  'showMediaAdd',
   'showProgress',
   'hideProgress',
   'updateProgressPercent',

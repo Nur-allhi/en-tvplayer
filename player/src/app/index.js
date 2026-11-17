@@ -23,12 +23,15 @@ import './remote.js';
 
 // These five implementations still live in the hub; slices reach them through
 // slots instead of importing the hub, which keeps the app graph acyclic.
+import { showMediaAdd } from '../settings/lifecycle.js';
+
 Object.assign(deps, {
   showBootSplash,
   hideBootSplash,
   showPlayer,
   showSettingsPage,
   refreshProxyMenu,
+  showMediaAdd,
 });
 
 /* Responsive TV scaling: detect screen size and set CSS variable */

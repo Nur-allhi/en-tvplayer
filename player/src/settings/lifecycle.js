@@ -47,6 +47,17 @@ export function isVisible() {
   return state.container && !state.container.classList.contains('hidden');
 }
 
+// Open the "Add movie or series" form directly (library → Add source row).
+// Reuses the same About card and remote focus order as the manual path.
+export function showMediaAdd() {
+  if (!state.container) return;
+  state.activeSection = 'about';
+  state.focusIdx = 1; // about-copy-diagnostics, vod-add-url, vod-add-btn
+  state.container.classList.remove('hidden');
+  render();
+  deps.applyFocus();
+}
+
 // Wire the render/playlist callbacks the nav and select slices call through
 // deps. This module is imported by index.js, so the wiring runs before any
 // remote action can reach those slices.
