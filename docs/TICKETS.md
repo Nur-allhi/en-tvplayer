@@ -752,7 +752,16 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** every file ≤ 300 LOC; onboarding and What's New verified in a
   browser; no new console errors; gates green.
 - **Depends:** T-152a
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `app/onboarding.js` (6 functions),
+  `app/whats-new.js` (6 functions) and `app/changelog.js` (267 LOC verbatim
+  data) extracted; each slice self-registers into `app/deps.js`, and `main.js`
+  wires the boot/startup-owned slots it still owns. Verified: 333 tests (5 new
+  changelog tests), lint, format, validate (0 new violations), build and WGT
+  signing all green. Browser-smoked: fresh profile shows the onboarding modal
+  and Right-arrow focus moves to Xtream; selecting it hides the modal and opens
+  Settings. A returning profile with `en_last_seen_version=0.0.0` shows What's
+  New (v3.2.0, 20 sections); Enter closes it and marks the version seen.
+  The T-211 console error in the add-form path is pre-existing and untouched.
 
 ### T-152c — startup slice (`init`, `startPlayer`)
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~330 LOC, may split)

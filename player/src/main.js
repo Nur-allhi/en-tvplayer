@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups, APP_VERSION } from './config.js';
+import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups } from './config.js';
 import * as player from './player/index.js';
 import * as ui from './ui/index.js';
 import * as remote from './remote.js';
@@ -8,16 +8,23 @@ import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
 import { filterDisplayChannels, findResumeIndex, findIntentIndex, tuneSuperseded } from './logic.js';
 import { capabilities } from './capabilities.js';
 import { hasTvKeyInput } from './lib/capabilities.js';
-// T-150: boot splash staging lives in its own slice.
+// T-150/T-152b: boot staging and the first-run/What's New slices.
 import { showBootSplash, hideBootSplash } from './app/boot.js';
 import { state, BOOT_IDLE_HOLD_MS } from './app/state.js';
+import { deps } from './app/deps.js';
+// Side-effect imports: each slice self-registers its functions into deps.
+import './app/onboarding.js';
+import './app/whats-new.js';
 
-// Boot recovery: the boot tune uses cached (possibly stale-token) URLs while
-// the background refresh fetches fresh ones. If nothing is playing once the
-// refresh lands, re-tune the latest intent with its fresh URL.
-
-// Fast-zap sequence: overlapping tune bodies from a burst of presses share
-// one video element — only the latest press may touch the player.
+// The hub still owns these implementations until T-152 moves them to
+// app/start.js. Slices call back through these slots; wiring here (rather
+// than importing main.js) is what keeps the app graph acyclic.
+Object.assign(deps, {
+  showBootSplash,
+  hideBootSplash,
+  startPlayer: (...args) => startPlayer(...args),
+  showSettingsPage: (...args) => showSettingsPage(...args),
+});
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
 function applyResponsiveScale() {
@@ -30,359 +37,6 @@ applyResponsiveScale();
 
 function getDisplayChannels() {
   return filterDisplayChannels(state.channels, getHiddenGroups(), state.selectedGroup);
-}
-
-const LAST_SEEN_KEY = 'en_last_seen_version';
-
-const CHANGELOG = [
-  {
-    version: '3.2.0',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Raw TS links play via the TV built-in player instead of looping',
-          'CORS-blocked relays fall back to native playback',
-          'Expired live segments re-sync instead of stopping playback',
-          'Clear messages for undecodable or over-quality channels',
-          'Expired links refetch a fresh URL instead of retrying forever',
-          'Dead channels stop with a message instead of freezing the app',
-          'Smoother auto quality on slow relays',
-          'Cleaner tune screen: one status line, instant cut on switch',
-          'Tip: if a channel misses after fast switching, select it again',
-          'Fast channel switching plays the final channel reliably',
-          'Stuck channels resume on their own; slow relays restart less',
-          'Channels start playing sooner',
-        ],
-      },
-    ],
-  },
-  {
-    version: '3.1.0',
-    sections: [
-      {
-        type: 'added',
-        items: ['Remembers your last group and channel — reopening the app replays what you were watching'],
-      },
-      {
-        type: 'fixed',
-        items: [
-          'Channel list focus stays visible while scrolling with the button held',
-          'Reload no longer strands you on the logo when stream links went stale — the last channel is retried with fresh links',
-        ],
-      },
-    ],
-  },
-  {
-    version: '3.0.4',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Protected channels with cookie login (Star Plus HD and similar) play again — channel key loading fixed',
-        ],
-      },
-    ],
-  },
-  {
-    version: '3.0.3',
-    sections: [
-      { type: 'added', items: ['Audio track selection in the right sidebar for multi-audio channels'] },
-      { type: 'fixed', items: ['Cookie-protected channels (JioTV+ Business, Devotional) now play'] },
-    ],
-  },
-  {
-    version: '3.0.2',
-    sections: [
-      { type: 'added', items: ['Channel name under the center logo while buffering'] },
-      { type: 'changed', items: ['Single center logo — stacked logos impossible'] },
-      { type: 'fixed', items: ['Slow connects show progress instead of a bare logo'] },
-    ],
-  },
-  {
-    version: '3.0.1',
-    sections: [{ type: 'fixed', items: ['Buffering hints now show above the pill, larger and centered'] }],
-  },
-  {
-    version: '3.0.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Xtream login source with Test Login',
-          'First-run source picker for new installs',
-          'Channel Up/Down buttons switch to the next/previous channel',
-        ],
-      },
-    ],
-  },
-  {
-    version: '2.3.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Provider-order channel listing by default, A–Z stays optional',
-          'Hide groups from Settings, cross-group channel search from the group list',
-        ],
-      },
-    ],
-  },
-  {
-    version: '2.2.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Channel Source revamp: 3 playlists max, side-by-side cards with added and last-played dates',
-          'OK on a card loads it immediately, Left/Right moves across cards',
-          'TV keyboard opens from playlist inputs, fetch button relabeled Active',
-          'Display toggles: App logo and Quality badge can be shown or hidden',
-        ],
-      },
-      { type: 'fixed', items: ['Settings side-nav spacing, header to top, bigger white title'] },
-    ],
-  },
-  {
-    version: '2.1.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Custom stream headers via #KODIPROP (User-Agent, Referer, Authorization)',
-          'Multi-key DRM decryption for protected channels',
-        ],
-      },
-      { type: 'fixed', items: ['Update checker now actually runs — opt in once, get notified of new versions'] },
-    ],
-  },
-  {
-    version: '2.0.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Slide-in watermark once the sidebar hides',
-          'Stream type in the quality badge (e.g. M3U8, MPD)',
-          'Rounded rows and white focus rings everywhere',
-        ],
-      },
-      {
-        type: 'changed',
-        items: [
-          'New tune sequence: spinner + name, then bottom status pill',
-          'Deep lists scroll without jumping',
-          'Streamlined Settings, staged splash',
-        ],
-      },
-      { type: 'fixed', items: ['Playing row stays marked on reopen', 'Upstream blips no longer restart playback'] },
-    ],
-  },
-  {
-    version: '1.10.1',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Empty fresh install no longer strands you on a dead page',
-          'Resolution badge always shows the true quality',
-          'Interlaced channels play via native fallback',
-          'Flaky relays recover instead of dying (fresh-token retries)',
-        ],
-      },
-      {
-        type: 'changed',
-        items: [
-          'Staged loading: spinner, first frame, then buffering',
-          'Channel + buffering toasts with wait hints',
-          'Boot logo flies toward you on launch',
-        ],
-      },
-    ],
-  },
-  {
-    version: '1.10.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Optional update checker — opt in once, get notified of new versions',
-          'Contact and download stats refreshed',
-        ],
-      },
-    ],
-  },
-  {
-    version: '1.9.0',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Tokenized live playlists now play without dropping after the first frame',
-          'Access-denied channels retry with a fresh link before giving up',
-          'Clearer messages when a live stream breaks up',
-        ],
-      },
-    ],
-  },
-  {
-    version: '1.8.0',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Settings changes via remote now save — playlist edits and toggles stick',
-          'Enter inside Settings text boxes now saves on TV',
-          'Crashing channels retry automatically in compatibility mode',
-          'Unrecognized channel links are now identified and retried correctly',
-          'Channel error messages are now accurate (including access-denied detection)',
-        ],
-      },
-      { type: 'changed', items: ['Proxy hint position fixed to bottom center', 'Settings back button spacing fixed'] },
-    ],
-  },
-  {
-    version: '1.7.0',
-    sections: [
-      {
-        type: 'fixed',
-        items: [
-          'Black screen on some IPTV channels — now detects stream format automatically',
-          'HLS streams that need date-time sync now work correctly',
-          'Raw TS/MP4 stream URLs now play correctly on Samsung Tizen',
-          'Video errors from the TV are now caught and shown to you',
-          'Streams that will never work now fail in 15 seconds instead of 30',
-        ],
-      },
-      {
-        type: 'changed',
-        items: [
-          'All error messages are now in plain English — no more technical jargon',
-          'Better error hints (try Proxy, check internet, channel may be offline)',
-        ],
-      },
-    ],
-  },
-  {
-    version: '1.6.0',
-    sections: [
-      {
-        type: 'added',
-        items: [
-          'Boot splash with logo animation, typewriter tagline, and spinner',
-          'App version displayed on splash screen',
-          'What\u2019s New modal shown once after each update',
-          'Auto-refresh playlist on app launch — toggle in Settings → Playback',
-        ],
-      },
-      {
-        type: 'fixed',
-        items: [
-          'Fetch Active intermittent error during stream playback',
-          'Relay fallback now shows meaningful error messages',
-          'Fetch Active button disables during loading',
-        ],
-      },
-    ],
-  },
-  {
-    version: '1.5.0',
-    sections: [{ type: 'changed', items: ['Updated app logo with new design'] }],
-  },
-  {
-    version: '1.4.0',
-    sections: [
-      { type: 'added', items: ['Channel name auto-scroll for long names'] },
-      { type: 'fixed', items: ['Sidebar navigation and channel switching improvements'] },
-    ],
-  },
-  {
-    version: '1.3.0',
-    sections: [{ type: 'added', items: ['Responsive TV scaling for all screen sizes'] }],
-  },
-];
-
-function checkWhatsNew() {
-  try {
-    const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
-    if (lastSeen === APP_VERSION) return false;
-    return true;
-  } catch {
-    return true;
-  }
-}
-
-function markVersionSeen() {
-  try {
-    localStorage.setItem(LAST_SEEN_KEY, APP_VERSION);
-  } catch {}
-}
-
-function showWhatsNew() {
-  const modal = document.getElementById('whats-new-modal');
-  const body = document.getElementById('whats-new-body');
-  const verEl = document.getElementById('whats-new-version');
-  const closeBtn = document.getElementById('whats-new-close');
-  if (!modal || !body) return;
-
-  if (verEl) verEl.textContent = 'v' + APP_VERSION;
-  const iconMap = { added: ['\u2713', 'added'], fixed: ['\u26A0', 'fixed'], changed: ['\u2192', 'changed'] };
-  let html = '';
-  if (state.pendingUpdate) {
-    html += '<div class="wn-section">';
-    html += '<div class="wn-section-title">Update available: v' + state.pendingUpdate.latest + '</div>';
-    html +=
-      '<div class="wn-item"><span class="wn-icon added">\u2192</span><span>Reinstall via Apps2Samsung to update.</span></div>';
-    html += '</div>';
-  }
-  for (const entry of CHANGELOG) {
-    if (entry.version === '1.0.0') break;
-    html += '<div class="wn-section">';
-    html += '<div class="wn-section-title">v' + entry.version + '</div>';
-    for (const sec of entry.sections) {
-      const [icon, cls] = iconMap[sec.type] || ['\u2022', 'added'];
-      for (const item of sec.items) {
-        html +=
-          '<div class="wn-item"><span class="wn-icon ' + cls + '">' + icon + '</span><span>' + item + '</span></div>';
-      }
-    }
-    html += '</div>';
-  }
-  body.innerHTML = html;
-  modal.classList.remove('hidden');
-  // Focus the button for remote/keyboard navigation
-  closeBtn.focus();
-  // Also handle keyboard Enter/Escape for desktop
-  const onKey = (e) => {
-    if (e.key === 'Enter' || e.key === 'Escape') {
-      e.preventDefault();
-      document.removeEventListener('keydown', onKey);
-      closeWhatsNew();
-    }
-  };
-  document.addEventListener('keydown', onKey);
-}
-
-function hideBootSplashAndMaybeWhatsNew(holdAfterTypeMs = 0, onDone = null) {
-  // The modal waits for the splash to be fully gone — a fixed timer raced
-  // the zoom/fade exit and popped it over the splash mid-load.
-  hideBootSplash(holdAfterTypeMs, () => {
-    if (typeof onDone === 'function') onDone();
-    if (checkWhatsNew()) {
-      setTimeout(showWhatsNew, 300);
-    }
-  });
-}
-
-function isWhatsNewOpen() {
-  const el = document.getElementById('whats-new-modal');
-  return el && !el.classList.contains('hidden');
-}
-
-function closeWhatsNew() {
-  const modal = document.getElementById('whats-new-modal');
-  if (modal) modal.classList.add('hidden');
-  markVersionSeen();
 }
 
 async function init() {
@@ -424,7 +78,7 @@ async function init() {
       startPlayer();
       showBootSplash('Updating playlist...');
       refreshChannelsInBackground().then((ok) => {
-        hideBootSplashAndMaybeWhatsNew(0, () => {
+        deps.hideBootSplashAndMaybeWhatsNew(0, () => {
           if (ok === false) showStaleCacheNotice();
         });
       });
@@ -435,12 +89,12 @@ async function init() {
         const newChannels = await fetchPlaylistWithRetry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
         state.channels = newChannels;
-        hideBootSplashAndMaybeWhatsNew();
+        deps.hideBootSplashAndMaybeWhatsNew();
         startPlayer();
       } catch (e) {
         console.warn('Failed to fetch playlist:', e.message);
-        hideBootSplashAndMaybeWhatsNew();
-        showFirstRun();
+        deps.hideBootSplashAndMaybeWhatsNew();
+        deps.showFirstRun();
       }
     }
   } else if (s.channels && s.channels.length > 0) {
@@ -449,7 +103,7 @@ async function init() {
     state.channels = s.channels;
     startPlayer();
     showBootSplash('Loading...');
-    hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS);
+    deps.hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS);
   } else if (activePlaylist && activePlaylist.url) {
     // No cached channels but has playlist URL — fetch once to bootstrap.
     showBootSplash('Loading playlist...');
@@ -457,15 +111,15 @@ async function init() {
       const newChannels = await fetchPlaylistWithRetry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       state.channels = newChannels;
-      hideBootSplashAndMaybeWhatsNew();
+      deps.hideBootSplashAndMaybeWhatsNew();
       startPlayer();
     } catch (e) {
       console.warn('Failed to fetch playlist:', e.message);
-      hideBootSplashAndMaybeWhatsNew();
-      showFirstRun();
+      deps.hideBootSplashAndMaybeWhatsNew();
+      deps.showFirstRun();
     }
   } else {
-    showFirstRun();
+    deps.showFirstRun();
   }
 }
 
@@ -599,14 +253,14 @@ function startPlayer() {
   if (onboardM3u) {
     addCleanupListener(onboardM3u, 'click', () => {
       state.onboardFocus = 0;
-      selectOnboarding();
+      deps.selectOnboarding();
     });
   }
   const onboardXtream = document.getElementById('onboard-xtream');
   if (onboardXtream) {
     addCleanupListener(onboardXtream, 'click', () => {
       state.onboardFocus = 1;
-      selectOnboarding();
+      deps.selectOnboarding();
     });
   }
 
@@ -766,74 +420,6 @@ function scheduleUpdateCheck() {
       runUpdateCheck();
     }
   }, 1500);
-}
-
-function showFirstRun() {
-  // First launch (or fetch failure with nothing cached): land on the player
-  // shell with its empty state — never strand the user on Settings. The
-  // menu opens showing the Settings button, and a hint names the Blue key.
-  state.channels = state.channels || [];
-  startPlayer();
-  ui.toggleRightSidebar();
-  showBootSplash('Loading...');
-  const s = getSettings();
-  const fresh = (s.playlists || []).length === 0 && (s.channels || []).length === 0;
-  if (fresh) {
-    // True first install: offer the source choice directly, no hint toast.
-    // Skip if the user already opened Settings meanwhile.
-    hideBootSplash(BOOT_IDLE_HOLD_MS, () => {
-      if (!settings.isVisible()) showOnboarding();
-    });
-    return;
-  }
-  hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS, () => {
-    setTimeout(() => {
-      if (!isWhatsNewOpen()) ui.showFirstRunHint();
-    }, 1200);
-  });
-}
-
-/* First-run source picker: M3U playlist or Xtream login, straight into the
-   matching Settings add form. Shown only on true first installs. */
-
-function isOnboardingOpen() {
-  const el = document.getElementById('onboarding-modal');
-  return el && !el.classList.contains('hidden');
-}
-
-function showOnboarding() {
-  const modal = document.getElementById('onboarding-modal');
-  if (!modal) return;
-  // Fresh installs have no changelog to catch up on — don't stack What's New.
-  markVersionSeen();
-  state.onboardFocus = 0;
-  modal.classList.remove('hidden');
-  updateOnboardFocus();
-}
-
-function hideOnboarding() {
-  const modal = document.getElementById('onboarding-modal');
-  if (modal) modal.classList.add('hidden');
-}
-
-function updateOnboardFocus() {
-  const m3uBtn = document.getElementById('onboard-m3u');
-  const xtBtn = document.getElementById('onboard-xtream');
-  if (m3uBtn) {
-    if (state.onboardFocus === 0) m3uBtn.setAttribute('data-focused', '');
-    else m3uBtn.removeAttribute('data-focused');
-  }
-  if (xtBtn) {
-    if (state.onboardFocus === 1) xtBtn.setAttribute('data-focused', '');
-    else xtBtn.removeAttribute('data-focused');
-  }
-}
-
-function selectOnboarding() {
-  const type = state.onboardFocus === 1 ? 'xtream' : 'm3u';
-  hideOnboarding();
-  showSettingsPage();
-  settings.openAddForm(type);
 }
 
 function showPlayer() {
@@ -1133,31 +719,31 @@ function handleRemoteAction(action, value) {
     if (now - state.lastBackTime < 600) return;
     state.lastBackTime = now;
   }
-  if (isOnboardingOpen()) {
+  if (deps.isOnboardingOpen()) {
     switch (action) {
       case 'left':
       case 'right':
       case 'up':
       case 'down':
         state.onboardFocus = state.onboardFocus === 0 ? 1 : 0;
-        updateOnboardFocus();
+        deps.updateOnboardFocus();
         break;
       case 'select':
-        selectOnboarding();
+        deps.selectOnboarding();
         break;
       case 'back':
-        hideOnboarding();
+        deps.hideOnboarding();
         break;
       default:
         break;
     }
     return;
   }
-  if (isWhatsNewOpen()) {
+  if (deps.isWhatsNewOpen()) {
     switch (action) {
       case 'select':
       case 'back':
-        closeWhatsNew();
+        deps.closeWhatsNew();
         break;
     }
     return;
