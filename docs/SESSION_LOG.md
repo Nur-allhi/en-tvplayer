@@ -121,6 +121,12 @@ first). Keep it short — the point is handover, not a diary.
 - Two runs merged to `dev` in the same window. The docs conflicts in
   `AUTONOMY.md` and `SESSION_LOG.md` were resolved keeping both T-170 and
   T-171 done and `NEXT = T-172`.
+- The isolated worktree arrived with an untracked *wrong* `tizen/author-key.pem`
+  (fingerprint `81:8A:4E…`), which `npm run tizen` correctly rejected. It was
+  restored from the canonical key in the main checkout (fingerprint
+  `40:71:40:30…`) — no key was generated or changed in the repository. The
+  worktree also lacks husky hooks, so the report row for the merge was added by
+  running `scripts/autonomy-report.mjs` directly.
 - The proxy menu stays hidden on TV hosts regardless of the flag — the
   localhost/setting checks still apply after the registry gate.
 
