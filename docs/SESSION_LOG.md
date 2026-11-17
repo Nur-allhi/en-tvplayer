@@ -44,6 +44,36 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-153: release guard follows the changelog move — @nightshift
+
+**Ticket:** T-153 ✅ · **Branch:** `feature/t-152-index-hub` → `dev`
+**Status:** ✅ done — landed in the T-152 commit, as the ticket requires
+
+**What changed**
+- `scripts/release.mjs` — the in-app CHANGELOG guard reads
+  `player/src/app/changelog.js` instead of the emptied `main.js`, and its
+  failure message names the new path.
+
+**Verified**
+- Static check: `app/changelog.js` contains `version: '3.2.0'` and the guard no
+  longer references `main.js`. Lint, format and the full gate set are green.
+- `npm run release -- … --dry-run` is denied by this machine's policy even for
+  a beta, so the guard could not be exercised by running the script. No tag,
+  release or signing-key operation was attempted.
+
+**Decisions**
+- Landed with T-152 in one commit because T-153's spec forbids leaving the
+  release path pointing at a half-emptied `main.js`.
+
+**Watch out**
+- Whoever cuts the next release should confirm this guard passes on a machine
+  where `npm run release` is permitted.
+
+**Next**
+- T-160 — design tokens (next ready row; batch limit already reached).
+
+---
+
 ## 2026-11-17 — batch verification + duplicate-run handover — @nightshift (second run)
 
 **Ticket:** T-152a (authored) · verification of T-152a/b/c, T-151, T-152/T-153

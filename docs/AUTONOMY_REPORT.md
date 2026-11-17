@@ -11,3 +11,5 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T08:03:19.736Z | `2d617ed` | refactor(app): extract onboarding and What's New slices (T-152) | 19/46 | 21 | T-152c |
 | 2026-11-17T08:12:33.541Z | `8beb50b` | refactor(app): split startup into four app slices (T-152) | 20/46 | 20 | T-151 |
 | 2026-11-17T08:26:56.592Z | `8b166be` | refactor(app): split remote routing into app slices (T-151) | 21/46 | 19 | T-152 |
+| 2026-11-17T08:33:02.031Z | `3ac7fd7` | refactor(app): wire the app hub and thin the entry point (T-152) | 23/46 | 17 | T-160 |
+| 2026-11-17T08:36:38.054Z | `ffbfe86` | docs(session): record verification and duplicate-run handover | 23/46 | 17 | T-160 |
