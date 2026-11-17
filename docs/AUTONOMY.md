@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-181      # T-182 done out of order; T-181 in flight by other run
+NEXT        = T-183      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
 LAST_RUN    = 2026-11-17 # T-182 by night shift (continuous run)
 ```
