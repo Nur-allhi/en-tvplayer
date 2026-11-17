@@ -44,6 +44,41 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — batch handoff: T-191 landed by a parallel run — @nightshift
+
+**Status:** ✅ no duplicate code from this run — dev green, T-191 merged + CI verified
+
+**What happened**
+- This batch opened with T-191 as the queue's NEXT. A parallel nightshift run was
+  already editing `feature/t-191-fallback-message` in this same checkout (live
+  edits to `app/start.js` / `lib/engine-notice.js`, then commit → merge → push).
+- Per the documented T-183 collision lesson, I did not duplicate or overwrite
+  that in-flight work. I yielded the files and verified the result instead.
+- T-185 remains in flight in the `en-tvplayer-wt-t171` worktree, so no ready
+  ticket was safe to start. 19:30 Dhaka deadline reached → stop condition met.
+
+**Verified**
+- `npm test` 651 passed; lint, validate (138 files, 0 new), format:check, build
+  and `npm run tizen` (signed with cert 40:71:40:30...) all green on local dev.
+- `origin/dev` = `1fd0a55` (merge: land engine fallback messaging, T-191);
+  both GitHub checks green on that SHA.
+- **No TV is connected.** T-191 stays `needs-tv`; no playback claim was made.
+
+**Decisions**
+- Yield to the active run instead of taking over its live files — the same
+  handling used for the T-183 collision. Never touched `main`, no release/tags.
+
+**Watch out**
+- Overlapping nightshift runs still collide on the same tickets. Before picking
+  one up, check `git worktree list`, `origin/dev` **and** live file mtimes — a
+  branch can exist, or be mid-edit, while the ticket is not yet merged.
+
+**Next**
+- T-185 (VOD playback integration) — owned by the parallel worktree run;
+  re-check `origin/dev` before starting it.
+
+---
+
 ## 2026-11-17 — T-191: engine fallback messaging — @nightshift (resumed batch)
 
 **Ticket:** T-191 🔶 needs-tv · **Branch:** `feature/t-191-fallback-message` → `dev`
