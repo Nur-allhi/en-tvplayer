@@ -44,6 +44,43 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-142: settings.js deleted, M4 complete — @maintainer
+
+**Ticket:** T-142 ✅ · **Branch:** `refactor/t-142-settings-playback` → `dev`
+**Status:** ✅ done — settings/index.js is the entry, 8 names preserved
+
+**What changed**
+- **`settings/playback.js` (49 LOC)** — the toggle click handler moved
+  verbatim out of `render()`, including every saveSettings call and the
+  group-hidden logic. This is the BUG-011 surface.
+- **`settings/lifecycle.js` (57 LOC)** — init, show, openAddForm, hide,
+  isVisible, plus the deps wiring that used to live in settings.js.
+- **`settings/index.js`** — pure `export *` hub over nav, select and lifecycle.
+- **`settings.js` deleted.** Both importers updated to `./settings/index.js`.
+- `render.js` 218 → 179 LOC (the toggle block left it).
+- `applyFocus` is no longer a public export: select.js now calls it through
+  `deps`. The public surface is exactly 8 names, checked by script.
+
+**Verified**
+- 303 tests, lint, format, 0 new violations, 72 files, WGT signs.
+- Bundle 951.6 → 951.7 kB (**+0.01 %**) — effectively unchanged.
+- **Browser-verified the acceptance criterion:** opened Playback, clicked the
+  Auto quality toggle, and `en_settings.autoQuality` changed to `false` in
+  localStorage. That is the BUG-011 regression path with a real DOM.
+
+**Watch out**
+- The modularity baseline is still 2, but neither is settings-related:
+  `main.js` LOC and `logic.js` exports are M5 work (T-150/T-152).
+- T-211 (first-run onboarding crash) stays proposed and untouched.
+- The WGT name carries the previous commit hash; it only proves signing.
+
+**Next**
+- **M5 — app layer**: T-150 (`app/boot.js`), then T-151, T-152, T-153.
+  T-152 empties `main.js` and clears the last LOC baseline violation; T-153
+  must land in the same commit to keep the release script working (Risk A).
+
+---
+
 ## 2026-11-17 — T-141: settings split nearly complete — @maintainer
 
 **Ticket:** T-141 ✅ · **Branch:** `refactor/t-141-settings-render` → `dev`

@@ -672,6 +672,19 @@ A ticket is only `done` when it meets the **Definition of Done**
   groups manager.
 - **Acceptance:** `settings/index.js` exports the same 8 names; toggles
   persist immediately (the BUG-011 regression must not return).
+- **Status:** ✅ done 2026-11-17 — `settings/index.js` is now the entry (8
+  names verified by script: init, show, openAddForm, hide, isVisible, navigate,
+  navigateNav, selectFocused). `settings.js` deleted. Toggle persistence moved
+  verbatim into `settings/playback.js` (49 LOC); lifecycle into
+  `lifecycle.js` (57 LOC). `render.js` 218 → 179 LOC.
+  303 tests, lint, format, 0 new violations; bundle +0.01 %; WGT signs.
+  **M4 complete** — the settings split is finished.
+  - Browser-verified: Settings opens, all tabs render, clicking the Auto
+    quality toggle wrote `autoQuality: false` to `en_settings` immediately —
+    the BUG-011 acceptance criterion with a real DOM, not a unit test.
+  - `applyFocus` is no longer exported from nav.js (it leaked into the 8-name
+    surface); select.js calls it through `deps` like the other nav helpers.
+  - T-211 (onboarding null container) remains proposed and was not touched.
 
 ---
 
