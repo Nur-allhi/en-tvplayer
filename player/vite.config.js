@@ -34,6 +34,9 @@ export default defineConfig({
     target: 'es2015',
     modulePreload: false,
     rollupOptions: {
+      // Dynamic imports in app/plugins.js must be inlined under the IIFE
+      // output (T-171); without this Rollup refuses to build.
+      inlineDynamicImports: true,
       output: {
         format: 'iife',
         entryFileNames: 'assets/[name].[hash].js',

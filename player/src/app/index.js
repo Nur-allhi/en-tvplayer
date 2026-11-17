@@ -6,6 +6,7 @@ import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
+import { applyFeatureFlags, isEnabled } from './plugins.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
 import './onboarding.js';
@@ -46,7 +47,7 @@ function refreshProxyMenu() {
     host === '[::1]' ||
     host.endsWith('.local') ||
     /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
-  const show = isLocalhost && getSettings().showProxyMenu === true;
+  const show = isEnabled('proxy') && isLocalhost && getSettings().showProxyMenu === true;
   const btn = document.getElementById('proxy-toggle-btn');
   if (btn) btn.classList.toggle('hidden', !show);
   const label = document.getElementById('proxy-testing-label');
@@ -79,8 +80,13 @@ function showSettingsPage() {
   settings.show();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => deps.init());
-} else {
+function boot() {
+  applyFeatureFlags();
   deps.init();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
 }
