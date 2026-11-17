@@ -1,12 +1,12 @@
 // App hub (T-152). Imports every slice for its self-registration side effect,
 // wires the few helpers the hub still owns, applies responsive TV scaling and
 // starts the app. main.js is now a thin entry; nothing imports it.
-import { getSettings } from '../config.js';
 import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
 import { isEnabled } from './plugins.js';
+import { refresh as refreshProxyFeature } from '../features/proxy-toggle.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
 import './onboarding.js';
@@ -36,29 +36,11 @@ function applyResponsiveScale() {
 }
 applyResponsiveScale();
 
-// Desktop test relay sidebar entry: hidden unless on a local test host with
-// Settings → Playback → Proxy menu enabled. Called on boot and every time
-// Settings closes (settings.hide() never fires the onClose callback).
+// Called on boot and every time Settings closes (settings.hide() never fires
+// the onClose callback). The feature owns the host/settings rules; the hub only
+// supplies the registry's enabled flag.
 function refreshProxyMenu() {
-  const btn = document.getElementById('proxy-toggle-btn');
-  const label = document.getElementById('proxy-testing-label');
-  // The registry owns visibility: disabling proxyTesting here hides both rows
-  // without editing this file or the shell's click binding.
-  if (!isEnabled('proxyTesting')) {
-    if (btn) btn.classList.add('hidden');
-    if (label) label.classList.add('hidden');
-    return;
-  }
-  const host = (typeof window !== 'undefined' && window.location.hostname) || '';
-  const isLocalhost =
-    host === 'localhost' ||
-    host === '127.0.0.1' ||
-    host === '[::1]' ||
-    host.endsWith('.local') ||
-    /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(host);
-  const show = isLocalhost && getSettings().showProxyMenu === true;
-  if (btn) btn.classList.toggle('hidden', !show);
-  if (label) label.classList.toggle('hidden', !show);
+  refreshProxyFeature(isEnabled('proxyTesting'));
 }
 
 function showPlayer() {

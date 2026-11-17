@@ -3,40 +3,16 @@
 // three into deps so no slice imports main.js (the hub until T-152). Modal and
 // settings routing stays here; view-specific branches live in remote-views.js
 // so each file stays under the 300-LOC cap.
-import { capabilities } from '../capabilities.js';
-import { hasTvKeyInput } from '../lib/capabilities.js';
+import { registerTizenKeys } from '../features/tizen-compat.js';
 import * as settings from '../settings/index.js';
 import * as ui from '../ui/index.js';
 import { deps } from './deps.js';
 import { state } from './state.js';
 import { handlePlayerViewAction, handleRightSidebarAction, handleSidebarAction } from './remote-views.js';
 
-export function registerTizenKeys() {
-  if (!hasTvKeyInput(capabilities())) return;
-  const keys = [
-    'ColorF0Red',
-    'ColorF1Green',
-    'ColorF2Yellow',
-    'ColorF3Blue',
-    'MediaPlayPause',
-    'MediaPlay',
-    'MediaPause',
-    'MediaStop',
-    'MediaFastForward',
-    'MediaRewind',
-    'MediaTrackNext',
-    'MediaTrackPrevious',
-    'ChannelUp',
-    'ChannelDown',
-  ];
-  for (const key of keys) {
-    try {
-      window.tizen.tvinputdevice.registerKey(key);
-    } catch {
-      console.warn('Failed to register Tizen key:', key);
-    }
-  }
-}
+// Owned by features/tizen-compat.js; re-exported so existing slot wiring and
+// callers keep the same API while the hub no longer knows the key list.
+export { registerTizenKeys };
 
 // CH Up/Down (and Prev/Next keys): retune to the adjacent channel in the
 // current group view, wrapping around.

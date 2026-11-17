@@ -1,18 +1,38 @@
-// Feature registry (T-171, docs/v4.PLAN.md §3.3). Pure — no DOM, no imports.
-//
-// This is the single coupling point for features: a feature declares its
-// remote routes and sidebar rows here, and consumers read only the enabled
-// views below. Flipping `enabled` in FEATURES is therefore the only edit
-// required to remove a feature's bindings. T-172 migrates the existing
-// hard-wired features into this registry; loaders are added with them, since
-// no features/ modules exist yet for import() to resolve.
+// Feature registry (T-171/T-172, docs/v4.PLAN.md §3.3). The hub is the only
+// coupling point: each feature declares its contract in features/ and the
+// enabled views below are all consumers see. Flipping `enabled` is the only
+// edit required to remove a feature's bindings. Lazy loaders are inlined into
+// the IIFE bundle by Vite's inlineDynamicImports flag.
+
+import proxyContract from '../features/proxy-toggle.js';
+import tizenContract from '../features/tizen-compat.js';
+import searchContract from '../features/search.js';
+import avplayContract from '../features/avplay.js';
 
 export const FEATURES = {
-  search: { enabled: true },
+  search: {
+    enabled: true,
+    contract: searchContract,
+    load: () => import('../features/search.js'),
+  },
   favorites: { enabled: true },
   infoBar: { enabled: true },
   vod: { enabled: true },
-  proxyTesting: { enabled: true },
+  proxyTesting: {
+    enabled: true,
+    contract: proxyContract,
+    load: () => import('../features/proxy-toggle.js'),
+  },
+  tizenCompat: {
+    enabled: true,
+    contract: tizenContract,
+    load: () => import('../features/tizen-compat.js'),
+  },
+  avplayFallback: {
+    enabled: true,
+    contract: avplayContract,
+    load: () => import('../features/avplay.js'),
+  },
 };
 
 export function isEnabled(id) {

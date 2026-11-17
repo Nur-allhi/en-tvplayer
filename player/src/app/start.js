@@ -8,6 +8,7 @@ import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented
 import * as player from '../player/index.js';
 import * as remote from '../remote.js';
 import * as ui from '../ui/index.js';
+import { installBackKey } from '../features/tizen-compat.js';
 import { showBootSplash } from './boot.js';
 import { state, BOOT_IDLE_HOLD_MS } from './state.js';
 import { deps } from './deps.js';
@@ -31,12 +32,7 @@ async function init() {
   // version check. Was defined but never invoked — wire it at boot.
   scheduleUpdateCheck();
 
-  document.addEventListener('tizenhwkey', (e) => {
-    if (e.keyName === 'back') {
-      e.preventDefault();
-      deps.handleRemoteAction('back');
-    }
-  });
+  installBackKey((action) => deps.handleRemoteAction(action));
 
   const s = getSettings();
   const activePlaylist = getActivePlaylist();
