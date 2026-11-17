@@ -9,20 +9,31 @@ import * as player from '../player/index.js';
 import * as remote from '../remote.js';
 import * as ui from '../ui/index.js';
 import { installBackKey } from '../features/tizen-compat.js';
+import { capabilities } from '../capabilities.js';
+import { fallbackNotice } from '../lib/engine-notice.js';
 import { showBootSplash } from './boot.js';
 import { state, BOOT_IDLE_HOLD_MS } from './state.js';
 import { deps } from './deps.js';
 
 async function init() {
   const videoEl = document.getElementById('video');
-  if (!player.initPlayer(videoEl)) {
-    document.body.innerHTML =
-      '<div style="text-align:center;padding:40px;color:#fff;">' +
-      '<h2>App cannot start</h2>' +
-      '<p>Your device does not support the video playback needed for this app. Please try restarting the app or updating your TV software.</p>' +
-      '</div>';
-    return;
-  }
+
+  // Engine fallback notice (T-191): never leave a blank screen. The support
+  // check is sync; a failed async attach is handled below via the returned
+  // promise instead of the old dead `if (!initPlayer())` branch.
+  const avplayAvailable = capabilities().hasAvplay === true;
+
+  // initPlayer resolves false when Shaka is unusable OR its attach fails —
+  // the only real signals available at boot (T-191). Pick the fallback from
+  // that result and show it on an existing visible surface, never a blank
+  // screen and never by replacing the whole document.
+  player.initPlayer(videoEl).then((ok) => {
+    if (ok !== false) return;
+    const decision = fallbackNotice(false, avplayAvailable);
+    if (decision.mode === 'native') ui.showTransientNotice(decision.notice, 8000);
+    ui.showEmptyLogo(decision.notice);
+    deps.hideBootSplashAndMaybeWhatsNew(0);
+  });
 
   remote.init((...args) => deps.handleRemoteAction(...args));
 

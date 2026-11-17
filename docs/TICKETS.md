@@ -1090,6 +1090,10 @@ A ticket is only `done` when it meets the **Definition of Done**
   clear notice that DRM is unavailable. When neither works → a plain message,
   never a blank screen.
 - **Acceptance:** no blank screen on any engine combination.
+- **Status:** 🔶 needs-tv 2026-11-17 — pure `lib/engine-notice.js` maps the three
+  combos to a mode + notice; `app/start.js` shows it on existing UI surfaces
+  when async init fails (replacing a dead synchronous check). 9 new tests,
+  all gates + tizen green, browser-smoked. TV boot still owed.
 
 ### T-192 — About panel: engine + platform info
 - **Type:** feat · **Priority:** P1 · **Size:** S (~100 LOC)
