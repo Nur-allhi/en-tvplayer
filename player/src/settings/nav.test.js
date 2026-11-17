@@ -24,6 +24,7 @@ const SLOT_NAMES = [
   'buildFocusOrder',
   'clearFocus',
   'copyDiagnostics',
+  'importMediaSource',
 ];
 
 describe('settings state', () => {
