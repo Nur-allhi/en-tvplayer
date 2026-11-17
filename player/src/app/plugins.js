@@ -76,6 +76,20 @@ export function registerFeature(id, config = {}) {
   return FEATURES[id];
 }
 
+// A feature binds its own remote action here, at module load. This is the
+// entire integration point — app/remote.js needs no edit for a new binding.
+// The returned function unbinds it (used by tests and feature teardown).
+export function bindRoute(id, action, handler) {
+  const feature = FEATURES[id];
+  if (!feature || typeof handler !== 'function') return () => {};
+  feature.routes = { ...(feature.routes || {}), [action]: handler };
+  feature.keys = [...new Set([...(feature.keys || []), action])];
+  return () => {
+    if (feature.routes) delete feature.routes[action];
+    feature.keys = (feature.keys || []).filter((key) => key !== action);
+  };
+}
+
 export function disabledUiIds() {
   const ids = [];
   for (const feature of Object.values(FEATURES)) {

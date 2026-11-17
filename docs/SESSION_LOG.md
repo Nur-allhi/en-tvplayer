@@ -44,6 +44,50 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-173: remote-action routing via plugins — @nightshift (isolated worktree)
+
+**Ticket:** T-173 ✅ · **Branch:** `feature/t-173-remote-routing` → `dev`
+**Status:** ✅ done — feature-owned routes, no existing key reassigned
+
+**What changed**
+- `app/plugins.js` — new `bindRoute(id, action, handler)` lets a feature claim
+  an action from its own module; it also records the action in the feature's
+  `keys` list and returns an unbind function.
+- New `app/route-dispatch.js` — pure `dispatchFeatureRoute(action, value)`
+  returns true when an enabled feature owns the action. `app/remote.js` calls it
+  after all modal/settings/sidebar branches and before the player-view fallback.
+- 11 tests in `app/routing.test.js` cover binding, unbinding, re-binding,
+  unknown features, non-function handlers and disabled-feature suppression.
+
+**Verified**
+- All gates green: `npm test` 442 passed, lint, format:check, validate (108
+  files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** No playback or remote behaviour changed — no feature
+  binds a route yet, so dispatch is a no-op today. No TV claim made.
+
+**Decisions**
+- Used scout first (remote dispatch, registry and feature contracts). It warned
+  root `remote.js` is 298/300 LOC, so no new logic went there — the dispatcher
+  lives in its own file and `app/remote.js` gained only one import and a
+  3-line call.
+- Routes run *after* modal/settings/sidebar precedence. A feature can own a
+  player-view key without breaking settings input or search navigation.
+- No existing action was reassigned. `red`/`yellow` are reserved and
+  `volume*`/`mute` are unconsumed, but claiming one would be a behaviour change;
+  the first real route should arrive with the feature that owns it (e.g. T-201).
+
+**Watch out**
+- `plugins.test.js` deep-clones `FEATURES` in `beforeEach`; `bindRoute` mutates
+  `routes`/`keys` in place, so a bound route must be unbound or the clone
+  restored — the routing tests do both.
+- `getEnabledRoutes()` merges top-level `feature.routes` objects, not the
+  `routes` name arrays in feature `contract`s. Keep both meanings distinct.
+
+**Next**
+- T-180 — VOD data model + storage.
+
+---
+
 ## 2026-11-17 — T-172: migrate features to plugins — @nightshift (isolated worktree)
 
 **Ticket:** T-172 ✅ · **Branch:** `feature/t-172-plugin-migration` → `dev`
