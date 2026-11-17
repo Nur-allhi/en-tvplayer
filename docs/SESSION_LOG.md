@@ -44,6 +44,20 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-211 opened for the first-run crash — @maintainer
+
+**Ticket:** T-211 (proposed) · **Found during:** T-140 browser smoke test
+
+A fresh profile clicking "M3U / M3U8 Playlist" throws
+`Cannot read properties of null (reading 'addEventListener')` in `render()`.
+Reproduced on the untouched baseline, so it predates T-140. Opened as a
+ticket with the full stack, the reproduction steps and the acceptance that
+the fix must preserve BUG-011/012 field order — not just null-guard the crash.
+Marked `proposed` in `docs/AUTONOMY.md` so an unattended run will not pick
+it up without a decision.
+
+---
+
 ## 2026-11-17 — T-140: settings navigation slice — @maintainer
 
 **Ticket:** T-140 ✅ · **Branch:** `refactor/t-140-settings-nav` → `dev`

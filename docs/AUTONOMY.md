@@ -130,6 +130,7 @@ with the exact gate output; agent skipped it.
 | 40 | T-202 | info bar with clock | ready | |
 | 41 | T-203 | GitHub issue templates | ready | |
 | 42 | T-209 | enforced commit message format | done | hook exists and is machine-checked |
+| 43 | T-211 | first-run onboarding null container | proposed | browser bug; agent must not pick up until prioritised |
 | — | T-100…T-115, T-120, T-129, T-208, T-210 | Phase 0–1 + recovery/state | done | see `docs/TICKETS.md` status lines |
 
 ## M2 note — why the engine split is four tickets

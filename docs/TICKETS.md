@@ -897,6 +897,27 @@ A ticket is only `done` when it meets the **Definition of Done**
 
 ---
 
+### T-211 — First-run onboarding crashes before settings init
+- **Type:** fix · **Priority:** P1 · **Size:** XS (~30 LOC)
+- **Spec:** in a fresh profile, clicking "M3U / M3U8 Playlist" or "Xtream Login"
+  in the first-run "Add your source" dialog throws
+  `TypeError: Cannot read properties of null (reading 'addEventListener')`
+  in `settings.js` `render()`. `main.js` `selectOnboarding()` calls
+  `settings.openAddForm()` directly, which calls `render()` before
+  `settings.init()` has set the container DOM node. Fix the ordering (ensure
+  `init()` has run, or make `openAddForm()` initialise lazily) — do not just
+  add a null guard that silently drops the form.
+- **Acceptance:** with an empty `localStorage`, both onboarding choices open
+  the add-playlist form with no console error; the BUG-011/012 field order is
+  preserved (name → URL, OK in URL saves); regression test included.
+- **Depends:** — · **Found:** 2026-11-17 during T-140 browser smoke test.
+- **Notes:** confirmed pre-existing by stashing all T-140 changes and
+  reproducing the identical stack on the committed baseline (`89f12c5`).
+  Not caused by the settings split. Browser-only: Vitest runs in node with no
+  DOM, so a unit test alone will not reproduce it — use a browser check or a
+  minimal DOM shim in the test.
+- **Status:** proposed
+
 ## Backlog (unprioritised)
 
 | # | Feature | Size | Notes |
