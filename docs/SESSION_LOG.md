@@ -44,6 +44,45 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-171: feature plugin registry — @nightshift (batch run)
+
+**Ticket:** T-171 ✅ · **Branch:** `feature/t-171-plugin-registry` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- New `app/plugins.js` — the single declaration point for features. Each
+  entry lists `enabled`, the DOM ids it owns and the remote actions it binds.
+  Helpers expose `isEnabled`, `disabledUiIds`, `isActionEnabled`,
+  `guardAction` and `applyFeatureFlags`.
+- `app/index.js` applies the flags at boot and keeps the proxy menu hidden
+  when that feature is off. `remote.js` wraps its action callback once via
+  `guardAction`, so a disabled feature's key binding disappears with its flag.
+- `vite.config.js` sets `inlineDynamicImports: true` so `import()` survives the
+  IIFE build the next tickets need.
+
+**Verified**
+- `npm test` → 375 passed (27 files), including 10 new registry tests.
+- `npm run lint`, `npm run validate` (0 new violations, a11y audit ok),
+  `npm run format:check`, `npm run build` and `npm run tizen` all green.
+  The build proves `inlineDynamicImports` works with the IIFE output.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Kept the remote guard in `plugins.js` rather than `remote.js`: the latter was
+  at 300 LOC and the guard pushed it to 304, a new modularity violation.
+- Declared UI/keys per feature now; T-172 moves the feature modules themselves
+  and T-173 routes keys through the registry's contract.
+
+**Watch out**
+- `applyFeatureFlags()` runs at boot only. A feature toggled at runtime needs
+  a fresh call plus a `refreshProxyMenu()` for the proxy UI.
+- `remote.js` is back to 298 LOC — any further additions there break the cap.
+
+**Next**
+- T-172 — migrate existing features into `features/`.
+
+---
+
 ## 2026-11-17 — T-170: reactive state store — @nightshift (batch run)
 
 **Ticket:** T-170 ✅ · **Branch:** `feature/t-170-state-store` → `dev`
