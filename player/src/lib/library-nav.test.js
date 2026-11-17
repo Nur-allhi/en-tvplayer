@@ -86,7 +86,8 @@ describe('select from list and detail', () => {
   it('opens episodes for a series with episodes', () => {
     const list = select(move(initialNav(), 1, {}), { listCount: 1 });
     const detail = select(list, { mediaIdAt: () => 's1' });
-    const nav = select(detail, { selectedType: 'series', episodeCount: 4 });
+    const ctx = { selectedType: 'series', episodeCount: 4, episodeStart: 1, detailCount: 2 };
+    const nav = select(move(detail, 1, ctx), ctx);
     expect(current(nav).level).toBe(LEVELS.EPISODES);
   });
 
@@ -101,6 +102,22 @@ describe('select from list and detail', () => {
     const detail = select(list, { mediaIdAt: () => 's1' });
     const nav = select(detail, { selectedType: 'series', episodeCount: 0 });
     expect(current(nav).level).toBe(LEVELS.DETAIL);
+  });
+
+  it('moves across a Resume row in the detail view', () => {
+    const detail = select(atList(), { mediaIdAt: () => 'm1' });
+    const ctx = { detailCount: 3, episodeStart: 2 };
+    const moved = move(detail, 1, ctx);
+    expect(current(moved).index).toBe(1);
+    expect(move(moved, 1, ctx) === moved).toBe(false);
+  });
+
+  it('opens episodes only from the episodes row', () => {
+    const detail = select(atList(), { mediaIdAt: () => 's1' });
+    const ctx = { selectedType: 'series', episodeCount: 3, detailCount: 3, episodeStart: 2 };
+    expect(select(detail, ctx)).toBe(detail);
+    const atEpisodes = move(move(detail, 1, ctx), 1, ctx);
+    expect(current(select(atEpisodes, ctx)).level).toBe(LEVELS.EPISODES);
   });
 
   it('is terminal on the episode level', () => {

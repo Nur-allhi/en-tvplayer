@@ -996,6 +996,14 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** season/episode lists for series; persist the resume position per
   media id; offer "Resume" on the detail card.
 - **Acceptance:** resuming restores position within ±5 s.
+- **Status:** 🔶 needs-tv 2026-11-17 — pure `lib/resume.js` (22 tests) defines
+  the ±5 s threshold, formatting, clamping and season grouping. `state/vod.js`
+  now stores per-episode `resumeAt` via `setResumeAt()` and preserves it across
+  re-fetch (`mergeMedia`). The library detail card shows a "Resume at m:ss"
+  row and episodes show ⏵ when a position is saved. 574 tests; all gates +
+  tizen green. **Actual restore is owed:** no player code changed (T-185 wires
+  playback), so the ±5 s end-to-end claim cannot be verified here — no TV is
+  connected.
 
 ### T-184 — Audio / subtitle / quality pickers
 - **Type:** feat · **Priority:** P1 · **Size:** M (~250 LOC)

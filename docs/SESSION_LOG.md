@@ -44,6 +44,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-183: episode browsing + resume — @nightshift (isolated worktree)
+
+**Ticket:** T-183 🔶 needs-tv · **Branch:** `feature/t-183-episode-browsing` → `dev`
+**Status:** ✅ merged and gated — end-to-end restore owed (T-185 + TV)
+
+**What changed**
+- New pure `lib/resume.js` (22 tests) — `clampPosition`, `formatTime`,
+  `isResumable` (5 s thresholds at both ends), `resumeDecision`,
+  `withinTolerance` and `groupEpisodesBySeason`.
+- `state/vod.js` — episodes now normalise an optional `resumeAt`, `mergeMedia`
+  preserves entry and episode positions across a re-fetch, and a new
+  `setResumeAt(id, episodeId|null, seconds)` writes them. 7 new tests.
+- `ui/library.js` — the detail card offers "↻ Resume at m:ss" when a position
+  exists; episode rows show ⏵. `lib/library-nav.js` now takes `detailCount`
+  and `episodeStart` from context so the Episodes row stays reachable with the
+  extra Resume row; 2 new nav tests.
+
+**Verified**
+- All gates green: `npm test` 574 passed, lint, format:check, validate (123
+  files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** No player code changed — `loadChannel` takes no
+  position and T-185 owns playback integration. The ±5 s restore itself is not
+  verifiable here, so the ticket is `needs-tv` rather than `done`.
+
+**Decisions**
+- Used scout first. It confirmed that capturing a position needs `player/`
+  edits (T-185 territory), so this ticket stops at persistence and the UI
+  affordance. No `loadChannel` call was added.
+- Kept resume data inside `movies` on the entry/episode rather than adding a
+  new settings key — the v4 migration and unknown-key preservation stay intact.
+- `mergeMedia` merges episode positions by id; a source re-fetch that omits
+  `resumeAt` can no longer erase the viewer's place.
+
+**Watch out**
+- The Resume row is informational until T-185 wires a playback action; it does
+  not start playback today. Do not mark this ticket `done` on the strength of
+  the unit tests alone.
+- `app/vod-store.js` saves on a 400 ms debounce; T-185 should call `flushVod()`
+  when leaving playback so the final position is not lost.
+
+**Next**
+- T-185 — VOD playback integration, then verify restore on a TV.
+
+---
+
 ## 2026-11-17 — T-182: ui/library.js — movies & series browser — @nightshift (isolated worktree)
 
 **Ticket:** T-182 ✅ · **Branch:** `feature/t-182-library-ui` → `dev`
