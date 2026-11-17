@@ -221,7 +221,7 @@ function buildRightItems() {
     });
   }
   // Button IDs
-  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'settings-btn', 'proxy-toggle-btn'];
+  const btnIds = ['refresh-stream-btn', 'refresh-channels-btn', 'settings-btn', 'subtitle-btn', 'proxy-toggle-btn'];
   btnIds.forEach((id) => {
     const el = document.getElementById(id);
     if (el && !el.classList.contains('hidden')) {

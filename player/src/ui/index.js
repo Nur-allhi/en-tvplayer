@@ -10,3 +10,4 @@ export * from './right-menu.js';
 export * from './dialogs.js';
 export * from './osd.js';
 export * from './library.js';
+export * from './subtitle-picker.js';

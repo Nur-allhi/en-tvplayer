@@ -46,7 +46,7 @@ describe('player/index.js hub', () => {
     }
   });
 
-  it('exports exactly the 24-name API', () => {
+  it('exports exactly the 26-name API', () => {
     const hub = read('index.js');
     const names = new Set();
     for (const m of hub.matchAll(/^export\s*\{([^}]+)\}/gm)) {
@@ -64,8 +64,10 @@ describe('player/index.js hub', () => {
       const src = read(m[1] + '.js');
       for (const n of src.matchAll(/^export\s+(?:async\s+)?(?:function|const|let)\s+(\w+)/gm)) names.add(n[1]);
     }
-    expect(names.size).toBe(24);
+    expect(names.size).toBe(26);
     expect(names.has('loadChannel')).toBe(true);
     expect(names.has('isNativeAvailable')).toBe(true);
+    expect(names.has('getTextTracks')).toBe(true);
+    expect(names.has('selectTextTrackById')).toBe(true);
   });
 });

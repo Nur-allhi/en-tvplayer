@@ -84,6 +84,9 @@ function startPlayer() {
     ui.setSelectedAudio(id);
   });
 
+  ui.setSubtitleCallback((id) => player.selectTextTrackById(id));
+  ui.initSubtitlePicker();
+
   let playPauseButton = document.getElementById('playpause-button');
   if (playPauseButton) {
     addCleanupListener(playPauseButton, 'click', (e) => {
