@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-170: reactive state store — @nightshift (batch run)
+
+**Ticket:** T-170 ✅ · **Branch:** `feature/t-170-state-store` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- New `player/src/state/` with `createStore.js`, `index.js` and 19 colocated
+  tests. `createStore` returns `get`/`set`/`subscribe` (plus `getState`/
+  `setState` aliases). It shallow-copies the initial object, keeps identity
+  stable, merges patches in place and emits one notification per `set()`.
+- A Proxy emits notifications for the direct `state.x = …` writes that all 16
+  existing consumers still perform, so no slice had to be rewritten.
+- `state/index.js` owns the initial shapes and exports `appState`, `uiState`
+  and `vodState` (seeded with `library: []` and `search: ''`).
+  `ui/state.js` and `app/state.js` now re-export their store and the exact
+  same `state` object; the public API of both is unchanged.
+
+**Verified**
+- `npm test` → 365 passed (26 files), including 19 new store tests and the
+  updated identity tests in `app/state.test.js` / `ui/state.test.js`.
+- `npm run lint`, `npm run validate` (0 new modularity violations, a11y audit
+  ok), `npm run format:check`, `npm run build` and `npm run tizen` all green.
+- **No TV is connected.** This is an identity-preserving infrastructure
+  refactor with no behaviour change; no playback claim made.
+
+**Decisions**
+- Proxy over a get/set migration: 240+ call sites mutate `state.x` directly and
+  the existing suites pin object and array identity. Wrapping the same object
+  delivers subscription without touching a consumer.
+- The store's `set()` always notifies once (even for an empty patch), while
+  direct same-value writes are suppressed — both existing contracts hold.
+
+**Watch out**
+- `state/` is not in the validator's DOM-free list yet (only `lib/` is), but
+  the new modules are pure and must stay that way.
+- Two overlapping nightshift runs again edited the same ticket in one tree.
+  The other run's tests were adopted and are green here; no work was discarded.
+
+**Next**
+- T-171 — `app/plugins.js` registry.
+
+---
+
 ## 2026-11-17 — T-162: accessibility pass — @nightshift (batch run)
 
 **Ticket:** T-162 ✅ · **Branch:** `feature/t-162-accessibility` → `dev`
