@@ -10,23 +10,14 @@ import { capabilities } from './capabilities.js';
 import { hasTvKeyInput } from './lib/capabilities.js';
 // T-150: boot splash staging lives in its own slice.
 import { showBootSplash, hideBootSplash } from './app/boot.js';
-
-let currentIndex = 0;
-let channels;
-let selectedGroup = null;
-let bufferingInterval = null;
-let bufferingActive = false;
-let cleanupListeners = [];
+import { state, BOOT_IDLE_HOLD_MS } from './app/state.js';
 
 // Boot recovery: the boot tune uses cached (possibly stale-token) URLs while
 // the background refresh fetches fresh ones. If nothing is playing once the
 // refresh lands, re-tune the latest intent with its fresh URL.
-let playbackStarted = false;
-let tuneSucceeded = false;
-let lastIntent = null;
+
 // Fast-zap sequence: overlapping tune bodies from a burst of presses share
 // one video element — only the latest press may touch the player.
-let tuneSeq = 0;
 
 /* Responsive TV scaling: detect screen size and set CSS variable */
 function applyResponsiveScale() {
@@ -38,7 +29,7 @@ function applyResponsiveScale() {
 applyResponsiveScale();
 
 function getDisplayChannels() {
-  return filterDisplayChannels(channels, getHiddenGroups(), selectedGroup);
+  return filterDisplayChannels(state.channels, getHiddenGroups(), state.selectedGroup);
 }
 
 const LAST_SEEN_KEY = 'en_last_seen_version';
@@ -311,8 +302,6 @@ const CHANGELOG = [
   },
 ];
 
-const BOOT_IDLE_HOLD_MS = 1500; // extra hold after tagline when no playlist fetch runs
-
 function checkWhatsNew() {
   try {
     const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
@@ -339,9 +328,9 @@ function showWhatsNew() {
   if (verEl) verEl.textContent = 'v' + APP_VERSION;
   const iconMap = { added: ['\u2713', 'added'], fixed: ['\u26A0', 'fixed'], changed: ['\u2192', 'changed'] };
   let html = '';
-  if (pendingUpdate) {
+  if (state.pendingUpdate) {
     html += '<div class="wn-section">';
-    html += '<div class="wn-section-title">Update available: v' + pendingUpdate.latest + '</div>';
+    html += '<div class="wn-section-title">Update available: v' + state.pendingUpdate.latest + '</div>';
     html +=
       '<div class="wn-item"><span class="wn-icon added">\u2192</span><span>Reinstall via Apps2Samsung to update.</span></div>';
     html += '</div>';
@@ -431,7 +420,7 @@ async function init() {
     // Auto-refresh: always fetch fresh playlist on boot.
     if (s.channels && s.channels.length > 0) {
       // Cached channels available — show instantly, refresh in background.
-      channels = s.channels;
+      state.channels = s.channels;
       startPlayer();
       showBootSplash('Updating playlist...');
       refreshChannelsInBackground().then((ok) => {
@@ -445,7 +434,7 @@ async function init() {
       try {
         const newChannels = await fetchPlaylistWithRetry(activePlaylist);
         saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
-        channels = newChannels;
+        state.channels = newChannels;
         hideBootSplashAndMaybeWhatsNew();
         startPlayer();
       } catch (e) {
@@ -457,7 +446,7 @@ async function init() {
   } else if (s.channels && s.channels.length > 0) {
     // Auto-refresh OFF: load from localStorage only, no network fetch —
     // hold the splash 1.5s past the tagline so it doesn't flash by.
-    channels = s.channels;
+    state.channels = s.channels;
     startPlayer();
     showBootSplash('Loading...');
     hideBootSplashAndMaybeWhatsNew(BOOT_IDLE_HOLD_MS);
@@ -467,7 +456,7 @@ async function init() {
     try {
       const newChannels = await fetchPlaylistWithRetry(activePlaylist);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
-      channels = newChannels;
+      state.channels = newChannels;
       hideBootSplashAndMaybeWhatsNew();
       startPlayer();
     } catch (e) {
@@ -481,22 +470,22 @@ async function init() {
 }
 
 function cleanupEventListeners() {
-  cleanupListeners.forEach(({ element, event, handler }) => {
+  state.cleanupListeners.forEach(({ element, event, handler }) => {
     if (element && element.removeEventListener) {
       element.removeEventListener(event, handler);
     }
   });
-  cleanupListeners = [];
-  if (bufferingInterval) {
-    clearInterval(bufferingInterval);
-    bufferingInterval = null;
+  state.cleanupListeners = [];
+  if (state.bufferingInterval) {
+    clearInterval(state.bufferingInterval);
+    state.bufferingInterval = null;
   }
 }
 
 function addCleanupListener(element, event, handler) {
   if (element && element.addEventListener) {
     element.addEventListener(event, handler);
-    cleanupListeners.push({ element, event, handler });
+    state.cleanupListeners.push({ element, event, handler });
   }
 }
 
@@ -522,16 +511,16 @@ function startPlayer() {
   // BUG-018: must also initialize the shell with zero channels. Otherwise a
   // fresh install that backs out of Settings lands on a dead player page
   // (no UI wiring, Settings unreachable).
-  channels = channels || [];
+  state.channels = state.channels || [];
 
   cleanupEventListeners();
-  sortChannels(channels);
+  sortChannels(state.channels);
 
   settings.init(document.getElementById('settings-page'), {
     onPlaylistFetched: (newChannels) => {
       sortChannels(newChannels);
-      channels = newChannels;
-      ui.refreshChannelList(channels);
+      state.channels = newChannels;
+      ui.refreshChannelList(state.channels);
       settings.hide();
       ui.stopInactivityTimer();
       refreshProxyMenu();
@@ -542,12 +531,12 @@ function startPlayer() {
       ui.stopInactivityTimer();
       refreshProxyMenu();
       ui.refreshGroupVisibility();
-      selectedGroup = ui.getSelectedGroup();
+      state.selectedGroup = ui.getSelectedGroup();
       showPlayer();
     },
   });
 
-  ui.init(channels, handleChannelSelect);
+  ui.init(state.channels, handleChannelSelect);
 
   const overlaySettings = getSettings();
   ui.setOverlayVisibility({
@@ -560,7 +549,7 @@ function startPlayer() {
       settings.hide();
       refreshProxyMenu();
       ui.refreshGroupVisibility();
-      selectedGroup = ui.getSelectedGroup();
+      state.selectedGroup = ui.getSelectedGroup();
       showPlayer();
       ui.stopInactivityTimer();
     }
@@ -609,14 +598,14 @@ function startPlayer() {
   const onboardM3u = document.getElementById('onboard-m3u');
   if (onboardM3u) {
     addCleanupListener(onboardM3u, 'click', () => {
-      onboardFocus = 0;
+      state.onboardFocus = 0;
       selectOnboarding();
     });
   }
   const onboardXtream = document.getElementById('onboard-xtream');
   if (onboardXtream) {
     addCleanupListener(onboardXtream, 'click', () => {
-      onboardFocus = 1;
+      state.onboardFocus = 1;
       selectOnboarding();
     });
   }
@@ -646,7 +635,7 @@ function startPlayer() {
 
   let videoEl = document.getElementById('video');
   addCleanupListener(videoEl, 'playing', () => {
-    playbackStarted = true;
+    state.playbackStarted = true;
     videoEl.style.visibility = '';
     hideProgress();
     ui.hideBuffering();
@@ -670,7 +659,7 @@ function startPlayer() {
   });
 
   player.onBuffering((buffering, percent) => {
-    bufferingActive = buffering;
+    state.bufferingActive = buffering;
     if (buffering) {
       const p = percent != null ? percent : player.getBufferingPercent();
       ui.showBuffering(p);
@@ -683,8 +672,8 @@ function startPlayer() {
   player.onTuneAttempt((n) => {
     ui.setTuneAttempt(n);
   });
-  bufferingInterval = setInterval(() => {
-    if (bufferingActive) {
+  state.bufferingInterval = setInterval(() => {
+    if (state.bufferingActive) {
       ui.updateBuffering(player.getBufferingPercent());
     }
   }, 500);
@@ -695,7 +684,7 @@ function startPlayer() {
   });
 
   player.onChannelAdvance(() => {
-    const next = (currentIndex + 1) % channels.length;
+    const next = (state.currentIndex + 1) % state.channels.length;
     ui.selectChannel(next);
   });
 
@@ -703,7 +692,7 @@ function startPlayer() {
     handleStaleToken(deadChannel);
   });
 
-  if (channels.length === 0) {
+  if (state.channels.length === 0) {
     showEmptyState();
     return;
   }
@@ -718,9 +707,9 @@ function restoreLastSession() {
   let idx = 0;
   try {
     const s = getSettings();
-    const at = findResumeIndex(channels, s && s.lastChannelUrl, getHiddenGroups());
+    const at = findResumeIndex(state.channels, s && s.lastChannelUrl, getHiddenGroups());
     if (at >= 0) {
-      const ch = channels[at];
+      const ch = state.channels[at];
       const g = (ch && ch.group) || 'Ungrouped';
       idx = at;
       const groups = ui.getGroups().map((x) => x.name);
@@ -732,7 +721,7 @@ function restoreLastSession() {
       } else {
         ui.showGroupChannels('All Channels');
       }
-      selectedGroup = ui.getSelectedGroup();
+      state.selectedGroup = ui.getSelectedGroup();
     }
   } catch {}
   ui.selectChannel(idx, true);
@@ -752,13 +741,11 @@ function showEmptyState() {
   if (infoEl) infoEl.textContent = 'Open Settings to add a playlist';
 }
 
-let pendingUpdate = null;
-
 function runUpdateCheck() {
   sendUsagePing();
   checkForUpdate().then((info) => {
     if (info) {
-      pendingUpdate = info;
+      state.pendingUpdate = info;
       ui.setUpdateBadge(true);
     }
   });
@@ -785,7 +772,7 @@ function showFirstRun() {
   // First launch (or fetch failure with nothing cached): land on the player
   // shell with its empty state — never strand the user on Settings. The
   // menu opens showing the Settings button, and a hint names the Blue key.
-  channels = channels || [];
+  state.channels = state.channels || [];
   startPlayer();
   ui.toggleRightSidebar();
   showBootSplash('Loading...');
@@ -808,7 +795,6 @@ function showFirstRun() {
 
 /* First-run source picker: M3U playlist or Xtream login, straight into the
    matching Settings add form. Shown only on true first installs. */
-let onboardFocus = 0;
 
 function isOnboardingOpen() {
   const el = document.getElementById('onboarding-modal');
@@ -820,7 +806,7 @@ function showOnboarding() {
   if (!modal) return;
   // Fresh installs have no changelog to catch up on — don't stack What's New.
   markVersionSeen();
-  onboardFocus = 0;
+  state.onboardFocus = 0;
   modal.classList.remove('hidden');
   updateOnboardFocus();
 }
@@ -834,17 +820,17 @@ function updateOnboardFocus() {
   const m3uBtn = document.getElementById('onboard-m3u');
   const xtBtn = document.getElementById('onboard-xtream');
   if (m3uBtn) {
-    if (onboardFocus === 0) m3uBtn.setAttribute('data-focused', '');
+    if (state.onboardFocus === 0) m3uBtn.setAttribute('data-focused', '');
     else m3uBtn.removeAttribute('data-focused');
   }
   if (xtBtn) {
-    if (onboardFocus === 1) xtBtn.setAttribute('data-focused', '');
+    if (state.onboardFocus === 1) xtBtn.setAttribute('data-focused', '');
     else xtBtn.removeAttribute('data-focused');
   }
 }
 
 function selectOnboarding() {
-  const type = onboardFocus === 1 ? 'xtream' : 'm3u';
+  const type = state.onboardFocus === 1 ? 'xtream' : 'm3u';
   hideOnboarding();
   showSettingsPage();
   settings.openAddForm(type);
@@ -888,10 +874,10 @@ async function handleChannelSelect(channel) {
   // Record the tune intent FIRST (before the paint-delay await below): the
   // background refresh may land while this tune is still yielding, and it
   // needs the latest intent to decide on a fresh-URL re-tune.
-  const mySeq = ++tuneSeq;
-  currentIndex = channels.indexOf(channel);
+  const mySeq = ++state.tuneSeq;
+  state.currentIndex = state.channels.indexOf(channel);
   // Latest tune intent (name+group survive token rotation; URLs don't).
-  lastIntent = { name: channel.name, group: channel.group || 'Ungrouped' };
+  state.lastIntent = { name: channel.name, group: channel.group || 'Ungrouped' };
   // Hard visual reset FIRST: one clean narrative (name + Connecting…),
   // every stale pill/error/progress from the previous tune hidden at once.
   ui.resetTuneStatus(channel && channel.name);
@@ -926,7 +912,7 @@ async function handleChannelSelect(channel) {
   // Fast-zap burst: a newer press arrived while the veil was painting — the
   // player belongs to it now, so bail before touching anything. The UI above
   // already shows the latest channel; only the load is skipped.
-  if (tuneSuperseded(mySeq, tuneSeq)) return;
+  if (tuneSuperseded(mySeq, state.tuneSeq)) return;
   // Stamp the active playlist so Channel Source cards can show "last played".
   try {
     const s = getSettings();
@@ -938,17 +924,17 @@ async function handleChannelSelect(channel) {
   } catch {}
   // Resume: remember what was playing (URL is stable across refresh/sort).
   try {
-    selectedGroup = ui.getSelectedGroup();
-    saveSettings({ lastChannelUrl: channel.url, lastGroup: selectedGroup });
+    state.selectedGroup = ui.getSelectedGroup();
+    saveSettings({ lastChannelUrl: channel.url, lastGroup: state.selectedGroup });
   } catch {}
   ui.setProxyToggleLabel(!!(getSettings().proxyChannels || {})[channel.url]);
   const ok = await player.loadChannel(channel);
-  tuneSucceeded = ok === true;
+  state.tuneSucceeded = ok === true;
   if (!ok) {
     hideProgress();
     ui.hideBuffering();
     ui.showEmptyLogo('');
-  } else if (!bufferingActive) {
+  } else if (!state.bufferingActive) {
     // Fast channel: loaded with nothing left to buffer — drop the name toast.
     ui.hideBuffering();
   } else {
@@ -1004,23 +990,21 @@ function updateResolutionBadge(height, bandwidth) {
   }
   const label = getResolutionLabel(height);
   const bw = bandwidth || player.getActiveBandwidth();
-  const type = channelTypeTag(channels[currentIndex]);
+  const type = channelTypeTag(state.channels[state.currentIndex]);
   el.textContent = label + formatBandwidth(bw) + type;
   el.classList.remove('hidden');
 }
 
-let progressActive = false;
-
 function showProgress(text) {
   const el = document.getElementById('progress-toast');
   if (!el) return;
-  progressActive = true;
+  state.progressActive = true;
   el.classList.remove('hidden');
   document.getElementById('progress-text').textContent = text;
 }
 
 function updateProgressPercent(percent) {
-  if (!progressActive) return;
+  if (!state.progressActive) return;
   const el = document.getElementById('progress-text');
   if (el && typeof percent === 'number') {
     el.textContent = 'Reloading ' + percent + '%';
@@ -1028,12 +1012,10 @@ function updateProgressPercent(percent) {
 }
 
 function hideProgress() {
-  progressActive = false;
+  state.progressActive = false;
   const el = document.getElementById('progress-toast');
   if (el) el.classList.add('hidden');
 }
-
-let lastBackTime = 0;
 
 async function refreshChannelsInBackground() {
   const active = getActivePlaylist();
@@ -1045,8 +1027,8 @@ async function refreshChannelsInBackground() {
     // never got anywhere, re-tune the same channel with its fresh URL
     // instead of stranding the user on the brand screen. Working playback
     // is never touched.
-    if (!playbackStarted && !tuneSucceeded && lastIntent) {
-      const at = findIntentIndex(channels, lastIntent);
+    if (!state.playbackStarted && !state.tuneSucceeded && state.lastIntent) {
+      const at = findIntentIndex(state.channels, state.lastIntent);
       if (at >= 0) ui.selectChannel(at, true);
     }
     return true;
@@ -1060,8 +1042,8 @@ async function refreshChannelsInBackground() {
 function applyFreshChannels(newChannels) {
   saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
   sortChannels(newChannels);
-  channels = newChannels;
-  ui.refreshChannelList(channels);
+  state.channels = newChannels;
+  ui.refreshChannelList(state.channels);
 }
 
 // Expired-token recovery: the player retried the frozen channel URL and the
@@ -1071,9 +1053,9 @@ function applyFreshChannels(newChannels) {
 // truly dead. Never yanks the user back if they already moved on.
 async function handleStaleToken(deadChannel) {
   try {
-    if (!deadChannel || !lastIntent) return;
+    if (!deadChannel || !state.lastIntent) return;
     const deadGroup = deadChannel.group || 'Ungrouped';
-    if (deadChannel.name !== lastIntent.name || deadGroup !== lastIntent.group) return;
+    if (deadChannel.name !== state.lastIntent.name || deadGroup !== state.lastIntent.group) return;
     let fresh = null;
     try {
       const active = getActivePlaylist();
@@ -1083,8 +1065,8 @@ async function handleStaleToken(deadChannel) {
     }
     if (fresh) {
       applyFreshChannels(fresh);
-      const at = findIntentIndex(channels, lastIntent);
-      if (at >= 0 && channels[at].url !== deadChannel.url) {
+      const at = findIntentIndex(state.channels, state.lastIntent);
+      if (at >= 0 && state.channels[at].url !== deadChannel.url) {
         ui.selectChannel(at, true);
         return;
       }
@@ -1138,18 +1120,18 @@ function registerTizenKeys() {
 function zapChannel(step) {
   const displayChannels = getDisplayChannels();
   if (displayChannels.length === 0) return;
-  const currentDisplayIdx = displayChannels.indexOf(channels[currentIndex]);
+  const currentDisplayIdx = displayChannels.indexOf(state.channels[state.currentIndex]);
   const idx = currentDisplayIdx >= 0 ? currentDisplayIdx : 0;
   const target = (idx + step + displayChannels.length) % displayChannels.length;
-  currentIndex = channels.indexOf(displayChannels[target]);
-  ui.selectChannel(currentIndex, true);
+  state.currentIndex = state.channels.indexOf(displayChannels[target]);
+  ui.selectChannel(state.currentIndex, true);
 }
 
 function handleRemoteAction(action, value) {
   if (action === 'back') {
     const now = Date.now();
-    if (now - lastBackTime < 600) return;
-    lastBackTime = now;
+    if (now - state.lastBackTime < 600) return;
+    state.lastBackTime = now;
   }
   if (isOnboardingOpen()) {
     switch (action) {
@@ -1157,7 +1139,7 @@ function handleRemoteAction(action, value) {
       case 'right':
       case 'up':
       case 'down':
-        onboardFocus = onboardFocus === 0 ? 1 : 0;
+        state.onboardFocus = state.onboardFocus === 0 ? 1 : 0;
         updateOnboardFocus();
         break;
       case 'select':
@@ -1223,10 +1205,10 @@ function handleRemoteAction(action, value) {
         settings.hide();
         refreshProxyMenu();
         ui.refreshGroupVisibility();
-        selectedGroup = ui.getSelectedGroup();
+        state.selectedGroup = ui.getSelectedGroup();
         // BUG-018: with no playlist yet, initialize the empty shell so the
         // sidebars and Settings stay reachable.
-        if (channels && channels.length > 0) {
+        if (state.channels && state.channels.length > 0) {
           showPlayer();
         } else {
           startPlayer();
@@ -1370,8 +1352,8 @@ function handleRemoteAction(action, value) {
           break;
       }
     }
-    selectedGroup = ui.getSelectedGroup();
-    currentIndex = ui.getCurrentIndex();
+    state.selectedGroup = ui.getSelectedGroup();
+    state.currentIndex = ui.getCurrentIndex();
     return;
   }
 
@@ -1468,8 +1450,8 @@ export async function refreshChannels() {
       const newChannels = await fetchPlaylistEntry(active);
       saveSettings({ channels: newChannels, channelsFetched: new Date().toISOString() });
       sortChannels(newChannels);
-      channels = newChannels;
-      ui.refreshChannelList(channels);
+      state.channels = newChannels;
+      ui.refreshChannelList(state.channels);
     } catch (e) {
       console.warn('Failed to refresh from playlist:', e.message);
     }

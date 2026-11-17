@@ -731,7 +731,15 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** ≥ 10 tests (slots fail loudly when unwired, identity stable);
   no imports from other slices; no cycles; no behaviour change.
 - **Depends:** T-150 · **Must land before T-152b.**
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `app/deps.js` holds 38 cross-slice slots
+  (boot, onboarding, What's New, startup, remote, channel/UI helpers); every
+  slot throws `app deps: <name> was called before it was wired` until the hub
+  registers it in T-152c. `app/state.js` now owns all 17 shared app variables
+  plus `BOOT_IDLE_HOLD_MS`. `main.js` now reads/writes through `state.*` — a
+  mechanical, behaviour-neutral move (no logic or ordering changed), so the
+  new fields are not dead. Verified:
+  328 tests (17 deps + 8 state new), lint, format, validate (0 new violations),
+  build and WGT signing all green; zero imports and zero cycles in deps.js.
 
 ### T-152b — onboarding and What's New slices
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~260 LOC across two files)

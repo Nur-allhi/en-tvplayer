@@ -44,6 +44,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-152a: app deps registry + shared state — @nightshift
+
+**Ticket:** T-152a ✅ · **Branch:** `feature/t-152a-app-deps-registry` → `dev`
+**Status:** ✅ done — pure additive registry, no wiring, no behaviour change
+
+**What changed**
+- `app/deps.js` (new, 60 LOC) — 38 slots for every cross-slice app call mapped
+  from `main.js` (boot ×2, onboarding ×6, What's New ×6, startup ×5, remote ×3,
+  channel/UI helpers ×16). Unwired slots throw `app deps: <name> was called
+  before it was wired`; no imports, so no cycles.
+- `app/state.js` — gained the 14 remaining shared app variables (currentIndex,
+  channels, selectedGroup, buffering timers, tune guard, pendingUpdate,
+  onboardFocus, progressActive, lastBackTime) and `BOOT_IDLE_HOLD_MS`.
+- `main.js` — the module-level `let`s became `state.*` reads/writes. Pure
+  mechanical substitution, so the fields are used rather than dead.
+- `app/deps.test.js` (17 tests) and `app/state.test.js` (8 tests) added.
+
+**Verified**
+- `npm test` → 328 passed (303 before, +25); `npm run lint`, `npm run validate`
+  (0 new violations, 2 tracked), `npm run format:check`, `npm run build` all green.
+- `npm run tizen` → WGT signed with the committed certificate fingerprint.
+- No TV/browser check: no TV is connected, and the `main.js` edit is a
+  variable-to-property substitution with identical expressions and ordering,
+  so no playback behaviour changed. Logic paths are unchanged.
+
+**Decisions**
+- Comprehensive slot list (38) over the minimal 4-slot variant seen mid-session:
+  the ticket says "a slot for every cross-slice app call", and the full list
+  matches `player/deps.js`'s approach. Future slices (T-152b/c, T-151) add no
+  slots; they only wire existing ones.
+
+**Watch out**
+- All slots are intentionally unwired. Until `app/index.js` (T-152) registers
+  them, calling any slot throws by design. Do not "fix" that.
+- `main.js` still imports `app/boot.js` directly — T-152c/T-152 convert that to
+  deps slots. `handleRemoteAction` is still 301 LOC (T-151 may split it).
+- Mid-session, `deps.js`/`state.js` briefly appeared in an alternate 4-slot form
+  from another writer; the final tree was re-read and verified before commit.
+  If a duplicate night-shift run is scheduled, that is the likely cause.
+
+**Next**
+- T-152b — onboarding + What's New slices, using these slots; then T-152c → T-151.
+
+---
+
 ## 2026-11-17 — T-150 partial: splash slice landed, rest re-scoped — @maintainer
 
 **Ticket:** T-150 ⚠️ partial · **Branch:** `refactor/t-150-app-boot` → `dev`
