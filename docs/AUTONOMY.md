@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = none       # ready queue exhausted; remaining rows need TV or are proposed
+NEXT        = T-191      # needs-tv code work still owed; do not stop on self-declared empty
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-202 by night shift; ready queue empty
+LAST_RUN    = 2026-11-17 # T-190 shims by night shift (resumed batch)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -133,8 +133,8 @@ with the exact gate output; agent skipped it.
 | 35 | T-184 | audio/subtitle/quality pickers | needs-tv |  |
 | 36 | T-185 | VOD playback integration | needs-tv |  |
 | 37 | T-186 | settings schema migration | done | merged + gated; was T-181 |
-| 38 | T-190 | features/tizen-compat.js | needs-tv |  |
-| 39 | T-191 | engine fallback messaging | needs-tv |  |
+| 38 | T-190 | features/tizen-compat.js | needs-tv | shims merged + gated; TV boot owed |
+| 39 | T-191 | engine fallback messaging | needs-tv | **NEXT** |
 | 40 | T-192 | about panel | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | done | merged + gated; taken early to avoid a concurrent-run collision |

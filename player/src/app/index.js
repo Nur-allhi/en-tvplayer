@@ -9,6 +9,7 @@ import { applyFeatureFlags } from './plugins.js';
 import { refreshProxyMenu } from '../features/proxy.js';
 import '../features/favorites.js';
 import '../features/info-bar.js';
+import { installShims } from '../features/tizen-shims.js';
 import { hydrateVod, startVodPersistence } from './vod-store.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
@@ -66,6 +67,8 @@ function showSettingsPage() {
 }
 
 function boot() {
+  // Install platform shims before anything caches capabilities (T-190).
+  if (typeof window !== 'undefined') installShims(window);
   applyFeatureFlags();
   hydrateVod();
   startVodPersistence();
