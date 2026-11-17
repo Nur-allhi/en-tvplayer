@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-142      # first unresolved row below
+NEXT        = T-150      # first unresolved row below
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
 LAST_RUN    = 2026-11-17 # T-124 + T-125 + T-126 by night shift; T-127 manual
 ```
@@ -103,7 +103,7 @@ with the exact gate output; agent skipped it.
 | 13 | T-123 | delete `player.js`, `player/index.js` hub | done | merged + gated 2026-11-17; M2 complete |
 | 14 | T-140 | `settings/nav.js` + `select.js` | done | merged + gated 2026-11-17; settings.js 698 LOC |
 | 15 | T-141 | `settings/render.js` + `playlists.js` + `render-cards.js` | done | merged + gated 2026-11-17; settings.js 56 LOC |
-| 16 | T-142 | `settings/playback.js` + delete `settings.js` | ready | last settings slice |
+| 16 | T-142 | `settings/playback.js` + `settings/index.js` | done | merged + gated 2026-11-17; M4 complete |
 | 17 | T-150 | `app/boot.js` | ready | |
 | 18 | T-151 | `app/remote.js` | ready | |
 | 19 | T-152 | `app/index.js` + `main.js` entry | ready | |

@@ -1,22 +1,9 @@
-// T-140: navigation and OK/Enter handling moved to their own slices.
-import { state } from './settings/state.js';
-import { deps } from './settings/deps.js';
-export { navigate, navigateNav } from './settings/nav.js';
-export { selectFocused } from './settings/select.js';
-// T-141: rendering and playlist CRUD moved into their own slices.
-import { render } from './settings/render.js';
-import { saveAddPlaylist, saveEditPlaylist, setFormType, testXtreamLogin, handleFetch } from './settings/playlists.js';
-import { groupNames } from './settings/render-cards.js';
-// Wire the callbacks the nav/select slices call through deps.
-Object.assign(deps, {
-  render,
-  saveAddPlaylist,
-  saveEditPlaylist,
-  setFormType,
-  testXtreamLogin,
-  handleFetch,
-  groupNames,
-});
+// Settings lifecycle (T-142). Moved verbatim from settings.js. The container
+// is set by init(); show/openAddForm guard on it so first-run onboarding can
+// call them before init without throwing (see T-211).
+import { state } from './state.js';
+import { deps } from './deps.js';
+import { render } from './render.js';
 
 export function init(settingsContainer, callbacks) {
   state.container = settingsContainer;
@@ -59,3 +46,19 @@ export function hide() {
 export function isVisible() {
   return state.container && !state.container.classList.contains('hidden');
 }
+
+// Wire the render/playlist callbacks the nav and select slices call through
+// deps. This module is imported by index.js, so the wiring runs before any
+// remote action can reach those slices.
+import { saveAddPlaylist, saveEditPlaylist, setFormType, testXtreamLogin, handleFetch } from './playlists.js';
+import { groupNames } from './render-cards.js';
+
+Object.assign(deps, {
+  render,
+  saveAddPlaylist,
+  saveEditPlaylist,
+  setFormType,
+  testXtreamLogin,
+  handleFetch,
+  groupNames,
+});

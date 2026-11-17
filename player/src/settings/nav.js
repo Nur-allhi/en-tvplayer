@@ -211,7 +211,7 @@ function clearFocus() {
   document.querySelectorAll('[data-focused]').forEach((el) => el.removeAttribute('data-focused'));
 }
 
-export function applyFocus() {
+function applyFocus() {
   clearFocus();
   // Stale IME-engage flags die on every focus move — the next OK re-opens
   // the keyboard instead of acting on a field the user already left.

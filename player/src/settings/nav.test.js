@@ -59,7 +59,7 @@ describe('settings deps', () => {
 
 describe('settings nav wiring', () => {
   it('wires every slot across the hub and the nav slice', () => {
-    const hub = read('../settings.js').match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
+    const hub = read('lifecycle.js').match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
     const nav = read('nav.js').match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
     expect(hub).not.toBeNull();
     expect(nav).not.toBeNull();

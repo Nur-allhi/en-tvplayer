@@ -5,7 +5,6 @@ import { getSettings, saveSettings } from '../config.js';
 import * as ui from '../ui/index.js';
 import { capabilities } from '../capabilities.js';
 import { hasTvKeyInput } from '../lib/capabilities.js';
-import { applyFocus } from './nav.js';
 
 const onTv = () => hasTvKeyInput(capabilities());
 
@@ -19,7 +18,7 @@ export function selectFocused() {
     state.activeSection = el.dataset.section;
     state.focusIdx = 0;
     deps.render();
-    applyFocus();
+    deps.applyFocus();
     return;
   }
 
@@ -76,7 +75,7 @@ export function selectFocused() {
     state.addMode = true;
     state.addType = 'm3u';
     deps.render();
-    applyFocus();
+    deps.applyFocus();
     return;
   }
 
@@ -90,7 +89,7 @@ export function selectFocused() {
     state.editIndex = idx;
     state.editType = entry && entry.type === 'xtream' ? 'xtream' : 'm3u';
     deps.render();
-    applyFocus();
+    deps.applyFocus();
     return;
   }
 
@@ -106,7 +105,7 @@ export function selectFocused() {
       if (active < 0) active = -1;
       saveSettings({ playlists, activePlaylistIndex: active });
       deps.render();
-      applyFocus();
+      deps.applyFocus();
     });
     return;
   }
@@ -155,7 +154,7 @@ export function selectFocused() {
     }
     document.body.focus();
     state.focusIdx = 0;
-    applyFocus();
+    deps.applyFocus();
     return;
   }
 
@@ -174,7 +173,7 @@ export function selectFocused() {
     }
     document.body.focus();
     state.focusIdx = 0;
-    applyFocus();
+    deps.applyFocus();
     return;
   }
 
@@ -186,7 +185,7 @@ export function selectFocused() {
     if (idx >= 0 && idx < s.playlists.length && !(state.editMode && state.editIndex === idx)) {
       saveSettings({ activePlaylistIndex: idx });
       deps.render();
-      applyFocus();
+      deps.applyFocus();
       deps.handleFetch();
     }
     return;

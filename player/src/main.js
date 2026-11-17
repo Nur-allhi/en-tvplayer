@@ -2,7 +2,7 @@ import { getSettings, saveSettings, getActivePlaylist, getHiddenGroups, APP_VERS
 import * as player from './player/index.js';
 import * as ui from './ui/index.js';
 import * as remote from './remote.js';
-import * as settings from './settings.js';
+import * as settings from './settings/index.js';
 import { checkForUpdate, sendUsagePing, consentAsked, hasConsented, setConsented } from './update.js';
 import { fetchPlaylistEntry, fetchPlaylistWithRetry } from './utils.js';
 import { filterDisplayChannels, findResumeIndex, findIntentIndex, tuneSuperseded } from './logic.js';
