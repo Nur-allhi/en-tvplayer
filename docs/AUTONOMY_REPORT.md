@@ -28,3 +28,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T10:17:51.844Z | `9f2ac80` | fix(ui): read the library from the reconciled VOD store (T-182) | 36/46 | 4 | T-181 |
 | 2026-11-17T10:19:43.086Z | `a9cf062` | merge: include concurrent T-192 About panel (T-182) | 37/46 | 3 | T-181 |
 | 2026-11-17T10:35:44.688Z | `b2fd5c3` | merge: include concurrent T-201 favourites (T-183) | 38/46 | 1 | T-183 |
+| 2026-11-17T10:39:51.606Z | `192a8eb` | chore(agents): close the exhausted ticket queue (T-202) | 39/46 | 0 | none |
