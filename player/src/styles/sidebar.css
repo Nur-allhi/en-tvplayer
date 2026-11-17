@@ -59,7 +59,7 @@
 }
 
 .logo-text span {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 .logo-icon {
@@ -106,7 +106,7 @@
 .right-sidebar-title {
   font-size: calc(24px * var(--tv-scale));
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   letter-spacing: 1px;
 }
 

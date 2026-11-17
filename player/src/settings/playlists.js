@@ -100,14 +100,20 @@ export async function testXtreamLogin(prefix) {
   const passEl = document.getElementById(prefix + '-pass');
   const password = passEl ? passEl.value : '';
   if (statusEl) {
-    statusEl.classList.remove('hidden');
+    statusEl.classList.remove('hidden', 'is-success', 'is-error');
     statusEl.textContent = 'Checking...';
   }
   try {
     await xtreamLogin({ host, username, password });
-    if (statusEl) statusEl.textContent = 'Login OK — save to load channels';
+    if (statusEl) {
+      statusEl.classList.add('is-success');
+      statusEl.textContent = 'Login OK — save to load channels';
+    }
   } catch (e) {
-    if (statusEl) statusEl.textContent = e.message;
+    if (statusEl) {
+      statusEl.classList.add('is-error');
+      statusEl.textContent = e.message;
+    }
   }
 }
 
@@ -117,7 +123,7 @@ export async function handleFetch() {
   if (!statusEl) return;
   const active = getActivePlaylist();
   if (!active || (active.type !== 'xtream' && !active.url)) {
-    statusEl.className = 'status-info';
+    statusEl.className = 'status-info is-error';
     statusEl.textContent = 'Select or add a playlist first';
     statusEl.classList.remove('hidden');
     return;
@@ -130,9 +136,11 @@ export async function handleFetch() {
   try {
     const channels = await fetchPlaylistEntry(active);
     saveSettings({ channels, channelsFetched: new Date().toISOString() });
+    statusEl.classList.add('is-success');
     statusEl.textContent = 'Fetched ' + channels.length + ' channels';
     if (state.onPlaylistFetched) state.onPlaylistFetched(channels);
   } catch (e) {
+    statusEl.classList.add('is-error');
     statusEl.textContent = 'Could not load playlist: ' + e.message;
   } finally {
     if (fetchBtn) fetchBtn.disabled = false;

@@ -28,7 +28,7 @@
 }
 
 .channel-item.focused .channel-number {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 .channel-item.active {
@@ -93,7 +93,7 @@
 
 .search-item .group-count {
   font-size: calc(18px * var(--tv-scale));
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   font-weight: 600;
   margin-left: 10px;
   flex-shrink: 0;
@@ -148,7 +148,7 @@
 }
 .group-item .group-count {
   font-size: calc(18px * var(--tv-scale));
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   font-weight: 600;
   margin-left: 10px;
   flex-shrink: 0;

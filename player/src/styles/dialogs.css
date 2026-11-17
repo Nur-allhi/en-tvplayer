@@ -68,7 +68,7 @@
 
 .whats-new-version {
   font-size: calc(14px * var(--tv-scale));
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   background: rgba(var(--c-accent-rgb), 0.1);
   border: 1px solid rgba(var(--c-accent-rgb), 0.25);
   border-radius: calc(20px * var(--tv-scale));
@@ -106,7 +106,7 @@
 .wn-section-title {
   font-size: calc(15px * var(--tv-scale));
   font-weight: 600;
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: calc(10px * var(--tv-scale));

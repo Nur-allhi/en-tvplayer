@@ -44,6 +44,63 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-162: accessibility pass — @nightshift (batch run)
+
+**Ticket:** T-162 ✅ · **Branch:** `feature/t-162-accessibility` → `dev`
+**Status:** ✅ done — continuous run, ticket 1 of this session
+
+**What changed**
+- Adopted the uncommitted accessibility work left in the tree by an interrupted
+  overlapping run and landed it in one commit: `aria-live` on loading/
+  buffering/progress/boot status, `role="alert"` on the error pill and
+  `aria-label` on play/pause in `player/index.html`; a focus ring and a global
+  `prefers-reduced-motion` block in `styles/base.css`; contrast-raised text
+  tones plus new `--c-accent-text` / `--c-accent-strong` tokens; ⚠/✓/✕ glyphs
+  on error and success feedback; and `is-success`/`is-error` classes on
+  Xtream-login and playlist status in `settings/playlists.js`.
+- New `player/src/lib/contrast.js` — pure WCAG 2.1 contrast maths and palette
+  audit (4.5:1 body text, 3:1 UI marks), with 9 tests in `contrast.test.js`.
+- New `scripts/audit-a11y.mjs` — reads the real tokens out of `base.css`,
+  checks aria on status/dialog elements, white-on-accent button contrast and
+  the focus/reduced-motion/glyph rules. Exposed as `npm run a11y` and chained
+  into `npm run validate`.
+
+**Verified**
+- All gates green: `npm test` 342 passed (9 new), lint, format:check, validate
+  (modularity 0 new + a11y audit ok), `npm run build`, `npm run tizen` (WGT
+  signed with the expected cert).
+- Contrast computed for every text token across all eight surfaces: worst
+  body-text ratio 4.58:1 (`--c-accent-text` on `#242424`); white on
+  `--c-accent-strong` is 4.60:1; accent/danger marks clear 3:1. Alpha text
+  raised from 0.35/0.45 to 0.7; the lowest remaining alpha is a 0.15
+  decorative separator glyph.
+- Static audit of all four modals: `role="dialog"` + `aria-modal="true"` present.
+  Remote key precedence for every modal confirmed in `app/remote.js`.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Kept the two watchdog-tooling commits an overlapping run had already put on
+  this branch instead of resetting them away (`--hard` is forbidden). They land
+  with this merge and are called out here for the maintainer.
+- Kept `--c-accent` as the brand/focus/fill colour and introduced separate
+  `--c-accent-text` (4.58:1 worst case) and `--c-accent-strong` (4.60:1 with
+  white labels) tokens for text and buttons rather than recolouring the whole
+  system. The audit splits tokens by role so a future misuse is caught.
+- Chained the audit into `validate` rather than CI alone, so every gate this
+  loop runs enforces it.
+
+**Watch out**
+- `docs/AUTONOMY_REPORT.md` carried two uncommitted hook rows from the prior
+  run; they are included in this commit and the hook appends this one's row.
+- `docs/REFINED_UX_REPORT.md` is pre-existing user work — left untouched.
+- Overlapping runs are still possible. The watchdog only fires when no session
+  is active; check `git log origin/dev..dev` if two merges collide.
+
+**Next**
+- T-170 — `state/` reactive store.
+
+---
+
 ## 2026-11-17 — T-161: split styles.css into modules — @nightshift (batch run)
 
 **Ticket:** T-161 ✅ · **Branch:** `feature/t-161-split-styles` → `dev`

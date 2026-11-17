@@ -88,7 +88,7 @@
 }
 
 .watermark-text span {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 #video {
@@ -202,7 +202,7 @@
 
 #buffering-percent {
   font-weight: 600;
-  color: var(--c-accent);
+  color: var(--c-accent-text);
 }
 
 /* Play/Pause button in now playing bar */

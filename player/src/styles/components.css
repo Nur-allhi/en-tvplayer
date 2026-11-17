@@ -13,7 +13,7 @@
 }
 
 .btn-primary {
-  background: var(--c-accent);
+  background: var(--c-accent-strong);
   color: var(--c-white);
 }
 
@@ -102,6 +102,16 @@
   font-size: calc(19px * var(--tv-scale));
   color: var(--c-text-muted);
 }
+/* Settings status messages carry a glyph as well as a colour, so a colour-
+   blind viewer can still tell a successful action from a failed one. */
+.status-info.is-success::before {
+  content: '\2713\00a0';
+  color: var(--c-success);
+}
+.status-info.is-error::before {
+  content: '\2715\00a0';
+  color: var(--c-accent-text);
+}
 
 .status-label {
   font-size: calc(15px * var(--tv-scale));
@@ -142,7 +152,7 @@
 }
 
 .settings-page .about-link {
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   text-decoration: none;
 }
 
@@ -219,7 +229,7 @@
 
 .select-opt.active {
   border-color: var(--c-accent);
-  color: var(--c-accent);
+  color: var(--c-accent-text);
   background: rgba(var(--c-accent-rgb), 0.06);
 }
 
