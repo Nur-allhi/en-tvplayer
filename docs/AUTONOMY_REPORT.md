@@ -33,3 +33,5 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T13:36:45.455Z | `507b8a5` | merge: include concurrent T-190 shims (T-185) | 39/46 | 0 | T-191 |
 | 2026-11-17T13:39:04.252Z | `3f7c05b` | merge: include concurrent update (T-185) | 39/46 | 0 | none |
 | 2026-11-17T13:41:07.258Z | `1f03427` | merge: reconcile final queue state (T-185) | 39/46 | 0 | none |
+| 2026-11-17T13:43:36.233Z | `e4f8e78` | docs(session): record the final batch handoff | 39/46 | 0 | none |
+| 2026-11-17T14:06:32.967Z | `63f56c5` | docs(session): record TV verification on UA43AU8000RSFS | 39/46 | 0 | none |

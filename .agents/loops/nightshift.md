@@ -1,7 +1,7 @@
 ---
 name: nightshift
 schedule: 30 13 * * *
-enabled: true
+enabled: false
 model: opencode/hy4-flash-free
 agent: nightshift
 timezone: Asia/Dhaka
