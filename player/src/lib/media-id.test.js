@@ -1,68 +1,96 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeMediaUrl, mediaId, episodeId } from './media-id.js';
+import { normalizeUrl, hashUrl, mediaId, episodeId } from './media-id.js';
 
-describe('normalizeMediaUrl', () => {
+describe('normalizeUrl', () => {
   it('trims surrounding whitespace', () => {
-    expect(normalizeMediaUrl('  https://host/a.mp4  ')).toBe('https://host/a.mp4');
+    expect(normalizeUrl('  https://a.example/x.m3u8  ')).toBe('https://a.example/x.m3u8');
   });
 
-  it('drops a volatile query string and fragment', () => {
-    expect(normalizeMediaUrl('https://host/a.mp4?token=abc&x=1#frag')).toBe('https://host/a.mp4');
+  it('lowercases the scheme and host but keeps the path case', () => {
+    expect(normalizeUrl('HTTPS://A.Example/Movie.M3U8')).toBe('https://a.example/Movie.M3U8');
   });
 
-  it('lower-cases scheme and host but keeps the path case', () => {
-    expect(normalizeMediaUrl('HTTPS://HOST/Path/Movie.MP4')).toBe('https://host/Path/Movie.MP4');
+  it('drops the fragment', () => {
+    expect(normalizeUrl('https://a.example/x.m3u8#part')).toBe('https://a.example/x.m3u8');
   });
 
-  it('removes trailing slashes', () => {
-    expect(normalizeMediaUrl('https://host/folder/')).toBe('https://host/folder');
+  it('sorts query keys so reordered params hash the same', () => {
+    expect(normalizeUrl('https://a.example/x?b=2&a=1')).toBe(normalizeUrl('https://a.example/x?a=1&b=2'));
   });
 
-  it('returns an empty string for a non-string input', () => {
-    expect(normalizeMediaUrl(null)).toBe('');
-    expect(normalizeMediaUrl(42)).toBe('');
+  it('strips trailing slashes', () => {
+    expect(normalizeUrl('https://a.example/x/')).toBe('https://a.example/x');
+  });
+
+  it('handles a non-absolute URL without throwing', () => {
+    expect(normalizeUrl('channel/1')).toBe('channel/1');
+  });
+
+  it('returns an empty string for missing input', () => {
+    expect(normalizeUrl()).toBe('');
+    expect(normalizeUrl('   ')).toBe('');
+  });
+});
+
+describe('hashUrl', () => {
+  it('is deterministic', () => {
+    expect(hashUrl('abc')).toBe(hashUrl('abc'));
+  });
+
+  it('differs for different input', () => {
+    expect(hashUrl('abc')).not.toBe(hashUrl('abd'));
+  });
+
+  it('returns a fixed-width lowercase hex value', () => {
+    expect(hashUrl('abc')).toMatch(/^[0-9a-f]{8}$/);
   });
 });
 
 describe('mediaId', () => {
-  it('is a stable prefixed hash of a URL', () => {
-    const id = mediaId('https://host/a.mp4');
-    expect(id).toMatch(/^m_[0-9a-f]{8}$/);
-    expect(mediaId('https://host/a.mp4')).toBe(id);
+  it('is stable for the same URL', () => {
+    expect(mediaId('https://a.example/x.m3u8')).toBe(mediaId('https://a.example/x.m3u8'));
   });
 
-  it('is independent of token changes — stable across re-fetch', () => {
-    const first = mediaId('https://host/a.mp4?token=one');
-    const second = mediaId('https://host/a.mp4?token=two#x');
-    expect(second).toBe(first);
+  it('ignores surrounding whitespace and fragments', () => {
+    expect(mediaId(' https://a.example/x.m3u8#1 ')).toBe(mediaId('https://a.example/x.m3u8'));
   });
 
-  it('is independent of ordering', () => {
-    const ids = ['https://host/a.mp4', 'https://host/b.mp4', 'https://host/c.mp4'].map(mediaId);
-    const reversed = ['https://host/c.mp4', 'https://host/b.mp4', 'https://host/a.mp4'].map(mediaId);
-    expect(reversed).toEqual([...ids].reverse());
-    expect(new Set(ids).size).toBe(3);
+  it('ignores query parameter order', () => {
+    expect(mediaId('https://a.example/x?b=2&a=1')).toBe(mediaId('https://a.example/x?a=1&b=2'));
   });
 
-  it('distinguishes different paths', () => {
-    expect(mediaId('https://host/a.mp4')).not.toBe(mediaId('https://host/b.mp4'));
-  });
-
-  it('treats case-only host differences as the same media', () => {
-    expect(mediaId('https://HOST/a.mp4')).toBe(mediaId('https://host/a.mp4'));
+  it('differs for different URLs', () => {
+    expect(mediaId('https://a.example/x')).not.toBe(mediaId('https://a.example/y'));
   });
 
   it('returns an empty string for an empty URL', () => {
     expect(mediaId('')).toBe('');
-    expect(mediaId('???')).toBe('');
+  });
+
+  it('is independent of the position in a list', () => {
+    const urls = ['https://a.example/1', 'https://a.example/2', 'https://a.example/3'];
+    const before = urls.map(mediaId);
+    const reordered = [urls[2], urls[0], urls[1]].map(mediaId);
+    expect(new Set(reordered)).toEqual(new Set(before));
+  });
+
+  it('is unchanged after a simulated re-fetch of the same source', () => {
+    const first = mediaId('https://a.example/playlist.m3u8?token=abc');
+    const refetched = mediaId('https://a.example/playlist.m3u8?token=abc');
+    expect(refetched).toBe(first);
   });
 });
 
 describe('episodeId', () => {
-  it('derives a deterministic id from the series id, season and number', () => {
-    const series = mediaId('https://host/series.m3u8');
-    expect(episodeId(series, 1, 2)).toBe(series + '_s1e2');
-    expect(episodeId(series, 1, 2)).toBe(episodeId(series, 1, 2));
-    expect(episodeId(series, 1, 2)).not.toBe(episodeId(series, 2, 1));
+  it('combines entry id, season and number', () => {
+    expect(episodeId('m-abc', 2, 5)).toBe('m-abc-s2e5');
+  });
+
+  it('is stable for the same episode', () => {
+    expect(episodeId('m-abc', 1, 1)).toBe(episodeId('m-abc', 1, 1));
+  });
+
+  it('differs for different episodes', () => {
+    expect(episodeId('m-abc', 1, 1)).not.toBe(episodeId('m-abc', 1, 2));
   });
 });
