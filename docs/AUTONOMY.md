@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-172      # T-170 + T-171 + T-200 done — no decision needed
+NEXT        = T-173      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
 LAST_RUN    = 2026-11-17 # T-200 by night shift (out of order, collision avoidance)
 ```
@@ -124,8 +124,8 @@ with the exact gate output; agent skipped it.
 | 26 | T-162 | accessibility pass | done | merged + gated + a11y audit |
 | 27 | T-170 | state/ reactive store | done | merged + gated |
 | 28 | T-171 | app/plugins.js registry | done | merged + gated |
-| 29 | T-172 | migrate features to plugins | ready | **NEXT** |
-| 30 | T-173 | remote-action routing | ready |  |
+| 29 | T-172 | migrate features to plugins | done | merged + gated |
+| 30 | T-173 | remote-action routing | ready | **NEXT** |
 | 31 | T-180 | VOD data model + storage | ready |  |
 | 32 | T-181 | add media by URL | ready | first T-181 |
 | 33 | T-182 | ui/library.js | ready |  |
