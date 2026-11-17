@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-180      # first unresolved row — no decision needed
+NEXT        = T-181      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
 LAST_RUN    = 2026-11-17 # T-172 by night shift (continuous run)
 ```
@@ -123,10 +123,10 @@ with the exact gate output; agent skipped it.
 | 25 | T-161 | split styles.css | done | merged + gated |
 | 26 | T-162 | accessibility pass | done | merged + gated + a11y audit |
 | 27 | T-170 | state/ reactive store | done | merged + gated |
-| 28 | T-171 | app/plugins.js registry | done | merged + gated |
-| 29 | T-172 | migrate features to plugins | done | merged + gated |
+| 28 | T-171 | app/plugins.js registry | done | merged + gated; guards + contracts |
+| 29 | T-172 | migrate features to plugins | done | merged + gated; both approaches reconciled |
 | 30 | T-173 | remote-action routing | done | merged + gated |
-| 31 | T-180 | VOD data model + storage | ready | **NEXT** |
+| 31 | T-180 | VOD data model + storage | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 32 | T-181 | add media by URL | ready | first T-181 |
 | 33 | T-182 | ui/library.js | ready |  |
 | 34 | T-183 | episode browsing | ready |  |

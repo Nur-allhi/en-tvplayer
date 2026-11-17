@@ -44,6 +44,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-180: VOD data model + storage — @nightshift (isolated worktree)
+
+**Ticket:** T-180 ✅ · **Branch:** `feature/t-180-vod-data-model` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New DOM-free `player/src/lib/media-id.js` — `normalizeMediaUrl`, `mediaId`
+  (FNV-1a hash of the normalized URL, `m_` prefix) and `episodeId`. A media id
+  ignores query/fragment (auth tokens change per fetch), lowercases scheme and
+  host, and never depends on manifest order. 13 tests.
+- New `player/src/state/vod.js` — `toMediaEntry` canonicalizes user/manifest
+  input into the v4.PLAN §8.1 MediaEntry/Episode shapes (rejects URL-less
+  entries, derives ids when absent); `loadLibrary`/`getLibrary`/`addMedia`/
+  `removeMedia`/`findMedia`/`setVodSearch`/`persistLibrary` back the T-170
+  `vodState` store and persist through `en_settings.movies`. 16 tests.
+- No consumer changes yet — T-181/182 wire this model into the UI and playback.
+
+**Verified**
+- All gates green: `npm test` 469 passed (29 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate. Both new modules under the 300-LOC
+  cap; `lib/media-id.js` stays DOM-pure.
+- **No TV is connected.** Pure data model + storage; no playback behaviour and
+  no TV claim made.
+
+**Decisions**
+- Took T-180 out of queue order: T-173/186 were claimed by other active runs,
+  so this independent P0 foundation ticket was the safest next item. `NEXT`
+  stays T-173 (first unresolved in queue).
+- Chose an FNV-1a hash of the normalized URL over a manifest index so ids are
+  stable across re-fetch and reordering — the ticket's explicit acceptance
+  criterion. Strip query/fragment because tokens are volatile.
+- Persist via the existing `saveSettings`/`getSettings` helpers and the
+  `en_settings.movies` key created by T-186; no new storage key introduced.
+
+**Watch out**
+- `toMediaEntry` honours a caller-supplied `id` verbatim — manifest authors
+  should keep ids stable if they provide them.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
+
+**Next**
+- T-181 — add media by URL / manifest (queue order; another run may own it).
+
+---
+
 ## 2026-11-17 — T-186: v4 settings schema migration — @nightshift (isolated worktree)
 
 **Ticket:** T-186 ✅ · **Branch:** `feature/t-186-settings-schema-migration` → `dev`
