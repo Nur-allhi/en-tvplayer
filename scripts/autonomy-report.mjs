@@ -10,6 +10,15 @@ const report = 'docs/AUTONOMY_REPORT.md';
 try {
   const sha = run(['rev-parse', '--short', 'HEAD']);
   const subject = run(['log', '-1', '--format=%s']);
+
+  // Skip report-only commits — otherwise every commit of this file appends
+  // another row, which itself needs committing, forever.
+  const changed = run(['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'])
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (changed.length && changed.every((f) => f === report)) process.exit(0);
+
   const queue = readFileSync('docs/AUTONOMY.md', 'utf8');
 
   const rows = [...queue.matchAll(/^\| \d+ \| (T-[\w]+) \|[^|]*\| (ready|done|needs-tv|proposed|partial) \|/gm)];
