@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-152 + T-153: app hub + thin entry, release path — @nightshift
+
+**Ticket:** T-152 ✅ + T-153 ✅ · **Branch:** `feature/t-152-index-hub` → `dev`
+**Status:** ✅ done — BATCH_LIMIT of 3 reached; this batch ends here
+
+**What changed**
+- `app/index.js` (96 LOC) — the hub. Imports all seven slices for their
+  self-registration side effects, wires the last five hub-owned slots, applies
+  responsive TV scaling and boots on DOMContentLoaded.
+- `main.js` 89 → 4 LOC — just `import './app/index.js'` and the
+  `refreshChannels` re-export. No module imports `main.js`, so this is a clean
+  move with no cycle.
+- `scripts/release.mjs` — the in-app CHANGELOG guard now reads
+  `player/src/app/changelog.js` instead of the emptied `main.js` (T-153, landed
+  in the same commit as its dependency).
+
+**Verified**
+- `npm test` → 333 passed; lint, format, validate (0 new violations), build,
+  `npm run tizen` all green; bundle 956.6 KiB, 85 % of the 1126 KiB budget.
+- Browser (Playwright, isolated contexts, dev server on :5199): seeded profile
+  resumed Alpha with both channels and `--tv-scale=1.35`; ArrowDown zapped to
+  Beta, Blue opened Settings and Back closed it. Fresh profile reached the
+  empty shell. No `app deps` or reference errors; only the expected `$WEBAPIS`
+  404 and fake-stream DNS errors.
+- T-153 static check: `app/changelog.js` contains `version: '3.2.0'` and the
+  release guard no longer references `main.js`.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Kept the five remaining helpers in the hub rather than opening another slice:
+  the hub is only 96 LOC, and the ticket's job is to own wiring, not to keep
+  splitting small DOM helpers.
+- T-153 shares the T-152 commit (its spec requires it) so the release path is
+  never left pointing at a half-emptied `main.js`.
+
+**Watch out**
+- `npm run release` — even `--beta --dry-run` — is denied by this machine's
+  policy. T-153 was therefore verified statically, not by running the script.
+  Do not try to route around that guard; it protects tags and the signing key.
+- The hub must keep importing every slice for side effects. Removing one drops
+  its deps registration and fails at boot with an `app deps: … was called before
+  it was wired` error, which ESLint cannot see.
+- `docs/REFINED_UX_REPORT.md` is still untracked user work and was never staged.
+
+**Next**
+- T-160 — design tokens. Batch limit reached; stop here.
+
+---
+
 ## 2026-11-17 — T-151: app/remote.js slice split — @nightshift
 
 **Ticket:** T-151 ✅ · **Branch:** `feature/t-151-app-remote` → `dev`

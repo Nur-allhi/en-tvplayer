@@ -834,6 +834,17 @@ A ticket is only `done` when it meets the **Definition of Done**
   subsystems.
 - **Acceptance:** `main.js` ≤ 60 LOC; boot, resume, first-run, onboarding all
   verified.
+- **Status:** ✅ done 2026-11-17 — `app/index.js` (96 LOC) is now the hub: it
+  imports every slice for its self-registration, wires the last five slots
+  (`showBootSplash`, `hideBootSplash`, `showPlayer`, `showSettingsPage`,
+  `refreshProxyMenu`), applies responsive scaling and boots on DOMContentLoaded.
+  `main.js` is 4 LOC (`import './app/index.js'` plus the `refreshChannels`
+  re-export) — well under the 60-LOC target. No file imports `main.js`, so
+  moving its body introduced no cycle. 333 tests, lint, format, validate (0 new),
+  build and WGT signing all green. Browser-smoked: seeded profile resumed Alpha
+  with two channels and `--tv-scale=1.35`, ArrowDown zapped to Beta, Blue opened
+  Settings, Back closed it; fresh profile reached the empty shell with no
+  `app deps` or reference errors. **No TV verification claimed.**
 
 ---
 
@@ -955,6 +966,13 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Depends:** T-152 — land in the same commit so the release path is never
   broken in between.
 - **Notes:** `docs/MIGRATION.md` §4 Risk A.
+- **Status:** ✅ done 2026-11-17 — landed in the T-152 commit as required.
+  `scripts/release.mjs` now reads `player/src/app/changelog.js` instead of the
+  emptied `main.js`; the guard message names the new path. Static verification
+  confirms the file contains `version: '3.2.0'` and the guard no longer reads
+  `main.js`. A live `npm run release -- … --beta --dry-run` could not be run:
+  the machine's deny policy blocks the release command even in dry-run mode, a
+  hard stop that was not circumvented. No tag, push or key operation attempted.
 
 ### T-186 — v4 settings schema migration
 - **Type:** feat · **Priority:** **P0** · **Size:** S (~60 LOC)
