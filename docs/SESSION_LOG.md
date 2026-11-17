@@ -79,6 +79,47 @@ first). Keep it short — the point is handover, not a diary.
 
 ---
 
+## 2026-11-17 — T-191: engine fallback messaging — @nightshift (resumed batch)
+
+**Ticket:** T-191 🔶 needs-tv · **Branch:** `feature/t-191-fallback-message` → `dev`
+**Status:** ✅ code merged + all gates green; TV verification still owed
+
+**What changed**
+- New `lib/engine-notice.js` — pure `fallbackNotice(shakaUsable, avplayAvailable)`
+  mapping the three engine combos to a mode and a plain-language notice, plus
+  `needsNotice(mode)`.
+- `app/start.js` — replaced the dead `if (!initPlayer(videoEl))` branch
+  (`initPlayer` is async, so the check never fired) with a `.then()` on its
+  result. A failed Shaka init or attach now shows the DRM-unavailable notice
+  (native mode) or the plain "cannot play" message on the existing empty-logo
+  and transient-notice surfaces — never a blank screen and never by replacing
+  the document body.
+
+**Verified**
+- `npm test` → 651 passed (45 files), including 9 new engine-notice tests.
+  lint, validate (0 new, a11y ok), format:check, build, tizen all green.
+- Browser smoke: all three combos returned the right `{mode, notice}`; the
+  `none` notice rendered visibly in `#empty-logo-message` (not hidden).
+- **No TV is connected.** A real failed engine on a TV is still owed, so the
+  ticket stays `needs-tv`; no playback claim made.
+
+**Decisions**
+- Drove the decision from `initPlayer`'s resolved value rather than adding a new
+  public probe: `capabilities().hasShaka` is hardcoded true and cannot signal
+  an unusable engine, while the async init already returns false for both an
+  unsupported browser and a failed attach. Adding a probe would have changed
+  the pinned 26-name `player/index.js` API.
+
+**Watch out**
+- `start.js` now shows a notice asynchronously; a channel tune that starts
+  before `initPlayer` resolves could clear it. The important guarantee is that
+  a failed engine never leaves the screen blank.
+
+**Next**
+- Continue from `NEXT` in `docs/AUTONOMY.md` (now `none`; only TV checks remain).
+
+---
+
 ## 2026-11-17 — T-190: Tizen compat shims — @nightshift (resumed batch)
 
 **Ticket:** T-190 🔶 needs-tv · **Branch:** `feature/t-190-tizen-compat` → `dev`

@@ -45,7 +45,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-191      # first unresolved row — no decision needed
+NEXT        = none       # all ready rows done — only TV verification remains
 MODE        = unattended # agent must not ask questions; no human retry needed
 LAST_RUN    = 2026-11-17 # T-185 by night shift (continuous run)
 ```
@@ -134,7 +134,7 @@ with the exact gate output; agent skipped it.
 | 36 | T-185 | VOD playback integration | needs-tv | merged + gated; playback check owed |
 | 37 | T-186 | settings schema migration | done | merged + gated; was T-181 |
 | 38 | T-190 | features/tizen-compat.js | needs-tv | shims merged + gated; TV boot owed |
-| 39 | T-191 | engine fallback messaging | needs-tv | **NEXT** |
+| 39 | T-191 | engine fallback messaging | needs-tv | notice merged + gated; TV boot owed |
 | 40 | T-192 | about panel | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | done | merged + gated; taken early to avoid a concurrent-run collision |
