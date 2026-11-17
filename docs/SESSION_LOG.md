@@ -44,6 +44,31 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — TV verification passed on UA43AU8000RSFS — @maintainer
+
+**Result:** ✅ maintainer installed the v4 WGT manually on the TV and reports
+**everything working**. This closes the hardware gap for the M2–M5 refactor and
+the Tizen 5.0 compatibility work.
+
+**What was verified on hardware**
+- Install path: manual (sdb push failed with a certificate error — expected for
+  a Developer Mode push; the manual installer handled it). WGT signed with the
+  restored key, so settings were preserved — no new app, no data loss.
+- Boot/first-run, playback/DRM, remote input, settings toggles, playlist CRUD,
+  Tizen shims (T-190) and engine fallback messaging (T-191): all working.
+
+**Scope note:** this is one Tizen model (UA43AU8000RSFS). `needs-tv` tickets
+T-184, T-185 and T-191 remain marked as such in `docs/TICKETS.md` because
+verification on *this* TV does not cover every TV model or every feature path.
+The maintainer's report is recorded here as the authoritative verification.
+
+**Watch out**
+- The signing key was never regenerated — fingerprint still
+  40:71:40:30:04:D9:49:25…7D:B7:51:43.
+- TV verification is not automatable; this was a human check.
+
+---
+
 ## 2026-11-17 — final batch handoff: queue complete, dev green — @nightshift
 
 **Status:** ✅ stop condition met — `NEXT = none`; both ready tickets landed
