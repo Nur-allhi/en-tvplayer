@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-152a     # first unresolved row — no decision needed
+NEXT        = T-152b     # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
-LAST_RUN    = 2026-11-17 # T-124 + T-125 + T-126 by night shift; T-127 manual
+LAST_RUN    = 2026-11-17 # T-152a by night shift (T-124…T-127 earlier; T-127 manual)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -113,8 +113,8 @@ with the exact gate output; agent skipped it.
 | 15 | T-141 | settings/render + cards | done | merged + gated |
 | 16 | T-142 | settings/playback + index | done | M4 complete |
 | 17 | T-150 | app/boot.js splash slice | partial | rest is T-152a…c |
-| 18 | T-152a | app/deps.js registry | ready | **NEXT** — land first |
-| 19 | T-152b | onboarding + What's New | ready | after T-152a |
+| 18 | T-152a | app/deps.js registry | done | merged + gated |
+| 19 | T-152b | onboarding + What's New | ready | **NEXT** — after T-152a |
 | 20 | T-152c | startup slice | ready | after T-152b |
 | 21 | T-151 | app/remote.js | ready | after T-152c |
 | 22 | T-152 | app/index.js, thin main.js | ready | after T-151 |
