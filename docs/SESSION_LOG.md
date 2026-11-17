@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-152b: onboarding + What's New slices — @nightshift
+
+**Ticket:** T-152b ✅ · **Branch:** `feature/t-152b-onboarding-whatsnew` → `dev`
+**Status:** ✅ done — 12 functions and CHANGELOG extracted, browser-smoked
+
+**What changed**
+- `app/onboarding.js` (85 LOC) — showFirstRun + the five modal/focus helpers.
+- `app/whats-new.js` (~100 LOC) — the six version/modal helpers.
+- `app/changelog.js` (269 LOC) — CHANGELOG copied byte-for-byte (verified by
+  diff against HEAD, modulo the `export` keyword) + `changelog.test.js` (5).
+- Each slice self-registers its exports into `deps` at module scope, matching
+  `settings/nav.js`. `main.js` wires the four slots it still owns (the two
+  boot functions plus `startPlayer` / `showSettingsPage` via hoisted wrappers)
+  and calls every moved function through `deps.*`. No `main.js` ↔ slice cycle.
+
+**Verified**
+- `npm test` → 333 passed (328 before, +5); `npm run lint`, `npm run validate`
+  (0 new violations), `npm run format:check`, `npm run build`, `npm run tizen`
+  all green.
+- Browser (Playwright, isolated context, dev server on :5174): fresh profile
+  → splash hides, onboarding modal visible, ArrowRight moves `data-focused`
+  from M3U to Xtream, click hides onboarding and opens Settings with the
+  Xtream fields. Returning profile (`en_last_seen_version=0.0.0`, one cached
+  channel) → What's New opens with `v3.2.0`, 20 sections, close button
+  focused; Enter hides it and writes `3.2.0` to localStorage.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Self-registration in each slice plus hub wiring in `main.js`, rather than a
+  single big wire-up: each slice owns its own slots, and `main.js` is still the
+  hub until T-152, so it must register the functions only it implements.
+- `deps.startPlayer` / `deps.showSettingsPage` use wrappers so the hoisted
+  function declarations are looked up at call time.
+
+**Watch out**
+- The `settings-fetch-btn` null `addEventListener` error seen when the Xtream
+  form opens on a fresh profile is **T-211** (pre-existing, proposed, skipped).
+  The stack points at `settings/render.js:183` via `app/onboarding.js:76`, but
+  the line and missing element predate this ticket — do not attribute it here.
+- The What's New close button is keyboard-driven (`Enter`/`Escape`) by design;
+  a mouse click alone does nothing. That is pre-existing behaviour.
+- `main.js` is still ~1045 LOC (baselined). T-152c/T-152 will shrink it.
+
+**Next**
+- T-152c — `app/start.js` (`init`, `startPlayer`, `restoreLastSession`, channel
+  refresh helpers), then T-151 and T-152.
+
+---
+
 ## 2026-11-17 — T-152a: app deps registry + shared state — @nightshift
 
 **Ticket:** T-152a ✅ · **Branch:** `feature/t-152a-app-deps-registry` → `dev`

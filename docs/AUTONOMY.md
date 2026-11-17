@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-152b     # first unresolved row — no decision needed
+NEXT        = T-152c     # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
-LAST_RUN    = 2026-11-17 # T-152a by night shift (T-124…T-127 earlier; T-127 manual)
+LAST_RUN    = 2026-11-17 # T-152a + T-152b by night shift (T-124…T-127 earlier)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -114,8 +114,8 @@ with the exact gate output; agent skipped it.
 | 16 | T-142 | settings/playback + index | done | M4 complete |
 | 17 | T-150 | app/boot.js splash slice | partial | rest is T-152a…c |
 | 18 | T-152a | app/deps.js registry | done | merged + gated |
-| 19 | T-152b | onboarding + What's New | ready | **NEXT** — after T-152a |
-| 20 | T-152c | startup slice | ready | after T-152b |
+| 19 | T-152b | onboarding + What's New | done | merged + gated + browser-smoked |
+| 20 | T-152c | startup slice | ready | **NEXT** — after T-152b |
 | 21 | T-151 | app/remote.js | ready | after T-152c |
 | 22 | T-152 | app/index.js, thin main.js | ready | after T-151 |
 | 23 | T-153 | release script follows changelog | ready | **same commit as T-152** |
