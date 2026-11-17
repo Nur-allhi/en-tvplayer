@@ -3,7 +3,7 @@
 // live in lib/library-nav.js; this file only renders and delegates input.
 
 import { escapeHtml } from '../utils.js';
-import { getLibrary, loadLibrary } from '../state/vod.js';
+import { library } from '../state/vod.js';
 import { LEVELS, initialNav, current, move, select, back } from '../lib/library-nav.js';
 import { deps } from './deps.js';
 import { state } from './state.js';
@@ -11,11 +11,6 @@ import { state } from './state.js';
 let nav = initialNav();
 
 const container = () => document.getElementById('group-list');
-
-const library = () => {
-  loadLibrary();
-  return getLibrary();
-};
 
 const itemsFor = (type) => library().filter((item) => item.type === type);
 
