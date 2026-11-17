@@ -5,8 +5,8 @@ import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { showBootSplash, hideBootSplash } from './boot.js';
 import { deps } from './deps.js';
-import { applyFeatureFlags, isEnabled } from './plugins.js';
-import { refresh as refreshProxyFeature } from '../features/proxy-toggle.js';
+import { applyFeatureFlags } from './plugins.js';
+import { refreshProxyMenu } from '../features/proxy.js';
 
 // Side-effect imports: each slice self-registers its functions into deps.
 import './onboarding.js';
@@ -35,13 +35,6 @@ function applyResponsiveScale() {
   document.documentElement.style.setProperty('--tv-scale', scale);
 }
 applyResponsiveScale();
-
-// Called on boot and every time Settings closes (settings.hide() never fires
-// the onClose callback). The feature owns the host/settings rules; the hub only
-// supplies the registry's enabled flag.
-function refreshProxyMenu() {
-  refreshProxyFeature(isEnabled('proxyTesting'));
-}
 
 function showPlayer() {
   document.body.style.overflow = '';

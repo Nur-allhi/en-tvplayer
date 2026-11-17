@@ -123,8 +123,8 @@ with the exact gate output; agent skipped it.
 | 25 | T-161 | split styles.css | done | merged + gated |
 | 26 | T-162 | accessibility pass | done | merged + gated + a11y audit |
 | 27 | T-170 | state/ reactive store | done | merged + gated |
-| 28 | T-171 | app/plugins.js registry | done | merged + gated; partial acceptance |
-| 29 | T-172 | migrate features to plugins | done | merged + gated; staged move |
+| 28 | T-171 | app/plugins.js registry | done | merged + gated; guards + contracts |
+| 29 | T-172 | migrate features to plugins | done | merged + gated; both approaches reconciled |
 | 30 | T-173 | remote-action routing | ready | **NEXT** |
 | 31 | T-180 | VOD data model + storage | ready |  |
 | 32 | T-181 | add media by URL | ready | first T-181 |

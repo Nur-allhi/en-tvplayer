@@ -919,15 +919,15 @@ A ticket is only `done` when it meets the **Definition of Done**
   shim into `features/`.
 - **Acceptance:** each feature is a self-contained module with a documented
   contract; `app/index.js` no longer knows feature internals.
-- **Status:** ✅ done 2026-11-17 — new `features/` with proxy-toggle,
-  tizen-compat, avplay and search modules, each with a `contract` export.
-  Proxy host/settings/visibility logic left `app/index.js`; Tizen key
+- **Status:** ✅ done 2026-11-17 — `features/` holds `search`, `avplay`,
+  `tizen-compat`, `proxy` and `proxy-toggle` modules with uniform `contract`
+  exports. Proxy host/settings logic left `app/index.js`; Tizen key
   registration and the hardware Back key left `app/remote.js`/`start.js`;
-  `avplay.js` is now a re-export shim over `features/avplay.js`. `app/plugins.js`
-  declares contracts and lazy loaders for all four. 10 feature tests; 396 total.
-  All gates + tizen green. **Note:** search's DOM implementation stays in
-  `ui/search.js` (a `features/` → `ui/` import would break the one-way rule);
-  full remote-action ownership arrives in T-173.
+  `avplay.js` is a re-export shim over the real `features/avplay.js`.
+  `app/plugins.js` carries both the `ui`/`keys` guards and contracts/lazy
+  loaders. 15 feature tests; all gates + tizen green; no TV connected.
+  **Note:** search's DOM implementation stays in `ui/search.js`; full
+  remote-action ownership arrives in T-173.
 
 ### T-173 — Remote-action routing via plugins
 - **Type:** refactor · **Priority:** P1 · **Size:** M

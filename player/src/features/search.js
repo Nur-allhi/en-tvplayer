@@ -1,10 +1,7 @@
-// Feature: cross-group search.
-//
-// Contract (T-172): owns #channel-search and #search-results and the 'search'
-// remote action. The DOM implementation remains in ui/search.js for now —
-// moving it here would need features → ui state/deps imports, which breaks the
-// one-way import rule (main → app → player|ui|settings|features → lib|state).
-// This descriptor is the declared integration point; T-173 routes the action.
+// Search feature (T-172). The ui/sidebar renders the search row and the remote
+// router sends up/down/select/back while a search is active. The DOM
+// implementation stays in ui/search.js; this module is the declared boundary
+// so app/index.js no longer needs to know which slice owns the behaviour.
 
 export const contract = {
   id: 'search',
@@ -14,3 +11,5 @@ export const contract = {
 };
 
 export default contract;
+
+export { enterSearch, exitSearch, searchNavigate, searchSelect } from '../ui/search.js';

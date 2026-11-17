@@ -3,6 +3,11 @@ import { isLocalHost, shouldShow, contract as proxyContract } from './proxy-togg
 import { contract as tizenContract } from './tizen-compat.js';
 import { contract as searchContract } from './search.js';
 import { contract as avplayContract } from './avplay.js';
+import * as search from './search.js';
+import * as avplay from './avplay.js';
+import * as tizenCompat from './tizen-compat.js';
+import { refreshProxyMenu } from './proxy.js';
+import * as native from '../player/native.js';
 
 // T-172: every migrated feature carries the same contract shape so the hub
 // never needs to know its internals. Pure helpers are tested in node env.
@@ -67,5 +72,35 @@ describe('feature contracts', () => {
 
   it('documents the avplay native surface', () => {
     expect(avplayContract.owns).toContain('#avplayer');
+  });
+});
+
+describe('feature boundaries', () => {
+  it('exposes the search contract from one module', () => {
+    for (const name of ['enterSearch', 'exitSearch', 'searchNavigate', 'searchSelect']) {
+      expect(typeof search[name]).toBe('function');
+    }
+  });
+
+  it('exposes the AVPlay engine functions', () => {
+    for (const name of ['play', 'pause', 'resume', 'stop']) {
+      expect(typeof avplay[name]).toBe('function');
+    }
+  });
+
+  it('exposes native load/switch from the native feature boundary', () => {
+    for (const name of ['loadViaAvplay', 'switchToAvplay']) {
+      expect(typeof native[name]).toBe('function');
+    }
+  });
+
+  it('exposes the Tizen capability contract', () => {
+    for (const name of ['detectCapabilities', 'selectEngine', 'hasTvKeyInput', 'meetsMinimumPlatform']) {
+      expect(typeof tizenCompat[name]).toBe('function');
+    }
+  });
+
+  it('exposes the proxy menu refresh', () => {
+    expect(typeof refreshProxyMenu).toBe('function');
   });
 });

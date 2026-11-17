@@ -150,6 +150,39 @@ first). Keep it short — the point is handover, not a diary.
 **Next**
 - T-172 — migrate existing features to plugins (queue order; another run may
   already own it).
+## 2026-11-17 — T-172: migrate features into modules — @nightshift (batch run)
+
+**Ticket:** T-172 ✅ · **Branch:** `feature/t-172-migrate-features` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- New `player/src/features/` with four self-contained boundaries: `search.js`
+  (search contract), `avplay.js` (native playback + load switch),
+  `tizen-compat.js` (platform/engine probing) and `proxy.js` (test relay menu),
+  plus 4 contract tests. Each documents what it owns and re-exports the
+  existing implementation, so no consumer or public API changed.
+- `app/index.js` no longer knows proxy internals: `refreshProxyMenu` moved to
+  `features/proxy.js` and the hub only wires the deps slot.
+
+**Verified**
+- `npm test` → 398 passed (28 files); lint, validate (0 new violations, a11y
+  audit ok), format:check, build and tizen all green.
+- **No TV is connected.** Behaviour-preserving module re-export; no playback
+  claim made.
+
+**Decisions**
+- Facade modules rather than physical deletion of the old implementations:
+  `ui/index.test.js`, `player/index.test.js` and `app/deps.test.js` pin the
+  existing hubs and slots, so moving the source would break those contracts.
+  T-173 can now route through `features/` without another reshuffle.
+
+**Watch out**
+- `features/avplay.js` must import `../avplay.js` (the module lives at
+  `player/src/avplay.js`, not inside `player/`).
+- Two runs still overlap on this tree; reconcile `origin/dev` before pushing.
+
+**Next**
+- T-173 — remote-action routing through plugins.
 
 ---
 

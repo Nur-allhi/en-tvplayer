@@ -1,9 +1,6 @@
-// Feature: Tizen platform compatibility bindings.
-//
-// Contract (T-172): owns Tizen virtual-key registration and the hardware Back
-// key. Exposes registerTizenKeys() and installBackKey(dispatch); the caller
-// injects the action dispatcher so this module never imports app/. Both calls
-// no-op off Tizen. The pure capability probe stays in lib/capabilities.js.
+// Tizen platform compatibility feature (T-172). Owns virtual-key registration
+// and the hardware Back key; the pure capability probe stays in lib/. Both
+// setup functions no-op off Tizen.
 
 import { capabilities } from '../capabilities.js';
 import { hasTvKeyInput } from '../lib/capabilities.js';
@@ -53,3 +50,7 @@ export function installBackKey(dispatch) {
     }
   });
 }
+
+// The capability boundary is also reachable from this feature module.
+export { detectCapabilities } from '../capabilities.js';
+export { meetsMinimumPlatform, selectEngine, hasTvKeyInput } from '../lib/capabilities.js';
