@@ -1,6 +1,6 @@
 ---
 name: nightshift
-schedule: "30 13 * * *"
+schedule: 30 13 * * *
 enabled: true
 model: opencode/hy4-flash-free
 agent: nightshift
