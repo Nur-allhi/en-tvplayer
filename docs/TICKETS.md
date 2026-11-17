@@ -433,7 +433,17 @@ A ticket is only `done` when it meets the **Definition of Done**
   `player/load-error.js` **in this same ticket** — do not defer. Both files
   must be behaviour-identical; the load-error logic already calls
   `logic.js` decisions, never reimplements them.
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `player/load.js` (257 LOC) and
+  `player/load-error.js` (121 LOC), both under the 300 cap (the split was
+  required: `loadChannel` alone is 351 LOC). `player.js` drops to 722 LOC.
+  24-name API intact; 288 tests (4 new load-error branch-order tests);
+  bundle +0.13 %; zero cycles; WGT signs.
+  - Nine new deps slots (incl. `destroyPlayer`) carry load's call-backs into
+    the hub. `load-error.js` uses `deps.destroyPlayer` rather than importing
+    `init.js` directly because Shaka needs `self`, which is absent in the
+    node test env.
+  - Cross-slice audit: every call is qualified through `deps`; the only bare
+    `loadChannel` is same-module recursion in `load.js`. No TV verification.
 
 ### T-122 — `player/events.js` + `player/stream.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~330 LOC combined)
@@ -452,7 +462,9 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Type:** refactor · **Priority:** P0 · **Size:** XS
 - **Acceptance:** `player.js` gone; `player/index.js` is the only entry;
   every importer updated; full suite green.
-- **Status:** ⛔ blocked 2026-11-16 — still owns `initPlayer`, `loadChannel`,
+- **Status:** ✅ unblocked 2026-11-17 — T-124…T-127 landed. Still owns
+  watchdog/recovery paths and DOM helpers; those can move in T-128 if needed.
+  **Previously:** ⛔ blocked 2026-11-16 — still owned `initPlayer`, `loadChannel`,
   the recovery/watchdog paths and the DOM helpers that T-121 was meant to
   extract. It cannot be deleted until **T-124 → T-127** land in order; the
   index hub cannot be the only entry while those functions live here.

@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-127      # first unresolved row below
-MODE        = unattended # agent must not ask questions
-LAST_RUN    = 2026-11-17 # batch complete: T-124 + T-125 + T-126 done
+NEXT        = T-123      # first unresolved row below
+MODE        = unattended # agent must not ask questions (task currently disabled)
+LAST_RUN    = 2026-11-17 # T-124 + T-125 + T-126 by night shift; T-127 manual
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -88,7 +88,7 @@ with the exact gate output; agent skipped it.
 
 | Order | Ticket | Scope | State | Depends / note |
 |------:|--------|-------|-------|----------------|
-| 1 | T-121 | M2 engine split — now an umbrella | done | re-scoped 2026-11-17 into T-124…T-127; do not pick up |
+| 1 | T-121 | M2 engine split — now an umbrella | done | re-scoped 2026-11-17; closed by T-124…T-127 |
 | 2 | T-122 | `player/events.js` + `player/stream.js` | done | merged + gated 2026-11-16 |
 | 3 | T-130 | `ui/state.js` | done | 18 shared vars moved (AST-measured); merged + gated 2026-11-16 |
 | 4 | T-131 | `ui/dialogs.js` | done | zero imports; 74-name API intact; merged + gated 2026-11-16 |
@@ -99,8 +99,8 @@ with the exact gate output; agent skipped it.
 | 9 | T-124 | `player/deps.js` — dependency registry | done | merged + gated 2026-11-17 |
 | 10 | T-125 | pure helpers out of `loadChannel` | done | merged + gated 2026-11-17 |
 | 11 | T-126 | `player/init.js` — init + destroy | done | merged + gated 2026-11-17 |
-| 12 | T-127 | `player/load.js` — load + reload | ready | **NEXT** — after T-126; may need `load-error.js` in same ticket |
-| 13 | T-123 | delete `player.js`, `player/index.js` hub | ready | after T-127 |
+| 12 | T-127 | `player/load.js` + `load-error.js` | done | merged + gated 2026-11-17; 24-name API intact |
+| 13 | T-123 | delete `player.js`, `player/index.js` hub | ready | **NEXT** — M2 slices now in place |
 | 14 | T-140 | `settings/nav.js` | ready | |
 | 15 | T-141 | `settings/render.js` + `settings/playlists.js` | ready | |
 | 16 | T-142 | `settings/playback.js` + delete `settings.js` | ready | last settings slice |

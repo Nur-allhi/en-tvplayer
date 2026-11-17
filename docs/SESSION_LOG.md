@@ -44,6 +44,54 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-127: the last hard M2 slice, done manually — @maintainer
+
+**Ticket:** T-127 ✅ · **Branch:** `refactor/t-127-player-load` → `dev`
+**Status:** ✅ done — M2's engine split is complete; T-123 can now build the hub
+
+**What changed**
+- **`player/load.js` (257 LOC)** — `loadChannel` + `reloadChannel`, moved
+  verbatim from `player.js`. Cross-slice calls go through `deps` slots.
+- **`player/load-error.js` (121 LOC)** — the catch block, split into its own
+  file in the same ticket because `loadChannel` alone is 351 LOC and the
+  guard caps files at 300. `handleLoadError(error, myToken, channel)` keeps
+  the original branch order exactly.
+- **`player.js`** 1063 → 722 LOC. Imports and re-exports `loadChannel` /
+  `reloadChannel`; the 24-name public surface is unchanged (verified by script).
+- **`player/deps.js`** — nine new slots, including `destroyPlayer`.
+- **4 new tests** pin the load-error branch order.
+
+**Why the split looks different from the ticket**
+The ticket allowed `load-error.js` "if the catch block pushes it over 300" —
+it did. The extracted handler imports `deps.destroyPlayer` instead of
+`init.js` directly: `init.js` imports Shaka, which needs `self` and breaks
+the node test env. Going through the registry keeps the slice testable and
+preserves the no-cycle rule.
+
+**Verified**
+- 288 tests (was 284), lint clean, 54 files / 0 new violations, format clean.
+- Bundle 946.6 → 947.8 kB (**+0.13 %**) against the pre-change tree — inside ±2 %.
+- `npm run tizen` signs successfully (471.7 KB WGT).
+- Export count script: **24 names**, identical set to before.
+- Cross-slice audit: every call in `load.js`/`load-error.js`/`init.js` is
+  qualified through `deps`; the only bare `loadChannel` is same-module
+  recursion. No TV verification claimed.
+
+**Watch out**
+- `deps` now has 28 slots. A missing registration throws loudly (unwired
+  slots are functions that throw), so a forgotten wire-up cannot silently
+  degrade playback — but it will surface at runtime, not at build time.
+- The night-shift task is **disabled** at the maintainer's request. This
+  ticket was done manually; the queue still shows it as merged.
+- No TV attached. The load/retry/recovery path owes a hardware smoke test.
+
+**Next**
+- **T-123** — delete `player.js`, create `player/index.js` as the re-export
+  hub that registers every `deps` slot. Now unblocked.
+- Re-enable the scheduled task when the maintainer wants autonomy back.
+
+---
+
 ## 2026-11-17 — T-126: extract the player init slice — @nightshift
 
 **Ticket:** T-126
