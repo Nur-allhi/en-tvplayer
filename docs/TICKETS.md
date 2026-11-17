@@ -1074,6 +1074,9 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** the app boots and plays on a Tizen 5.0 TV; shims are no-ops
   on modern engines.
 - **Spec detail:** `docs/TIZEN_COMPAT.md` §3.
+- **Status:** 🔶 needs-tv 2026-11-17 — `features/tizen-shims.js` installs the
+  three shims only when missing; wired at boot before the capability cache.
+  11 unit tests, all gates green. TV boot still owed; no TV claim.
 
 ### T-191 — Engine fallback messaging
 - **Type:** feat · **Priority:** P0 · **Size:** S (~90 LOC)
