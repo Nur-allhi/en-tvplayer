@@ -1,0 +1,89 @@
+name: Bug report
+description: Report a playback or UI problem on your Tizen TV
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Please fill in as much as
+        you can — the details below are what we need to reproduce the problem.
+        **Never paste passwords, tokens or full stream URLs** — the app's
+        Settings → About → "Copy diagnostics" button already redacts them.
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings → About → Version (or the version shown on the box).
+      placeholder: "3.2.0"
+    validations:
+      required: true
+  - type: input
+    id: tv-model
+    attributes:
+      label: TV model
+      description: e.g. UE55TU8000. Settings → About → TV model if present.
+      placeholder: "UE55TU8000"
+    validations:
+      required: true
+  - type: input
+    id: tizen-version
+    attributes:
+      label: Tizen version
+      description: Tizen 5.0 or newer; find it in TV settings → About.
+      placeholder: "Tizen 6.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: playlist-type
+    attributes:
+      label: Playlist type
+      description: What kind of source are you using?
+      options:
+        - M3U / M3U8
+        - Xtream Codes
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: channel
+    attributes:
+      label: Channel name
+      description: The channel or movie where the problem happens (no URLs).
+      placeholder: "BBC World News"
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you see? What did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Sometimes
+        - Only once
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines (redacted)
+      description: |
+        Paste the "Copy diagnostics" block from Settings → About, or inspector
+        lines around the moment. Remove any password, token or full stream URL.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed all passwords, tokens and full stream URLs
+          required: true
