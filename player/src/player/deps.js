@@ -45,4 +45,7 @@ export const deps = {
   loadViaAvplay: unwired('loadViaAvplay'),
   switchToAvplay: unwired('switchToAvplay'),
   shouldTryNative: unwired('shouldTryNative'),
+  reloadChannel: unwired('reloadChannel'),
+  scheduleForbiddenReload: unwired('scheduleForbiddenReload'),
+  showTerminal: unwired('showTerminal'),
 };

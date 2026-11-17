@@ -3,6 +3,7 @@
 // Pure reads over the shared player state — the DRM path (isEmeSupported)
 // and the track pickers live here so player.js can re-export them unchanged.
 import { state } from './state.js';
+import { deps } from './deps.js';
 
 export function getActiveTrack() {
   if (!state.player) return null;
@@ -109,3 +110,8 @@ export function selectAudioTrackById(id) {
 export function getVideoElement() {
   return state.videoElement;
 }
+
+// This slice wires its own deps slots. The hub only assembles the API.
+Object.assign(deps, {
+  getBufferingPercent,
+});

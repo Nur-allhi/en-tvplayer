@@ -2,7 +2,7 @@ import { getSettings, saveSettings, getActivePlaylist, APP_VERSION } from './con
 import { fetchPlaylistEntry, escapeHtml } from './utils.js';
 import { login as xtreamLogin } from './xtream.js';
 import { setConsented } from './update.js';
-import * as player from './player.js';
+import * as player from './player/index.js';
 import * as ui from './ui/index.js';
 import { timeAgo, formatDate } from './lib/time.js';
 import { capabilities } from './capabilities.js';

@@ -156,7 +156,7 @@ export async function initPlayer(videoEl) {
   return true;
 }
 
-export async function destroyPlayer(keepElement) {
+async function destroyPlayer(keepElement) {
   deps.stopStallWatchdog();
   deps.stopBlackWatchdog();
   state.useAvplay = false;
@@ -203,7 +203,7 @@ export async function destroyPlayer(keepElement) {
   }
 }
 
-export function notifyBufferingProgress() {
+function notifyBufferingProgress() {
   if (state.isBuffering && !state.initialLoadPending && state.bufferingCallback) {
     state.bufferingCallback(true, deps.getBufferingPercent());
   }
@@ -271,3 +271,10 @@ function onVideoWaiting() {
   // Clear stalled timer since waiting is normal during buffering
   clearTimeout(state.stalledTimer);
 }
+
+// This slice wires its own deps slots. The hub only assembles the API.
+Object.assign(deps, {
+  initPlayer,
+  destroyPlayer,
+  notifyBufferingProgress,
+});

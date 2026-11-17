@@ -271,3 +271,9 @@ export function reloadChannel() {
   state.reconnectPending = false;
   deps.loadChannel(state.currentChannel);
 }
+
+// This slice wires its own deps slots. The hub only assembles the API.
+Object.assign(deps, {
+  loadChannel,
+  reloadChannel,
+});
