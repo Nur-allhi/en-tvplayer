@@ -1,25 +1,23 @@
 import { getSettings } from './config.js';
 import { withAuthQuery } from './lib/url.js';
-import {
-  tuneCountersReset,
-  hardReloadDecision,
-  shouldResumePlayback,
-  isNetworkActive,
-  stallPatienceExceeded,
-} from './logic.js';
+import { hardReloadDecision, shouldResumePlayback, isNetworkActive, stallPatienceExceeded } from './logic.js';
 import * as avplay from './avplay.js';
 import { state } from './player/state.js';
-import { planRecovery, httpStatusOf, isNativeLoadCrash, isRecoverable } from './player/recovery.js';
+import { planRecovery, httpStatusOf } from './player/recovery.js';
 import { deps } from './player/deps.js';
-import { detectMimeType, sniffMimeFromBytes } from './lib/mime.js';
+import { sniffMimeFromBytes } from './lib/mime.js';
 // T-126: init/attach and teardown live in their own slice. The hub imports them
 // to register deps slots and re-exports initPlayer so the 24-name surface holds.
 import { initPlayer, destroyPlayer, notifyBufferingProgress } from './player/init.js';
 export { initPlayer };
+// T-127: load/reload moved to their own slice. Re-export keeps the 24-name
+// public surface while the hub stays behaviour-identical.
+import { loadChannel, reloadChannel } from './player/load.js';
+export { loadChannel, reloadChannel };
 // T-122: subscription setters and stream/track queries now live in their own
 // slices. player.js both uses and re-exports them so its public surface stays
 // exactly the same 24 names until the index hub lands (T-123).
-import { getActiveHeight, getBufferingPercent, isEmeSupported } from './player/stream.js';
+import { getActiveHeight, getBufferingPercent } from './player/stream.js';
 export { onBuffering, onTrackChange, onChannelAdvance, onTokenExpired, onTuneAttempt } from './player/events.js';
 export {
   getActiveTrack,
@@ -61,6 +59,16 @@ Object.assign(deps, {
   getBufferingPercent,
   showPlayState,
   toProxied,
+  // T-127
+  isProxyEnabledFor,
+  notifyTuneAttempt,
+  showTuneElapsed,
+  tryResumeVideo,
+  hideError,
+  loadViaAvplay,
+  switchToAvplay,
+  shouldTryNative,
+  destroyPlayer,
 });
 
 // App event log (console only; the dev log endpoint was removed with the proxy).
@@ -168,358 +176,6 @@ async function probeChannelFormat(channel) {
     if (state.probeController === controller) state.probeController = null;
     logEvent('WARN', 'Format probe failed: ' + (e && e.message ? e.message : e));
     return null;
-  }
-}
-
-export async function loadChannel(channel) {
-  if (!channel) return false;
-
-  if (channel.drm && !isEmeSupported()) {
-    // EME is secure-context-gated: localhost works, http://<lan-ip> does not.
-    const insecure = typeof window !== 'undefined' && window.isSecureContext === false;
-    logEvent(
-      'ERROR',
-      'DRM not available — EME is not supported in this browser/context' +
-        (insecure ? ' (insecure context — open the player via http://localhost:5173, not a LAN IP)' : ''),
-    );
-    showError(
-      insecure
-        ? 'Protected channels need a secure page. Open via localhost instead of LAN IP.'
-        : 'This channel is protected and cannot play here. Try a different channel.',
-    );
-    return false;
-  }
-
-  const myToken = ++state.loadToken;
-  const prevUrl = state.currentChannel ? state.currentChannel.url : null;
-  state.currentChannel = channel;
-  channel.useProxy = isProxyEnabledFor(channel.url);
-  state.useAvplay = false;
-  avplay.stop();
-  // Hard cut: silence the old picture instantly — the async destroy below
-  // can take seconds, and its frames must not linger behind the new tune.
-  try {
-    if (state.videoElement && !state.videoElement.paused) state.videoElement.pause();
-  } catch {}
-  // A previous tune's format probe must not outlive the switch.
-  try {
-    if (state.probeController) state.probeController.abort();
-  } catch {}
-  state.probeController = null;
-  stopBlackWatchdog();
-
-  clearTimeout(state.reconnectTimer);
-  clearInterval(state.loadingTimeout);
-  state.loadingTimeout = null;
-  state.reconnectPending = false;
-  stopStallWatchdog();
-  hideError();
-  showLoading(true);
-  state.advancePending = false;
-  state.userPaused = false;
-  // 401/403 retry budget survives same-URL reloads (mid-playback token
-  // refresh calls loadChannel directly) — reset only on channel switch or
-  // explicit reload, so the "advance after 3 failed retries" branch below
-  // is reachable. Unconditional reset here made that branch dead code.
-  // #16: the same applies to every per-tune counter — a dead channel's
-  // errors/retries must not poison the next tune.
-  if (tuneCountersReset(prevUrl, channel.url)) {
-    state.lastResortAttempts = 0;
-    state.reconnectAttempts = 0;
-    state.consecutiveErrors = 0;
-    state.videoErrorCount = 0;
-    state.lastVideoErrorTime = 0;
-    state.hardReloads = 0;
-    state.tuneAttempt = 1;
-  } else {
-    // Same-URL re-entry is always a silent retry of the current tune —
-    // count it for the status line suffix.
-    state.tuneAttempt++;
-  }
-  notifyTuneAttempt();
-
-  let url = withAuthQuery(channel.url, channel.authQuery);
-  if (state.reconnectAttempts > 0) {
-    const sep = url.indexOf('?') >= 0 ? '&' : '?';
-    url += sep + '_t=' + Date.now();
-  }
-
-  // Channels already known to need native playback skip Shaka entirely.
-  // #16: still destroy the previous Shaka instance first — otherwise its
-  // network requests and error events stay alive behind the native playback.
-  if (state.avplayPreferredUrls.has(channel.url) && avplay.isAvailable()) {
-    await destroyPlayer(state.videoElement);
-    if (myToken !== state.loadToken) return false;
-    state.currentChannel = channel;
-    return loadViaAvplay(channel, myToken);
-  }
-
-  // Direct-media URLs (raw .ts/.mp4/…, never HLS/DASH manifests) go native
-  // first on Tizen: Shaka has no top-level parser for them, so a Shaka-first
-  // attempt just hangs until the watchdog kills it. DRM stays on Shaka (CDM).
-  // On native failure (recorded, never retried) the Shaka path below runs as
-  // a second chance. Desktop has no native stack — unchanged behavior.
-  if (!channel.drm && avplay.isAvailable() && !state.avplayFailedUrls.has(channel.url) && detectMimeType(url)) {
-    await destroyPlayer(state.videoElement);
-    if (myToken !== state.loadToken) return false;
-    state.currentChannel = channel;
-    const okNative = await loadViaAvplay(channel, myToken);
-    if (myToken !== state.loadToken) return false;
-    if (okNative) {
-      state.avplayPreferredUrls.add(channel.url);
-      return true;
-    }
-  }
-
-  try {
-    // Always destroy and recreate the player on every channel switch.
-    // On Tizen, Shaka's unload/load can hang forever when stuck on a failed
-    // network request. Destroy+recreate guarantees a clean slate.
-    const el = state.videoElement;
-    const tDestroy = Date.now();
-    await destroyPlayer(el);
-    if (myToken !== state.loadToken) return false;
-    const tInit = Date.now();
-
-    if (el) {
-      const ok = await deps.initPlayer(el);
-      if (!ok) {
-        // Never fail silently: an unfinished attach used to wedge the tune
-        // on veil+name with no recovery able to fire.
-        if (myToken === state.loadToken) {
-          showError('This channel could not start. Try another channel, or reselect to try again.');
-        }
-        return false;
-      }
-    }
-    if (state.videoElement) state.videoElement.classList.remove('hidden');
-    state.currentChannel = channel;
-    if (myToken !== state.loadToken) return false;
-
-    if (channel.drm) {
-      // T-034: prefer the multi-key map; fall back to the legacy single pair.
-      const clearKeys = channel.drm.clearKeys || (channel.drm.keyId ? { [channel.drm.keyId]: channel.drm.key } : {});
-      state.player.configure({ drm: { clearKeys } });
-    } else {
-      state.player.configure({ drm: { clearKeys: {} } });
-    }
-
-    // Timeout: if player.load hangs for 15s, show feedback and destroy
-    // the player so the pending load() promise rejects.
-    // Staged UX: spinner owns the screen until load() resolves.
-    // Activity-aware timeout: the old single 15s shot killed slow-but-working
-    // loads (Shaka's own retry cycle alone spans ~30s). Kill only a truly
-    // stalled load: no Shaka request/response activity for 15s, hard cap 60s.
-    // Staged UX: spinner owns the screen until load() resolves.
-    state.initialLoadPending = true;
-    state.lastShakaActivity = Date.now();
-    const loadStart = Date.now();
-    state.loadingTimeout = setInterval(() => {
-      if (myToken !== state.loadToken) {
-        clearInterval(state.loadingTimeout);
-        state.loadingTimeout = null;
-        return;
-      }
-      const idleFor = Date.now() - state.lastShakaActivity;
-      const elapsed = Math.round((Date.now() - loadStart) / 1000);
-      if (elapsed >= 10 && state.currentChannel) {
-        showTuneElapsed(state.currentChannel.name, elapsed);
-      }
-      if (idleFor >= 15000 || Date.now() - loadStart > 60000) {
-        clearInterval(state.loadingTimeout);
-        state.loadingTimeout = null;
-        logEvent(
-          'WARN',
-          'Load stalled (idle ' +
-            Math.round(idleFor / 1000) +
-            's, lastREQ=' +
-            state.lastShakaReq +
-            ', lastRESP=' +
-            state.lastShakaResp +
-            ')',
-        );
-        showError('This channel is not responding. It may be turned off right now.');
-        // #16: drop our reference once the destroy is kicked off — the
-        // pending load() rejects from here and its catch recreates the
-        // player if this tune is still current. Without this the next
-        // switch double-destroys a dead instance (the "destroy hung" loop).
-        if (state.player) state.player.destroy().catch(() => {});
-        state.player = null;
-        if (state.videoElement) {
-          state.videoElement.src = '';
-          state.videoElement.load();
-        }
-      }
-    }, 5000);
-
-    // Note: do not add a side fetch of the master here — it doubles requests
-    // and feeds server rate-limit storms.
-    if (myToken !== state.loadToken) return false;
-
-    // Detect MIME type for direct TS/MP4 stream URLs (common in IPTV playlists).
-    // Without this hint, Shaka may fail to identify the format and show a black screen.
-    // A probed format (BUG-014) takes priority over URL-pattern detection.
-    // Look the probe up by clean channel URL: `url` may carry a `?_t` cache
-    // buster (BUG-017) while the probe is stored under the original URL.
-    const mimeType = state.sniffedMimeUrls.get(channel.url) || detectMimeType(url);
-    const tLoad = Date.now();
-    if (mimeType) {
-      logEvent('INFO', 'Detected MIME type: ' + mimeType + ' for ' + url.slice(0, 80));
-      await state.player.load(url, undefined, mimeType);
-    } else {
-      await state.player.load(url);
-    }
-    clearInterval(state.loadingTimeout);
-    state.loadingTimeout = null;
-
-    if (myToken !== state.loadToken) return false;
-
-    // Load done — first frame is up. Hand buffering state to the pill UI.
-    state.initialLoadPending = false;
-    showLoading(false);
-    if (state.isBuffering && state.bufferingCallback) state.bufferingCallback(true, getBufferingPercent());
-    state.reconnectAttempts = 0;
-    state.consecutiveErrors = 0;
-    state.lastResortAttempts = 0;
-    state.videoErrorCount = 0;
-    state.hardReloads = 0;
-    // Autoplay miss: make sure the fresh load actually plays instead of
-    // sitting paused with the channel name on screen.
-    if (state.videoElement && state.videoElement.paused && !state.userPaused) tryResumeVideo();
-    startStallWatchdog();
-    startBlackWatchdog();
-    logEvent(
-      'INFO',
-      'Loaded: ' +
-        (channel.name || channel.url.slice(0, 60)) +
-        ' (destroy ' +
-        (tInit - tDestroy) +
-        'ms, init ' +
-        (tLoad - tInit) +
-        'ms, load ' +
-        (Date.now() - tLoad) +
-        'ms)',
-    );
-    return true;
-  } catch (error) {
-    clearInterval(state.loadingTimeout);
-    state.loadingTimeout = null;
-    if (myToken !== state.loadToken) return false;
-
-    state.initialLoadPending = false;
-    showLoading(false);
-    state.videoErrorCount = 0;
-
-    if (error && error.code === 7000) return false;
-
-    // After a timeout, the player was destroyed above. Recreate it so the
-    // next channel switch works.
-    if (error && (error.message === 'Load timed out' || error.name === 'DestroyedError')) {
-      logEvent('WARN', 'Load abandoned — recreating player for next attempt');
-      const el = state.videoElement;
-      await destroyPlayer(el);
-      if (el && myToken === state.loadToken) {
-        await deps.initPlayer(el);
-      }
-      // #16: only the still-current tune may schedule its own retry.
-      if (myToken === state.loadToken && state.reconnectAttempts < 3) {
-        scheduleReconnect();
-      } else if (myToken === state.loadToken) {
-        showError('Could not load this channel after several tries. It may be turned off or not available on your TV.');
-        logEvent('ERROR', 'Reconnect limit reached — ' + (channel.name || channel.url.slice(0, 60)));
-      }
-      return false;
-    }
-
-    // Shaka could not guess the stream format from the URL (error 4000).
-    // Many IPTV servers hide the channel type behind tokenized links with no
-    // file extension. Probe the first bytes and retry with the right hint.
-    if (error && error.code === 4000 && state.currentChannel && !state.sniffTriedUrls.has(state.currentChannel.url)) {
-      state.sniffTriedUrls.add(state.currentChannel.url);
-      const crashedChannel = state.currentChannel;
-      const tokenAtCatch = state.loadToken;
-      probeChannelFormat(crashedChannel).then((mime) => {
-        if (tokenAtCatch !== state.loadToken) return; // user switched channels meanwhile
-        if (!mime) {
-          logEvent('WARN', 'Could not identify channel format: ' + crashedChannel.url.slice(0, 100));
-          showError('This channel could not be identified. Try a different channel.');
-          return;
-        }
-        state.sniffedMimeUrls.set(crashedChannel.url, mime);
-        logEvent(
-          'INFO',
-          'Identified channel format: ' + mime + ' for ' + crashedChannel.url.slice(0, 80) + ' — retrying',
-        );
-        loadChannel(crashedChannel);
-      });
-      return false;
-    }
-
-    if (isRecoverable(error)) {
-      logEvent('WARN', 'Load failed (recoverable ' + error.code + ')');
-      if (state.reconnectAttempts < 3) {
-        scheduleReconnect();
-      } else if (shouldTryNative(error) && myToken === state.loadToken) {
-        // Last resort: the native pipeline ignores CORS and survives relays
-        // that defeat the browser stack (e.g. workers without ACAO headers).
-        // Tried once — a native failure is recorded and never retried.
-        logEvent('WARN', 'Shaka retries exhausted — trying native playback');
-        const okNative = await switchToAvplay();
-        if (myToken !== state.loadToken) return false;
-        return okNative === true;
-      } else {
-        showError(getErrorMessage(error) + ' — channel may be turned off');
-      }
-      return false;
-    }
-
-    // BUG-017: tokenized servers reject loads with 403/401 when the token
-    // went stale between playlist fetch and segment fetch. Every loadChannel()
-    // refetches the master playlist (fresh token), so retry twice first.
-    if (error && error.code === 1001 && state.currentChannel && state.reconnectAttempts < 2) {
-      const status = error.data && error.data[1];
-      if (status === 403 || status === 401) {
-        logEvent('WARN', 'Access denied at load (' + status + ') — retrying with fresh token');
-        scheduleReconnect();
-        return false;
-      }
-    }
-
-    if (isNativeLoadCrash(error) && state.currentChannel && !state.pdtFallbackUrls.has(state.currentChannel.url)) {
-      // Retry once with HLS program-date-time sync disabled (BUG-013): some
-      // HLS streams crash inside Shaka's PDT handling, which v1.7.0 enabled.
-      state.pdtFallbackUrls.add(state.currentChannel.url);
-      const crashedChannel = state.currentChannel;
-      const tokenAtCatch = state.loadToken;
-      logEvent(
-        'WARN',
-        'Native crash loading channel — retrying without PDT sync: ' +
-          (crashedChannel.name || crashedChannel.url.slice(0, 80)),
-      );
-      setTimeout(() => {
-        if (tokenAtCatch === state.loadToken) loadChannel(crashedChannel);
-      }, 1200);
-      return false;
-    }
-
-    if (isNativeLoadCrash(error)) {
-      logEvent(
-        'ERROR',
-        'Channel failed to load (native crash): ' +
-          (state.currentChannel ? state.currentChannel.name + ' | ' + state.currentChannel.url.slice(0, 100) : '?') +
-          ' — ' +
-          (error.message || ''),
-      );
-      if (typeof console !== 'undefined') console.error('Channel load crashed inside Shaka:', error, error.stack);
-      showError(
-        'This channel could not start — it uses a stream format this player could not handle. Try another channel.',
-      );
-      return false;
-    }
-
-    logEvent('ERROR', 'Failed to load — ' + getErrorMessage(error));
-    showError(getErrorMessage(error));
-    return false;
   }
 }
 
@@ -989,28 +645,6 @@ async function switchToAvplay() {
 }
 
 // Force-reload the current channel (e.g. from R key or remote)
-export function reloadChannel() {
-  if (state.useAvplay && state.currentChannel) {
-    const ch = state.currentChannel;
-    state.consecutiveErrors = 0;
-    state.advancePending = false;
-    state.lastResortAttempts = 0;
-    state.hardReloads = 0;
-    state.tuneAttempt = 0; // loadChannel++ makes this a fresh first try
-    loadChannel(ch);
-    return;
-  }
-  if (!state.currentChannel) return;
-  state.consecutiveErrors = 0;
-  state.advancePending = false;
-  state.lastResortAttempts = 0;
-  state.hardReloads = 0;
-  state.tuneAttempt = 0; // loadChannel++ makes this a fresh first try
-  clearTimeout(state.reconnectTimer);
-  state.reconnectPending = false;
-  deps.loadChannel(state.currentChannel);
-}
-
 export function stop() {
   avplay.stop();
   state.userPaused = false;

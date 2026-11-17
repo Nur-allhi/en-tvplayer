@@ -26,6 +26,16 @@ const SLOT_NAMES = [
   'getBufferingPercent',
   'showPlayState',
   'toProxied',
+  'destroyPlayer',
+  // T-127 additions (load slice calls back into the hub).
+  'isProxyEnabledFor',
+  'notifyTuneAttempt',
+  'showTuneElapsed',
+  'tryResumeVideo',
+  'hideError',
+  'loadViaAvplay',
+  'switchToAvplay',
+  'shouldTryNative',
 ];
 
 // Snapshot every slot before each test and restore afterwards so registration

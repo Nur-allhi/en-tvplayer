@@ -33,4 +33,16 @@ export const deps = {
   getBufferingPercent: unwired('getBufferingPercent'),
   showPlayState: unwired('showPlayState'),
   toProxied: unwired('toProxied'),
+  destroyPlayer: unwired('destroyPlayer'),
+  // T-127 additions (load slice calls back into the hub). Note destroyPlayer
+  // is NOT a slot: load.js imports it directly from init.js, which does not
+  // import load.js, so that edge cannot form a cycle.
+  isProxyEnabledFor: unwired('isProxyEnabledFor'),
+  notifyTuneAttempt: unwired('notifyTuneAttempt'),
+  showTuneElapsed: unwired('showTuneElapsed'),
+  tryResumeVideo: unwired('tryResumeVideo'),
+  hideError: unwired('hideError'),
+  loadViaAvplay: unwired('loadViaAvplay'),
+  switchToAvplay: unwired('switchToAvplay'),
+  shouldTryNative: unwired('shouldTryNative'),
 };
