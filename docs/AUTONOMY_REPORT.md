@@ -13,3 +13,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T08:26:56.592Z | `8b166be` | refactor(app): split remote routing into app slices (T-151) | 21/46 | 19 | T-152 |
 | 2026-11-17T08:33:02.031Z | `3ac7fd7` | refactor(app): wire the app hub and thin the entry point (T-152) | 23/46 | 17 | T-160 |
 | 2026-11-17T08:36:38.054Z | `ffbfe86` | docs(session): record verification and duplicate-run handover | 23/46 | 17 | T-160 |
+| 2026-11-17T08:37:18.279Z | `a44a3fd` | docs(session): record the T-153 handover separately (T-153) | 23/46 | 17 | T-160 |

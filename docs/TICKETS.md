@@ -857,6 +857,9 @@ A ticket is only `done` when it meets the **Definition of Done**
   per `docs/FRONTEND_SPEC.md`.
 - **Acceptance:** no hard-coded colours left outside the token file;
   all sizes still scale via `--tv-scale`.
+- **Status:** ✅ done 2026-11-17 — `styles/base.css` holds all 228 colour
+  literals as tokens; `styles.css` references only `var()`, resolved back to
+  identical values. All gates + tizen green, no TV claim.
 
 ### T-161 — Split `styles.css`
 - **Type:** refactor · **Priority:** P0 · **Size:** M

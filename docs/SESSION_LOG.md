@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-160: design tokens — @nightshift (batch run)
+
+**Ticket:** T-160 ✅ · **Branch:** `feature/t-160-design-tokens` → `dev`
+**Status:** ✅ done — batch 1 of 3
+
+**What changed**
+- `player/src/styles/base.css` (new, 68 LOC) — the single token file. Holds
+  colour primitives, RGB channel triplets for translucency, spacing/radius,
+  typography and the two sidebar elevation tokens under `:root`.
+- `player/src/styles.css` — all 228 colour literals replaced with `var()`
+  references; the old in-file `:root` removed and replaced by an
+  `@import './styles/base.css'`. No hard-coded colour remains in this file.
+
+**Verified**
+- All gates green: `npm test` 333 passed, lint, format:check, validate (0 new),
+  `npm run build` and `npm run tizen` (WGT signed with the expected cert).
+- Static colour audit: resolved every token back to its literal — all 228
+  literals match the pre-change values exactly. `npm run build` confirmed
+  Vite inlines the `@import` (no `@import` left in `dist`, token definitions
+  present in the bundle).
+- **No TV is connected.** This is a CSS-only refactor with no behaviour change;
+  computed colour values are proven identical, so no playback claim is made.
+
+**Decisions**
+- RGB channel tokens plus `rgba(var(--x-rgb), a)` keep the token count small
+  while preserving every original alpha verbatim. CSS variable substitution
+  is supported by Tizen 5's Chromium.
+- Left `styles.css` on `.prettierignore` for now: T-161 deletes this file and
+  replaces it with formatted `styles/*.css`, so formatting it here would be
+  churn. The ignore line is removed with the file in T-161.
+
+**Watch out**
+- The responsive boot code reads `--tv-scale` from `:root`. The token block
+  moved to `styles/base.css`, which `styles.css` imports first — do not remove
+  that import or scale lookups return nothing.
+- A concurrent nightshift run was still committing docs-only handovers when
+  this batch started; staging was targeted, never `git add -A`.
+
+**Next**
+- T-161 — split `styles.css` into `styles/*.css`.
+
+---
+
 ## 2026-11-17 — T-153: release guard follows the changelog move — @nightshift
 
 **Ticket:** T-153 ✅ · **Branch:** `feature/t-152-index-hub` → `dev`
