@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-140: settings navigation slice — @maintainer
+
+**Ticket:** T-140 ✅ · **Branch:** `refactor/t-140-settings-nav` → `dev`
+**Status:** ✅ done — settings 1082 → 698 LOC, navigation isolated
+
+**What changed**
+- **`settings/state.js`** — the 11 module-level vars in one object (Risk C).
+- **`settings/deps.js`** — 11 slots, including nav helpers that other settings
+  functions still call. Unwired slots throw loudly.
+- **`settings/nav.js` (222 LOC)** — navigate, navigateNav, moveSettingsFocus,
+  buildFocusOrder, clearFocus, applyFocus.
+- **`settings/select.js` (181 LOC)** — selectFocused. Split from nav.js in
+  this same ticket: at 188 LOC it would have pushed nav.js past 300.
+- **`settings.js`** now imports/re-exports the slices, wires deps to its local
+  render/playlist functions, and keeps the remaining form/rendering code.
+
+**Verified**
+- 298 tests (7 new), lint, format, 0 new violations, 66 files.
+- Bundle **byte-identical**: `index.CLX2ctDt.js` at 948.7 KB — no change at all.
+- Browser smoke test: app loads, settings opens, no new console error. I exercised
+  the first-run M3U button and inspected the DOM.
+
+**A pre-existing bug I confirmed, did not cause, and did not fix**
+Clicking "M3U / M3U8 Playlist" in first-run onboarding throws
+`Cannot read properties of null (reading 'addEventListener')` in `render()`.
+I stashed all T-140 changes, reloaded the committed baseline, and reproduced
+the **exact same error** (same stack, different line number). It is an
+onboarding-order bug: `openAddForm()` calls `render()` before `init()` has set
+the container. Out of scope for a pure refactor — worth its own ticket.
+
+**Watch out**
+- The acceptance is about remote control paths (BUG-011/012). With no TV, those
+  are pinned by static assertions on field routing in `nav.test.js`, not by a
+  real remote. Hardware verification is still owed.
+- The browser caught a real mistake during this work: `applyFocus` was not
+  exported from `nav.js`, so the page failed to load. ESLint did not catch it
+  because both files were in the same lint run. Browser smoke tests earn their
+  keep — keep doing them after DOM-coupled refactors.
+- `settings/deps.js` has 11 slots across two wiring sites (`settings.js` and
+  `nav.js`). `nav.test.js` checks both.
+
+**Next**
+- **T-141** — split `settings/render.js` + `settings/playlists.js`. This is
+  the largest remaining settings ticket (~480 LOC) and will shrink
+  `settings.js` below 300, clearing the last settings LOC baseline violation.
+- Consider a ticket for the onboarding `render()` null-container error.
+
+---
+
 ## 2026-11-17 — T-123: the M2 hub lands, player.js deleted — @maintainer
 
 **Ticket:** T-123 ✅ · **Branch:** `refactor/t-123-index-hub` → `dev`
