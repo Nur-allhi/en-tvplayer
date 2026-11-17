@@ -771,7 +771,16 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** `main.js` shrinks further; boot, resume and first-run verified
   in a browser; zero cycles; gates green.
 - **Depends:** T-152b · **Must land before T-152 (hub).**
-- **Status:** ready
+- **Status:** ✅ done 2026-11-17 — `app/start.js` (143 LOC, init + restore +
+  update check), `app/shell.js` (218 LOC, startPlayer + its listener helpers),
+  `app/tune.js` (161 LOC, tune + progress/badge) and `app/channels.js`
+  (116 LOC, fetch/refresh/sort) extracted. All slots self-register; `main.js`
+  wires only the six functions it still owns and is down to 422 LOC. Verified:
+  333 tests, lint, format, validate (0 new violations), build and WGT signing
+  green. Browser-smoked: fresh profile boots to the empty shell then the
+  onboarding modal; focus + Xtream selection open Settings; returning profile
+  resumes "Beta Sports" in the Sports group with no app-deps errors.
+  `refreshChannels` stays exported from `main.js` via a re-export.
 
 - **Type:** refactor · **Priority:** P0 · **Size:** L
 - **Spec:** T-150 landed only the three splash-staging functions. This ticket

@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-152c: startup slice split — @nightshift
+
+**Ticket:** T-152c ✅ · **Branch:** `feature/t-152c-startup-slice` → `dev`
+**Status:** ✅ done — BATCH_LIMIT of 3 reached; this batch ends here
+
+**What changed**
+- `app/start.js` (143 LOC) — `init`, `restoreLastSession`, update check helpers.
+- `app/shell.js` (218 LOC) — `startPlayer` + the cleanup/listener helpers.
+- `app/tune.js` (161 LOC) — `handleChannelSelect`, progress toast, badge helpers.
+- `app/channels.js` (116 LOC) — fetch/refresh/token-recovery/sort helpers.
+- Every slice self-registers into `deps`; `main.js` wires only the six
+  functions it still owns (boot ×2, showPlayer, showSettingsPage,
+  refreshProxyMenu, handleRemoteAction, registerTizenKeys) and calls the
+  bootstrap via `deps.init()`. `main.js` 422 LOC. `refreshChannels` re-exported
+  so the old `main.js` surface survives.
+
+**Verified**
+- `npm test` → 333 passed; lint, validate (0 new violations), format, build,
+  `npm run tizen` all green.
+- Browser (Playwright, fresh isolated context): first load reached the empty
+  shell and onboarding modal; ArrowRight moved focus to Xtream; clicking it
+  hid the modal and opened Settings. A seeded returning profile resumed
+  "Beta Sports" in the Sports group. No `app deps` errors on either path.
+- **No TV is connected.** No playback behaviour changed; no TV claim made.
+
+**Decisions**
+- Four small slices instead of one ~334 LOC `app/start.js`: the modularity cap
+  is 300, and `startPlayer` plus its private listener helpers already total
+  ~220 LOC, so they need their own file.
+- Kept `showPlayer`, `showSettingsPage`, `refreshProxyMenu`, remote keys and
+  `handleRemoteAction` in `main.js` for T-151 rather than moving them here.
+
+**Watch out**
+- The browser check caught a wiring gap ESLint cannot see: `refreshProxyMenu`
+  and `showPlayer` are owned by `main.js` but called through deps from
+  `shell.js`; forgetting their wires throws at boot. All app deps usages were
+  then checked against the wired set (a stray `js` match is just a comment).
+- T-211 (add-form null `addEventListener` on a fresh install) is still
+  pre-existing and skipped; it appears when the onboarding choice opens the
+  form. The Tizen `$WEBAPIS` 404 and dead test-stream errors are expected.
+- `main.js` remains over 300 LOC but is baselined; T-151 removes the 301-LOC
+  `handleRemoteAction`, and T-152 adds the hub.
+
+**Next**
+- T-151 — `app/remote.js` (`handleRemoteAction`, `registerTizenKeys`,
+  `zapChannel`), then T-152 and T-153 in the same commit. Batch limit reached.
+
+---
+
 ## 2026-11-17 — T-152b: onboarding + What's New slices — @nightshift
 
 **Ticket:** T-152b ✅ · **Branch:** `feature/t-152b-onboarding-whatsnew` → `dev`
