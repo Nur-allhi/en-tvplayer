@@ -2,7 +2,8 @@
 // 297-LOC render-cards.js so adding a button does not breach the 300-LOC cap.
 import { APP_VERSION } from '../config.js';
 import * as player from '../player/index.js';
-import { getTvModel } from '../capabilities.js';
+import { capabilities, currentEngine, getTvModel } from '../capabilities.js';
+import { aboutInfo } from '../lib/about-info.js';
 import { appLogRing } from '../lib/ring-buffer.js';
 import { formatDiagnostics } from '../lib/diagnostics.js';
 import { deps } from './deps.js';
@@ -14,18 +15,20 @@ export function renderAboutCard() {
   html += '<div class="card-body">';
   html +=
     '<p class="about-text">EN IPTV Player is built for modern IPTV sources, with first-class support for MPD streams and tokenized live channels that other Tizen players drop.</p>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">App</div></div><div class="toggle-value">EN IPTV Player</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Version</div></div><div class="toggle-value">' +
-    APP_VERSION +
-    '</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Engine</div></div><div class="toggle-value">Shaka Player</div></div>';
-  html +=
-    '<div class="toggle-row"><div><div class="toggle-label">Native playback</div></div><div class="toggle-value">' +
-    (player.isNativeAvailable() ? 'Available' : 'Not available') +
-    '</div></div>';
+  const info = aboutInfo({
+    version: APP_VERSION,
+    caps: capabilities(),
+    engine: currentEngine(),
+    nativeAvailable: player.isNativeAvailable(),
+  });
+  for (const row of info) {
+    html +=
+      '<div class="toggle-row"><div><div class="toggle-label">' +
+      row.label +
+      '</div></div><div class="toggle-value">' +
+      row.value +
+      '</div></div>';
+  }
   html +=
     '<div class="toggle-row"><div><div class="toggle-label">Diagnostics</div></div><div class="toggle-value">' +
     '<button id="about-copy-diagnostics" class="btn" type="button">Copy diagnostics</button>' +

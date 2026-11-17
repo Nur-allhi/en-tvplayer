@@ -44,46 +44,46 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
-## 2026-11-17 — T-182: ui/library.js — movies & series browser — @nightshift (isolated worktree)
+## 2026-11-17 — T-192: About panel engine + platform info — @nightshift (isolated worktree)
 
-**Ticket:** T-182 ✅ · **Branch:** `feature/t-182-library-ui` → `dev`
-**Status:** ✅ done — taken out of queue order (T-181 held by the other run)
+**Ticket:** T-192 ✅ · **Branch:** `feature/t-192-about-panel` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
 
 **What changed**
-- New pure `lib/library-nav.js` — a four-level stack (root → list → detail →
-  episodes) with `move`/`select`/`back`. Back pops exactly one frame and sets
-  `exit` from the root. 22 tests pin clamp-at-edges, empty-list safety and
-  "never strands after repeated Back".
-- New `ui/library.js` (112 LOC) renders those levels into `#group-list` using
-  the existing `.group-item` pattern, reading the T-180 VOD library.
-- `ui/sidebar.js` gained a 🎬 Library row (index 1); group index offsets and
-  wrap counts were updated. `ui/index.js` re-exports the slice and
-  `app/remote-views.js` handles `mode === 'library'` for up/down/select/back.
+- New DOM-free `player/src/lib/about-info.js` — pure `aboutInfo()` builds the
+  seven About rows (app, version, platform, TV API version, engine, AVPlay,
+  native playback) from an injected capability snapshot. 10 tests cover Tizen
+  and browser profiles, all three engine labels and missing inputs.
+- `settings/about.js` now renders those rows from the real `capabilities()` /
+  `currentEngine()` probe plus `player.isNativeAvailable()`, replacing the
+  hardcoded "Shaka Player" engine value. The existing diagnostics button and
+  links card are unchanged.
 
 **Verified**
-- All gates green: `npm test` 507 passed (22 new), lint, format:check, validate
-  (115 files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
-- **No TV is connected.** The navigation logic is pure and unit-tested; no
-  playback behaviour changed and no TV claim made.
+- All gates green: `npm test` 510 passed (10 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate. `lib/about-info.js` is DOM-pure and
+  under the 300-LOC cap.
+- **No TV is connected.** Values come from the existing capability probe; no
+  on-device UI check and no playback claim made.
 
 **Decisions**
-- Used scout first. It warned the low-level `remote.js` is 298/300 LOC, so no
-  key handling went there — the new mode branch lives in `remote-views.js`.
-- Kept navigation state module-local in `ui/library.js` rather than adding a
-  shared state field: only one slice reads it, so a store would be speculative.
-- `loadLibrary()` runs on each render so the list reflects settings; with no
-  media added yet (T-181 in flight) both root counts are zero and Back still
-  exits cleanly.
+- Took T-192 out of queue order: T-182/183 were claimed by other active runs,
+  so this independent ready ticket was the next unclaimed item.
+- Kept the formatter pure in `lib/` and injected the capability snapshot so the
+  About text is unit-testable without a DOM or a TV.
+- Left `engineLabel()` in `lib/capabilities.js` untouched — it reports "None"
+  for no engine and is used elsewhere; the About panel needs "Browser" for that
+  case, so the new formatter maps it locally.
 
 **Watch out**
-- The group-list focus offsets changed: index 0 is Search, 1 is Library,
-  groups start at 2. Any future code addressing `groupFocusedIndex` directly
-  must account for the extra row.
-- `library.js` imports `state/vod.js`, so it cannot be tested in node env;
-  only the pure reducer is unit-tested.
+- The About card now has three additions stacked in one window (T-200
+  diagnostics, T-181 media form, T-192 platform rows); total file length stays
+  under 300 LOC.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
 
 **Next**
-- T-181 — add media by URL (landed in the same window; see entry below), then T-183.
+- T-201 — favorites feature (queue order; another run may own it).
 
 ---
 
