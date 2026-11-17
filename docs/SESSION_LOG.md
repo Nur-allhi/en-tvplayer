@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-192: About panel engine + platform info — @nightshift (isolated worktree)
+
+**Ticket:** T-192 ✅ · **Branch:** `feature/t-192-about-panel` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New DOM-free `player/src/lib/about-info.js` — pure `aboutInfo()` builds the
+  seven About rows (app, version, platform, TV API version, engine, AVPlay,
+  native playback) from an injected capability snapshot. 10 tests cover Tizen
+  and browser profiles, all three engine labels and missing inputs.
+- `settings/about.js` now renders those rows from the real `capabilities()` /
+  `currentEngine()` probe plus `player.isNativeAvailable()`, replacing the
+  hardcoded "Shaka Player" engine value. The existing diagnostics button and
+  links card are unchanged.
+
+**Verified**
+- All gates green: `npm test` 510 passed (10 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate. `lib/about-info.js` is DOM-pure and
+  under the 300-LOC cap.
+- **No TV is connected.** Values come from the existing capability probe; no
+  on-device UI check and no playback claim made.
+
+**Decisions**
+- Took T-192 out of queue order: T-182/183 were claimed by other active runs,
+  so this independent ready ticket was the next unclaimed item.
+- Kept the formatter pure in `lib/` and injected the capability snapshot so the
+  About text is unit-testable without a DOM or a TV.
+- Left `engineLabel()` in `lib/capabilities.js` untouched — it reports "None"
+  for no engine and is used elsewhere; the About panel needs "Browser" for that
+  case, so the new formatter maps it locally.
+
+**Watch out**
+- The About card now has three additions stacked in one window (T-200
+  diagnostics, T-181 media form, T-192 platform rows); total file length stays
+  under 300 LOC.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
+
+**Next**
+- T-201 — favorites feature (queue order; another run may own it).
+
+---
+
 ## 2026-11-17 — T-181: add media by URL / manifest — @nightshift (isolated worktree)
 
 **Ticket:** T-181 ✅ · **Branch:** `feature/t-181-add-media` → `dev`
