@@ -906,9 +906,12 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** disabling a feature removes all its UI and remote bindings
   with no other file edited.
 - **Spec detail:** `docs/v4.PLAN.md` §3.3.
-- **Status:** ✅ done 2026-11-17 — `app/plugins.js` registry with 10 tests;
-  flags applied at boot and remote actions guarded. `inlineDynamicImports`
-  set; all gates + tizen green. No TV connected.
+- **Status:** ✅ done 2026-11-17 — `app/plugins.js` owns `FEATURES`,
+  `isEnabled`, route/menu helpers, `registerFeature`, and the DOM/key guards
+  applied at boot and in the remote wrapper. 31 registry tests; proxy UI reads
+  its visibility from the flag. `inlineDynamicImports: true` set. All gates +
+  tizen green. Full migration to `features/` follows in T-172/T-173.
+  No TV connected.
 
 ### T-172 — Migrate existing features to plugins
 - **Type:** refactor · **Priority:** P0 · **Size:** M

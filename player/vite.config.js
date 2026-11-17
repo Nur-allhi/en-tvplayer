@@ -49,9 +49,7 @@ export default defineConfig({
       name: 'tizen-html-transform',
       closeBundle() {
         const html = fs.readFileSync(path.resolve(__dirname, 'dist/index.html'), 'utf-8');
-        const fixed = html
-          .replace(/\s+type="module"/g, '')
-          .replace(/\s+crossorigin/g, '');
+        const fixed = html.replace(/\s+type="module"/g, '').replace(/\s+crossorigin/g, '');
         fs.writeFileSync(path.resolve(__dirname, 'dist/index.html'), fixed);
       },
     },
