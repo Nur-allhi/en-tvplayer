@@ -1206,6 +1206,17 @@ A ticket is only `done` when it meets the **Definition of Done**
   the add-playlist form with no console error; the BUG-011/012 field order is
   preserved (name → URL, OK in URL saves); regression test included.
 - **Depends:** — · **Found:** 2026-11-17 during T-140 browser smoke test.
+- **Status:** ✅ done 2026-11-17 — the crash was NOT the container ordering
+  the spec guessed. `settings.init()` does run before onboarding (via
+  `showFirstRun → startPlayer`). The real cause: `settings/render.js` wired
+  `settings-fetch-btn` without a null guard, and that button does not exist
+  while the add form is showing. Every other listener in the branch was
+  guarded; this one line was not. Added the same guard pattern plus two
+  regression tests that fail on any unguarded `getElementById().addEventListener`
+  in render.js.
+- **Verified in browser:** fresh profile, both M3U and Xtream onboarding buttons
+  open the correct form (URL/name; host/user/pass) with zero page errors. Only
+  the expected Tizen `$WEBAPIS` 404 remains. 666 tests, all gates green.
 - **Notes:** confirmed pre-existing by stashing all T-140 changes and
   reproducing the identical stack on the committed baseline (`89f12c5`).
   Not caused by the settings split. Browser-only: Vitest runs in node with no

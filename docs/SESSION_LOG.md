@@ -44,6 +44,36 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-211: first-run crash fixed — @maintainer
+
+**Ticket:** T-211 ✅ · **Branch:** `fix/t-211-onboarding` → `dev`
+
+**What changed**
+- `settings/render.js` — `settings-fetch-btn` now null-guarded like every
+  other listener in the source branch. The button does not exist in add/edit
+  form mode, so wiring it threw on a first-run source choice.
+- Two source-level regression tests in `settings/render.test.js` that fail if
+  any `getElementById(...).addEventListener` is left unguarded.
+
+**Why the ticket's diagnosis was wrong**
+The spec blamed `openAddForm()` running before `settings.init()`. Browser
+reproduction showed that is not the case: `showFirstRun → startPlayer →
+settings.init` runs first, and the form DID render. The actual stack was
+`render.js:186 → openAddForm → selectOnboarding → shell.js`, a null
+`settings-fetch-btn`. Fixed the observed cause, not the guessed one.
+
+**Verified**
+- Reproduced the exact TypeError first, then confirmed it gone: fresh profile,
+  both onboarding buttons open the right form with zero page errors.
+- 666 tests (2 new), lint, format, validate, a11y, build all green.
+
+**Watch out**
+- Automated run is OFF (Windows watchdog disabled, OpenChamber task disabled).
+- TV verification from earlier today still stands; this fix is desktop-only
+  behaviour but should be rechecked on a fresh TV profile when convenient.
+
+---
+
 ## 2026-11-17 — TV verification passed on UA43AU8000RSFS — @maintainer
 
 **Result:** ✅ maintainer installed the v4 WGT manually on the TV and reports

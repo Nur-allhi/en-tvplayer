@@ -183,7 +183,12 @@ export function render() {
         deps.applyFocus();
       });
     }
-    document.getElementById('settings-fetch-btn').addEventListener('click', () => deps.handleFetch());
+    // The fetch button exists only in the playlist list, not in add/edit form
+    // mode. Every other listener in this branch is null-guarded; this one was
+    // not, so a first-run "Add your source" click threw after rendering the
+    // form (T-211).
+    const fetchBtn = document.getElementById('settings-fetch-btn');
+    if (fetchBtn) fetchBtn.addEventListener('click', () => deps.handleFetch());
   } else if (state.activeSection === 'playback') {
     bindPlaybackToggles();
   } else {

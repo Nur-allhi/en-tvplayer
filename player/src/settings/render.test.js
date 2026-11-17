@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { state, NAV_ITEMS, MAX_PLAYLISTS } from './state.js';
 import { deps } from './deps.js';
 
@@ -42,5 +43,23 @@ describe('settings deps after T-141', () => {
 
   it('fails loudly when unwired', () => {
     expect(() => deps.handleFetch()).toThrow(/before it was wired/);
+  });
+});
+
+describe('T-211 first-run listener guards', () => {
+  it('null-guards every getElementById().addEventListener() in render.js', () => {
+    // A first-run "Add your source" click renders the form without the
+    // fetch button. Any unguarded listener there throws in the browser.
+    const src = readFileSync(new URL('./render.js', import.meta.url), 'utf8');
+    const unguarded = [];
+    for (const m of src.matchAll(/getElementById\('([^']+)'\)\.addEventListener/g)) {
+      unguarded.push(m[1]);
+    }
+    expect(unguarded).toEqual([]);
+  });
+
+  it('wires the fetch button only when it exists', () => {
+    const src = readFileSync(new URL('./render.js', import.meta.url), 'utf8');
+    expect(src).toMatch(/const fetchBtn = document\.getElementById\('settings-fetch-btn'\);\s*if \(fetchBtn\)/);
   });
 });
