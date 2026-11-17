@@ -4,7 +4,8 @@
 // re-export hub and no import cycle is created.
 
 import { escapeHtml } from '../utils.js';
-import { getHiddenGroups } from '../config.js';
+import { getHiddenGroups, getSettings } from '../config.js';
+import { favoritesGroup } from '../lib/favorites.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
 import { enterSearch } from './search.js';
@@ -25,7 +26,12 @@ export function extractGroups(channelList) {
       count: groupMap[name].length,
       channels: groupMap[name],
     }));
-  state.groups = [{ name: 'All Channels', count: visible.length, channels: visible }, ...realGroups];
+  const pinnedFavourites = favoritesGroup(visible, getSettings().favorites);
+  state.groups = [
+    { name: 'All Channels', count: visible.length, channels: visible },
+    ...(pinnedFavourites ? [pinnedFavourites] : []),
+    ...realGroups,
+  ];
 }
 
 export function getSidebarMode() {
