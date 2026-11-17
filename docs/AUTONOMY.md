@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 3          # tickets per unattended run, to bound token spend
-NEXT        = T-151      # first unresolved row — no decision needed
+NEXT        = T-152      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions (task disabled by maintainer)
-LAST_RUN    = 2026-11-17 # T-152a + T-152b + T-152c by night shift (BATCH_LIMIT)
+LAST_RUN    = 2026-11-17 # T-151 by night shift (batch 1 of 3)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -116,8 +116,8 @@ with the exact gate output; agent skipped it.
 | 18 | T-152a | app/deps.js registry | done | merged + gated |
 | 19 | T-152b | onboarding + What's New | done | merged + gated + browser-smoked |
 | 20 | T-152c | startup slice | done | merged + gated + browser-smoked |
-| 21 | T-151 | app/remote.js | ready | **NEXT** — after T-152c |
-| 22 | T-152 | app/index.js, thin main.js | ready | after T-151 |
+| 21 | T-151 | app/remote.js | done | merged + gated + browser-smoked |
+| 22 | T-152 | app/index.js, thin main.js | ready | **NEXT** — after T-151 |
 | 23 | T-153 | release script follows changelog | ready | **same commit as T-152** |
 | 24 | T-160 | design tokens | ready |  |
 | 25 | T-161 | split styles.css | ready |  |

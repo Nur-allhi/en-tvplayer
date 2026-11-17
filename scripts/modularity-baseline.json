@@ -1,9 +1,4 @@
 {
-  "loc:player/src/main.js": {
-    "rule": "loc",
-    "file": "player/src/main.js",
-    "detail": "1590 LOC exceeds 300"
-  },
   "exports:player/src/logic.js": {
     "rule": "exports",
     "file": "player/src/logic.js",
