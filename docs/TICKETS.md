@@ -653,6 +653,18 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Spec:** card rendering vs. playlist CRUD.
 - **Acceptance:** all playlist operations work by remote (add, edit, rename,
   delete, fetch active, M3U + Xtream types).
+- **Status:** ✅ done 2026-11-17 — `settings/playlists.js` (134 LOC),
+  `settings/render.js` (218 LOC), `settings/render-cards.js` (291 LOC).
+  `settings.js` 698 → 56 LOC and still exports exactly the 8-name API.
+  Modularity baseline 3 → 2 — the settings LOC violation is genuinely gone.
+  303 tests (5 new). Browser-verified: Source/Playback/About all render,
+  ArrowDown moves focus to Playback, Enter switches section, no console errors
+  beyond the expected Tizen-only `$WEBAPIS` 404.
+  - Three files, not the ticket's two: `render` + `renderSourceCard` together
+    are 379 LOC, over the 300 cap. Cards got their own file in this ticket.
+  - `NAV_ITEMS` and `MAX_PLAYLISTS` moved to `settings/state.js` so the
+    slices can read them without importing the hub.
+  - **Not TV-verified.** Playlist CRUD by remote still needs a device.
 
 ### T-142 — `settings/playback.js` + delete `settings.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** M (~150 LOC)

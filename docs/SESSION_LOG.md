@@ -44,6 +44,47 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-141: settings split nearly complete — @maintainer
+
+**Ticket:** T-141 ✅ · **Branch:** `refactor/t-141-settings-render` → `dev`
+**Status:** ✅ done — settings.js down to 56 LOC, baseline 3 → 2
+
+**What changed**
+- **`settings/playlists.js` (134)** — saveAddPlaylist, saveEditPlaylist,
+  valOf, setFormType, testXtreamLogin, handleFetch.
+- **`settings/render.js` (218)** — the render orchestrator.
+- **`settings/render-cards.js` (291)** — the four card renderers plus group
+  helpers. Needed because render + renderSourceCard together are 379 LOC.
+- **`settings/state.js`** also owns `NAV_ITEMS` and `MAX_PLAYLISTS` now.
+- **`settings.js`** 698 → 56 LOC, still exporting exactly the 8-name API.
+
+**Verified**
+- 303 tests (5 new), lint, format, 0 new violations, 69 files.
+- Bundle 948.7 → 951.6 kB (+0.31 %), WGT signs.
+- **Browser smoke test was essential again.** It caught
+  `deps.renderSourceCard is not a function`: my converter had routed the
+  three card renderers through deps slots that did not exist. Fixed by
+  importing them directly from `render-cards.js` (no cycle — that file does
+  not import render.js). ESLint passed while the page was broken.
+- Real interaction verified: Source/Playback/About all render; ArrowDown moves
+  focus to Playback; Enter switches section; no new console errors.
+
+**Decisions**
+- Direct imports for the three card renderers rather than three more deps
+  slots: they form a one-way edge (render → cards), so a registry adds no value
+  and three more slots would need wiring and tests for nothing.
+
+**Watch out**
+- Playlist CRUD was exercised by rendering only, not by a real remote.
+  T-211 (first-run onboarding crash) remains proposed and is unaffected here.
+- Machine-side: night shift still disabled, dev servers stopped.
+
+**Next**
+- **T-142** — `settings/playback.js` and delete `settings.js`. This clears
+  the last settings LOC baseline violation and completes the settings split.
+
+---
+
 ## 2026-11-17 — T-211 opened for the first-run crash — @maintainer
 
 **Ticket:** T-211 (proposed) · **Found during:** T-140 browser smoke test
