@@ -44,6 +44,59 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-172: migrate features to plugins — @nightshift (isolated worktree)
+
+**Ticket:** T-172 ✅ · **Branch:** `feature/t-172-plugin-migration` → `dev`
+**Status:** ✅ done — staged migration; full remote routing deferred to T-173
+
+**What changed**
+- New `player/src/features/`: `proxy-toggle.js` (owns visibility rules, now
+  called from the hub with only the registry flag), `tizen-compat.js` (owns
+  virtual-key registration and the hardware Back key), `avplay.js` (the native
+  fallback implementation, with `avplay.js` reduced to a re-export shim) and
+  `search.js` (contract descriptor). Each exports a uniform `contract` with
+  `id`, `owns`, `routes` and `menuEntries`.
+- `app/index.js` no longer knows proxy host/settings internals; `app/remote.js`
+  re-exports `registerTizenKeys` from the feature and `app/start.js` calls
+  `installBackKey`. `app/plugins.js` now declares contracts and lazy `load()`
+  functions for all four (Vite's `inlineDynamicImports` handles the IIFE build).
+- 10 new tests in `features/features.test.js` cover the pure host gate and the
+  contract shape. Total 396 tests.
+
+**Verified**
+- All gates green: `npm test` 396 passed, lint, format:check, validate (100
+  files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** No playback behaviour changed (AVPlay code moved
+  byte-for-byte behind a shim); no TV claim made.
+
+**Decisions**
+- Used scout first (4 features, many functions). It confirmed a literal four-way
+  move would create forbidden `features/ → app|ui|player` imports. Moved the
+  three that are clean and left search's DOM implementation in `ui/search.js`
+  behind a contract descriptor; T-173 will route its action.
+- Kept `app/remote.js`'s `registerTizenKeys` as a re-export so existing deps
+  wiring and tests keep the same API.
+- The local `dev` ref had been moved by an overlapping run to its own T-171
+  commit (`eced118`), diverging from authoritative `origin/dev` (`cb17dfa`,
+  CI green). Branch was recreated from `origin/dev` so this ticket stacks on
+  the verified state, not the overlapping run's local work.
+
+**Watch out**
+- `features/` is auto-scanned by the modularity guard but not on its DOM-purity
+  list — keep `lib/` and `logic.js` DOM-free and do not move DOM code there.
+- The proxy menu still needs Settings → Playback opt-in and a local host; the
+  feature gate is an additional condition, not a replacement.
+- An overlapping run landed T-200 and reconciled the duplicate T-171 registries
+  while this ticket was in flight. `app/plugins.js` now carries both designs —
+  the `ui`/`keys` metadata and guards from T-200 plus the contracts and lazy
+  loaders from this ticket — and `app/index.js` calls both `applyFeatureFlags()`
+  and the proxy feature's `refresh()`.
+
+**Next**
+- T-173 — remote-action routing via plugins.
+
+---
+
 ## 2026-11-17 — T-203: GitHub issue templates — @nightshift (isolated worktree)
 
 **Ticket:** T-203 ✅ · **Branch:** `chore/t-203-issue-templates` → `dev`
@@ -109,6 +162,7 @@ first). Keep it short — the point is handover, not a diary.
 
 **Next**
 - T-180 — VOD data model + storage.
+- T-172 — migrate existing features to plugins (landed in the same window; see entry above).
 
 ---
 
@@ -236,7 +290,7 @@ first). Keep it short — the point is handover, not a diary.
 - `remote.js` is back to 298 LOC — any further additions there break the cap.
 
 **Next**
-- T-172 — migrate existing features into `features/`.
+- T-172 — migrate existing features into `features/` (landed in the same window; see entry above).
 
 ---
 
