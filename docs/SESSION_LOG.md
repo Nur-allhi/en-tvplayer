@@ -44,6 +44,49 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-182: ui/library.js — movies & series browser — @nightshift (isolated worktree)
+
+**Ticket:** T-182 ✅ · **Branch:** `feature/t-182-library-ui` → `dev`
+**Status:** ✅ done — taken out of queue order (T-181 held by the other run)
+
+**What changed**
+- New pure `lib/library-nav.js` — a four-level stack (root → list → detail →
+  episodes) with `move`/`select`/`back`. Back pops exactly one frame and sets
+  `exit` from the root. 22 tests pin clamp-at-edges, empty-list safety and
+  "never strands after repeated Back".
+- New `ui/library.js` (112 LOC) renders those levels into `#group-list` using
+  the existing `.group-item` pattern, reading the T-180 VOD library.
+- `ui/sidebar.js` gained a 🎬 Library row (index 1); group index offsets and
+  wrap counts were updated. `ui/index.js` re-exports the slice and
+  `app/remote-views.js` handles `mode === 'library'` for up/down/select/back.
+
+**Verified**
+- All gates green: `npm test` 507 passed (22 new), lint, format:check, validate
+  (115 files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** The navigation logic is pure and unit-tested; no
+  playback behaviour changed and no TV claim made.
+
+**Decisions**
+- Used scout first. It warned the low-level `remote.js` is 298/300 LOC, so no
+  key handling went there — the new mode branch lives in `remote-views.js`.
+- Kept navigation state module-local in `ui/library.js` rather than adding a
+  shared state field: only one slice reads it, so a store would be speculative.
+- `loadLibrary()` runs on each render so the list reflects settings; with no
+  media added yet (T-181 in flight) both root counts are zero and Back still
+  exits cleanly.
+
+**Watch out**
+- The group-list focus offsets changed: index 0 is Search, 1 is Library,
+  groups start at 2. Any future code addressing `groupFocusedIndex` directly
+  must account for the extra row.
+- `library.js` imports `state/vod.js`, so it cannot be tested in node env;
+  only the pure reducer is unit-tested.
+
+**Next**
+- T-181 — add media by URL (in flight by the other run), then T-183.
+
+---
+
 ## 2026-11-17 — T-173: remote-action routing via plugins — @nightshift (isolated worktree)
 
 **Ticket:** T-173 ✅ · **Branch:** `feature/t-173-remote-routing` → `dev`

@@ -64,6 +64,32 @@ export function handleSidebarAction(action, value) {
     }
     return;
   }
+  if (mode === 'library') {
+    switch (action) {
+      case 'up':
+        ui.libraryNavigate(-1);
+        break;
+      case 'down':
+      case 'channelUp':
+        ui.libraryNavigate(1);
+        break;
+      case 'channelDown':
+        ui.libraryNavigate(-1);
+        break;
+      case 'select':
+        ui.librarySelect();
+        break;
+      case 'back':
+        ui.libraryBack();
+        break;
+      case 'left':
+      case 'right':
+        break;
+      default:
+        break;
+    }
+    return;
+  }
   if (mode === 'groups') {
     switch (action) {
       case 'up':

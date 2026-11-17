@@ -9,3 +9,4 @@ export * from './search.js';
 export * from './right-menu.js';
 export * from './dialogs.js';
 export * from './osd.js';
+export * from './library.js';
