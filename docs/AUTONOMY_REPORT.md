@@ -37,3 +37,5 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T14:06:32.967Z | `63f56c5` | docs(session): record TV verification on UA43AU8000RSFS | 39/46 | 0 | none |
 | 2026-11-17T14:09:12.775Z | `0774c76` | docs(agents): persist the disabled automation state and report rows | 39/46 | 0 | none |
 | 2026-11-17T14:17:58.948Z | `22bcedf` | fix(settings): null-guard the fetch listener in first-run mode (T-211) | 39/46 | 0 | none |
+| 2026-11-17T14:19:51.985Z | `50f0534` | docs(agents): record the T-211 report row | 39/46 | 0 | none |
+| 2026-11-17T14:20:25.645Z | `cdae79a` | docs(roadmap): close T-150 and T-211 in the queue | 41/46 | 0 | none |
