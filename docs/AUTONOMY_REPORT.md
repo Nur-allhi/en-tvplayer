@@ -43,3 +43,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T14:50:50.280Z | `7336533` | docs(agents): record the report commit row | 41/46 | 0 | none |
 | 2026-11-17T14:53:06.561Z | `380d490` | chore(tooling): stop the report hook from logging its own commits | 41/46 | 0 | none |
 | 2026-11-17T15:13:15.277Z | `4013e64` | docs(roadmap): update the product and architecture docs for v4 VOD | 41/46 | 0 | none |
+| 2026-11-17T15:19:38.873Z | `009d26f` | docs(session): correct the scope of the TV verification claim | 41/46 | 0 | none |
