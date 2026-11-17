@@ -44,6 +44,33 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-183 duplicate discarded (parallel-run collision) — @nightshift
+
+**Status:** ✅ no code landed — a parallel run had already merged T-183 to dev
+
+**What happened**
+- This run took over T-183 after the other active runs went inactive, built a
+  full implementation on `feature/t-183-episode-resume` (resume math, per-movie
+  / per-episode `setResumeAt`, Resume row, nav fix), got all gates green locally
+  (587 tests, WGT signed with the correct cert) — but on merge found a parallel
+  run had already landed T-183 on dev (`3c5e494`, needs-tv, 574 tests, both CI
+  checks green) with a different implementation.
+- Since dev was green and the ticket was done, I aborted the merge and deleted
+  the duplicate branch. **No conflicting code was pushed** — `dev` keeps the
+  parallel run's version. No force / no hard reset used.
+- A parallel run had also declared `NEXT = none` while assuming this ticket was
+  covered elsewhere. The queue is genuinely exhausted; `NEXT` stays `none`.
+
+**Watch out**
+- Parallel nightshift runs are still colliding on the same tickets. Before
+  picking one up, check `git log origin/dev` for its merge SHA, not just the
+  branch/worktree list — a branch can exist while the ticket is already merged.
+
+**Next**
+- none — queue exhausted. TV checks owed for all needs-tv tickets.
+
+---
+
 ## 2026-11-17 — batch handover: queue exhausted — @nightshift
 
 **Status:** ✅ final `dev` green on both CI checks
