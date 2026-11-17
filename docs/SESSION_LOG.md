@@ -44,6 +44,43 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — final batch handoff: queue complete, dev green — @nightshift
+
+**Status:** ✅ stop condition met — `NEXT = none`; both ready tickets landed
+
+**What happened**
+- T-191 (engine fallback notice) and T-185 (VOD playback integration) both
+  landed on `dev` by parallel nightshift runs already in flight when this batch
+  opened. Per the documented T-183 collision lesson I did not duplicate their
+  work — I yielded the live files and verified the results instead.
+- Fast-forwarded the local checkout from `027af9d` to `3513934` to match the
+  pushed `dev`.
+
+**Verified**
+- Full gates on the T-191 merge head `1fd0a55`: `npm test` 651 passed, lint,
+  validate (138 files, 0 new), format:check, build, `npm run tizen` (signed
+  with cert 40:71:40:30...).
+- Both GitHub checks green on the final head `3513934`:
+  `Test · Lint · Build · Modularity` and `WGT packaging`.
+- `dev` = `origin/dev` = `3513934`; tree clean apart from the pre-existing
+  untracked `docs/REFINED_UX_REPORT.md`.
+
+**Decisions**
+- The 19:30 Dhaka deadline had passed; no new ticket was started. Only
+  in-flight work and verification were finished, as the policy allows.
+- Never touched `main`, no release or tags, no signing-key operation.
+
+**Watch out**
+- Overlapping nightshift runs still collide. Check `origin/dev`, worktrees and
+  live file mtimes before picking a ticket.
+- No TV is connected — T-183/184/185/190/191 remain `needs-tv`; the
+  playback/DRM end-to-end claims are still owed.
+
+**Next**
+- TV hardware check for the `needs-tv` backlog. No code tickets remain.
+
+---
+
 ## 2026-11-17 — T-185: VOD playback integration — @nightshift (isolated worktree)
 
 **Ticket:** T-185 🔶 needs-tv · **Branch:** `feature/t-185-vod-playback` → `dev`
