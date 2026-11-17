@@ -1075,6 +1075,12 @@ A ticket is only `done` when it meets the **Definition of Done**
   (Shaka / Native / Browser), AVPlay availability, and native-playback support.
 - **Acceptance:** matches the Tizen key-registration and DRM diagnostics
   already exposed in the About card.
+- **Status:** ✅ done 2026-11-17 — pure `lib/about-info.js` builds the About
+  rows (app, version, platform, TV API version, engine, AVPlay, native
+  playback) with 10 tests; `settings/about.js` renders them from the real
+  `capabilities()` / `currentEngine()` probe instead of the old hardcoded
+  "Shaka Player" label. 510 tests, all gates green incl. WGT signing with the
+  correct certificate. No TV verification claimed.
 
 ---
 
