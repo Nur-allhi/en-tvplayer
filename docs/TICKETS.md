@@ -985,6 +985,11 @@ A ticket is only `done` when it meets the **Definition of Done**
   list pattern.
 - **Acceptance:** fully remote-navigable; Back always returns one level and
   never strands the user.
+- **Status:** ✅ done 2026-11-17 — pure `lib/library-nav.js` stack reducer
+  (22 tests pin clamp-at-edges, empty-list safety and Back returning one level
+  or exiting to groups) plus `ui/library.js` rendering into the group-list
+  container. A 🎬 Library row in the sidebar enters it; `handleSidebarAction`
+  has a `library` mode. 507 tests total; all gates + tizen green; no TV.
 
 ### T-183 — Episode browsing + resume
 - **Type:** feat · **Priority:** P0 · **Size:** M (~200 LOC)

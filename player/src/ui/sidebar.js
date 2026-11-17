@@ -8,6 +8,7 @@ import { getHiddenGroups } from '../config.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
 import { enterSearch } from './search.js';
+import { enterLibrary } from './library.js';
 
 export function extractGroups(channelList) {
   const hidden = getHiddenGroups();
@@ -68,6 +69,14 @@ export function renderGroupList() {
     enterSearch();
   });
   container.appendChild(searchRow);
+  const libraryRow = document.createElement('div');
+  libraryRow.className = 'group-item';
+  libraryRow.dataset.library = '1';
+  libraryRow.innerHTML = '<span class="group-name">🎬 Library</span>';
+  libraryRow.addEventListener('click', () => {
+    enterLibrary();
+  });
+  container.appendChild(libraryRow);
   state.groups.forEach((group, index) => {
     const item = document.createElement('div');
     item.className = 'group-item';
@@ -102,14 +111,14 @@ export function updateGroupFocus() {
 }
 
 export function navigateGroupUp() {
-  const total = state.groups.length + 1; // + Search row
+  const total = state.groups.length + 2; // + Search and Library rows
   if (total === 0) return;
   state.groupFocusedIndex = (state.groupFocusedIndex - 1 + total) % total;
   updateGroupFocus();
 }
 
 export function navigateGroupDown() {
-  const total = state.groups.length + 1; // + Search row
+  const total = state.groups.length + 2; // + Search and Library rows
   if (total === 0) return;
   state.groupFocusedIndex = (state.groupFocusedIndex + 1) % total;
   updateGroupFocus();
@@ -120,7 +129,11 @@ export function selectFocusedGroup() {
     enterSearch();
     return;
   }
-  const group = state.groups[state.groupFocusedIndex - 1];
+  if (state.groupFocusedIndex === 1) {
+    enterLibrary();
+    return;
+  }
+  const group = state.groups[state.groupFocusedIndex - 2];
   if (group) showGroupChannels(group.name);
 }
 
