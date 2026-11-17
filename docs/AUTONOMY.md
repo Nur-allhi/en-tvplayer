@@ -47,7 +47,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
 NEXT        = T-185      # needs-tv code work still owed (claimed by a parallel worktree)
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-191 fallback messaging by night shift (resumed batch)
+LAST_RUN    = 2026-11-17 # resumed batch ended at 19:30 Dhaka deadline; T-190/T-191 landed
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
