@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state } from './state.js';
+import { state, uiState } from './state.js';
 
 // T-130: `state` is the shared object every ui/ slice will import. These tests
 // pin the two properties that make Risk C survivable: one stable identity, and
@@ -11,6 +11,18 @@ describe('ui state — shared identity', () => {
     // each slice gets its own copy and the sidebar/focus silently stops working.
     expect(typeof state).toBe('object');
     expect(state).toBe(state);
+  });
+
+  it('is the live value of the uiState store (T-170)', () => {
+    expect(state).toBe(uiState.getState());
+  });
+
+  it('lets a slice setState() without losing the shared reference', () => {
+    const other = state;
+    uiState.setState({ focusedIndex: 3 });
+    expect(state).toBe(other);
+    expect(state.focusedIndex).toBe(3);
+    state.focusedIndex = 0;
   });
 
   it('holds every shared variable with its original initial value', () => {
