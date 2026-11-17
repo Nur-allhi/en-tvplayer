@@ -44,6 +44,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-186: v4 settings schema migration — @nightshift (isolated worktree)
+
+**Ticket:** T-186 ✅ · **Branch:** `feature/t-186-settings-schema-migration` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- `config.js` now exports `SCHEMA_VERSION = 4` and a pure `migrateSettings()`
+  that upgrades a parsed v3 settings object additively: defaults `movies: []`,
+  `favorites: []` and `features: { favorites, infoBar, vod }` while preserving
+  every existing key (including unknown ones) and the `en_settings` key name.
+  A partial `features` object gets only the missing flags filled in.
+- `getSettings()` runs the migration on every load and now writes back through
+  a single consolidated `dirty` flag (schema change OR legacy playlist OR date
+  backfill), so a second load never rewrites storage.
+- New `config.test.js` (9 tests) with an in-memory localStorage shim: exact
+  v3→v4 path, no data loss, idempotence, current-schema no-op, malformed
+  `features` repair, fresh-profile defaults and the legacy playlist path.
+
+**Verified**
+- All gates green: `npm test` 429 passed (9 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate.
+- **No TV is connected.** Migration is pure logic pinned by unit tests; no
+  playback behaviour change and no TV claim made.
+
+**Decisions**
+- Took T-186 out of queue order: T-173 was claimed by another active run, so
+  this independent P0 foundation ticket was the safest next item. `NEXT` stays
+  T-173 (first unresolved in queue).
+- Kept migration additive and idempotent per BRANCHING §5 — never deleted a key,
+  never renamed `en_settings`, because either would orphan existing installs.
+- Consolidated the three write-back paths into one `dirty` flag to preserve the
+  existing no-op-on-second-load behaviour while adding schema persistence.
+
+**Watch out**
+- `features` defaults are stored in `en_settings.features`; the plugin registry
+  (T-171) currently owns its own enabled flags — these are distinct concepts
+  and were not merged here.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
+
+**Next**
+- T-173 — remote-action routing (queue order; another run may already own it).
+
+---
+
 ## 2026-11-17 — T-203: GitHub issue templates — @nightshift (isolated worktree)
 
 **Ticket:** T-203 ✅ · **Branch:** `chore/t-203-issue-templates` → `dev`
