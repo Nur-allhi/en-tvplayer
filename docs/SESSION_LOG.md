@@ -44,6 +44,55 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — batch verification + duplicate-run handover — @nightshift (second run)
+
+**Ticket:** T-152a (authored) · verification of T-152a/b/c, T-151, T-152/T-153
+**Branch:** `chore/session-verify-handover` → `dev`
+**Status:** ✅ verified — final `dev` `7102b01` green, both CI checks green
+
+**What changed**
+- For T-152a I authored the shared-state extraction (`app/state.js` gained the
+  14 remaining mutable app variables plus `BOOT_IDLE_HOLD_MS`; `main.js` had
+  87 references rewritten to `state.*` via an AST transform with a shadowing
+  guard, zero bare references left) and an initial `app/deps.js` + tests.
+- A second nightshift session was already running in the same working tree
+  (scheduler had dispatched it at 13:45 Dhaka). It committed a superseding
+  38-slot `app/deps.js` and went on to land T-152b, T-152c, T-151 and
+  T-152/T-153. I yielded all further source edits to it rather than race on
+  the same files; its entries above are the record of those tickets.
+
+**Verified (independently of the other run, on final `dev`)**
+- `npm test` → 333 passed; `npm run lint`, `npm run validate` (88 files, 0 new
+  violations, 1 tracked), `npm run format:check`, `npm run build`, WGT size
+  gate and `npm run tizen` (WGT signed with the expected certificate) all green.
+- `gh api` check-runs on `7102b01` → both `Test · Lint · Build · Modularity`
+  and `WGT packaging` completed with `success`.
+- T-152a browser smoke (dev server, before handover): fresh profile reached
+  the empty shell with the onboarding modal; Backspace closed onboarding,
+  Settings opened and all tabs rendered. Only console error was the expected
+  Tizen `$WEBAPIS` 404. No new errors from the state substitution.
+- `main` untouched, no tag/release, no signing key touched;
+  `docs/REFINED_UX_REPORT.md` left untouched.
+
+**Decisions**
+- Yield source edits once the duplicate run was detected: two agents writing
+  the same `main.js`/`app/*` files and pushing `dev` would risk a corrupted
+  merge, which is worse than one agent completing the batch. Kept this entry
+  only as the handover record, which the session rule requires.
+
+**Watch out**
+- Two nightshift runs overlapped today (scheduled 13:30 cron plus a second
+  trigger). Before starting a batch, check
+  `GET /api/openchamber/scheduled-tasks/status` for `hasRunningScheduledTasks`
+  and look for fresh commits; if another run is active, do not write source.
+- No TV is connected. No playback behaviour was verified on hardware.
+
+**Next**
+- Queue `NEXT = T-160` (design tokens). Confirm only one nightshift run is
+  active before picking it up.
+
+---
+
 ## 2026-11-17 — T-152 + T-153: app hub + thin entry, release path — @nightshift
 
 **Ticket:** T-152 ✅ + T-153 ✅ · **Branch:** `feature/t-152-index-hub` → `dev`
