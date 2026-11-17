@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-185      # first unresolved row — no decision needed
+NEXT        = T-190      # first unresolved row — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-184 by night shift (continuous run)
+LAST_RUN    = 2026-11-17 # T-185 by night shift (continuous run)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -131,7 +131,7 @@ with the exact gate output; agent skipped it.
 | 33 | T-182 | ui/library.js | done | merged + gated; pure nav stack |
 | 34 | T-183 | episode browsing | needs-tv | merged + gated; restore needs T-185 + TV |
 | 35 | T-184 | audio/subtitle/quality pickers | needs-tv | merged + gated; caption check owed |
-| 36 | T-185 | VOD playback integration | ready | was mis-labelled needs-tv |
+| 36 | T-185 | VOD playback integration | needs-tv | merged + gated; playback check owed |
 | 37 | T-186 | settings schema migration | done | merged + gated; was T-181 |
 | 38 | T-190 | features/tizen-compat.js | ready | was mis-labelled needs-tv |
 | 39 | T-191 | engine fallback messaging | needs-tv |  |

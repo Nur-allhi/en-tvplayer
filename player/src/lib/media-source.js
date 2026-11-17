@@ -17,7 +17,16 @@ export function detectSourceKind(url) {
 export function m3uToMediaEntries(text) {
   return parseM3u(text)
     .filter((channel) => channel && channel.url)
-    .map((channel) => ({ title: channel.name || channel.url, url: channel.url }));
+    .map((channel) => {
+      const entry = { title: channel.name || channel.url, url: channel.url };
+      // Carry the parsed ClearKey / header data into the VOD model so the
+      // playback adapter can reuse the existing player DRM path unchanged.
+      if (channel.drm) entry.drm = channel.drm;
+      if (channel.customHeaders) entry.customHeaders = channel.customHeaders;
+      if (channel.userAgent) entry.userAgent = channel.userAgent;
+      if (channel.authQuery) entry.authQuery = channel.authQuery;
+      return entry;
+    });
 }
 
 export function parseMediaManifest(text, kind) {

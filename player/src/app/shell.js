@@ -7,6 +7,8 @@ import * as ui from '../ui/index.js';
 import * as settings from '../settings/index.js';
 import { state } from './state.js';
 import { deps } from './deps.js';
+import { mediaToChannel } from '../lib/media-channel.js';
+import { rememberVod, restoreVod } from './vod-resume.js';
 
 function cleanupEventListeners() {
   state.cleanupListeners.forEach(({ element, event, handler }) => {
@@ -86,6 +88,12 @@ function startPlayer() {
 
   ui.setSubtitleCallback((id) => player.selectTextTrackById(id));
   ui.initSubtitlePicker();
+
+  ui.setMediaPlayCallback((entry, episode, at) => {
+    rememberVod(entry, episode);
+    restoreVod(at);
+    deps.handleChannelSelect(mediaToChannel(entry, episode));
+  });
 
   let playPauseButton = document.getElementById('playpause-button');
   if (playPauseButton) {

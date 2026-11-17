@@ -1024,6 +1024,13 @@ A ticket is only `done` when it meets the **Definition of Done**
   native AVPlay fallback. Add ClearKey support when the manifest declares it.
 - **Acceptance:** a movie plays end to end; DRM manifests play with ClearKey;
   an unplayable stream shows the existing plain-language error.
+- **Status:** 🔶 needs-tv 2026-11-17 — pure `lib/media-channel.js` maps a media
+  entry to the existing channel shape (8 tests); DRM/headers/auth survive M3U
+  import, normalisation and re-fetch (tests added). Library Play/Resume and
+  episode rows now call the existing `handleChannelSelect` path via
+  `app/vod-resume.js` (capture on switch, seek on `loadedmetadata`). Existing
+  `load-error.js` messages cover failures. 644 tests; all gates + tizen green.
+  **Actual playback, ClearKey CDM and seeking need a TV**, so needs-tv.
 
 ---
 

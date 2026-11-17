@@ -139,6 +139,40 @@ describe('library storage', () => {
   });
 });
 
+describe('playback metadata (T-185)', () => {
+  it('carries ClearKey data onto the entry', () => {
+    const drm = { clearKeys: { kid: 'key' } };
+    const entry = normalizeMediaEntry({ ...movie('https://a.example/1', 'One'), drm });
+    expect(entry.drm).toEqual(drm);
+  });
+
+  it('carries request headers and user agent', () => {
+    const entry = normalizeMediaEntry({
+      ...movie('https://a.example/1', 'One'),
+      customHeaders: { Referer: 'https://a.example/' },
+      userAgent: 'TV/1.0',
+      authQuery: 't=1',
+    });
+    expect(entry.customHeaders).toEqual({ Referer: 'https://a.example/' });
+    expect(entry.userAgent).toBe('TV/1.0');
+    expect(entry.authQuery).toBe('t=1');
+  });
+
+  it('does not attach empty metadata', () => {
+    const entry = normalizeMediaEntry(movie('https://a.example/1', 'One'));
+    expect(entry.drm).toBeUndefined();
+    expect(entry.customHeaders).toBeUndefined();
+  });
+
+  it('preserves DRM metadata through a re-fetch', () => {
+    const drm = { clearKeys: { kid: 'key' } };
+    addMedia({ ...movie('https://a.example/1', 'One'), drm });
+    const id = library()[0].id;
+    mergeMedia({ ...movie('https://a.example/1', 'One'), title: 'Renamed' });
+    expect(findMedia(id).drm).toEqual(drm);
+  });
+});
+
 describe('resume positions (T-183)', () => {
   const series = () => ({
     url: 'https://a.example/series',

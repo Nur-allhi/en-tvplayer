@@ -10,6 +10,22 @@ const M3U = [
   '',
 ].join('\n');
 
+describe('M3U playback metadata (T-185)', () => {
+  it('carries DRM and headers from a Kodi-style entry', () => {
+    const text = [
+      '#EXTM3U',
+      '#EXTINF:-1,DRM Movie',
+      '#KODIPROP:license_key=0123456789abcdef0123456789abcdef:fedcba9876543210fedcba9876543210',
+      '#KODIPROP:stream_headers=User-Agent=U',
+      'https://host/drm.mpd',
+      '',
+    ].join('\n');
+    const [entry] = m3uToMediaEntries(text);
+    expect(entry.drm).toBeTruthy();
+    expect(entry.userAgent).toBe('U');
+  });
+});
+
 describe('detectSourceKind', () => {
   it('recognizes M3U and M3U8 playlists', () => {
     expect(detectSourceKind('https://host/vod.m3u')).toBe('m3u');

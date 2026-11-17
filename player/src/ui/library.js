@@ -10,6 +10,11 @@ import { deps } from './deps.js';
 import { state } from './state.js';
 
 let nav = initialNav();
+let playCallback = null;
+
+export function setMediaPlayCallback(fn) {
+  playCallback = typeof fn === 'function' ? fn : null;
+}
 
 const container = () => document.getElementById('group-list');
 
@@ -112,8 +117,22 @@ export function libraryNavigate(delta) {
 }
 
 export function librarySelect() {
+  const frame = current(nav);
   const next = select(nav, context());
-  if (next === nav) return;
+  if (next === nav) {
+    // Play / Resume rows (and an episode row) hand off to the app, which owns
+    // channel loading. Navigation levels stay in this slice.
+    const media = library().find((item) => item.id === frame.selected);
+    if (!media || !playCallback) return;
+    if (frame.level === LEVELS.DETAIL) {
+      const at = frame.index === 1 && media.resumeAt ? media.resumeAt : 0;
+      playCallback(media, null, at);
+    } else if (frame.level === LEVELS.EPISODES) {
+      const episode = (media.episodes || [])[frame.index];
+      if (episode) playCallback(media, episode, episode.resumeAt || 0);
+    }
+    return;
+  }
   nav = next;
   render();
 }

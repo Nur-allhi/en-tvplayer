@@ -16,6 +16,14 @@ export function normalizeMediaEntry(entry) {
   if (Array.isArray(entry.genres)) out.genres = entry.genres.slice();
   if (typeof entry.duration === 'number') out.duration = entry.duration;
   if (typeof entry.resumeAt === 'number') out.resumeAt = entry.resumeAt;
+  // Playback metadata (T-185). Kept on the entry so the adapter can hand it to
+  // loadChannel(). DRM is an object, headers a map — copy rather than share.
+  if (entry.drm && typeof entry.drm === 'object') out.drm = { ...entry.drm };
+  if (entry.customHeaders && typeof entry.customHeaders === 'object') {
+    out.customHeaders = { ...entry.customHeaders };
+  }
+  if (typeof entry.userAgent === 'string') out.userAgent = entry.userAgent;
+  if (typeof entry.authQuery === 'string') out.authQuery = entry.authQuery;
   if (type === 'series') out.episodes = normalizeEpisodes(entry.episodes, id);
   return out;
 }
@@ -73,7 +81,15 @@ export function mergeMedia(entries) {
       const episodes = (entry.episodes || []).map((ep) =>
         Number.isFinite(savedEpisodes.get(ep.id)) ? { ...ep, resumeAt: savedEpisodes.get(ep.id) } : ep,
       );
-      merged[at] = { ...entry, episodes, resumeAt: merged[at].resumeAt ?? entry.resumeAt };
+      merged[at] = {
+        ...entry,
+        episodes,
+        resumeAt: merged[at].resumeAt ?? entry.resumeAt,
+        drm: merged[at].drm ?? entry.drm,
+        customHeaders: merged[at].customHeaders ?? entry.customHeaders,
+        userAgent: merged[at].userAgent ?? entry.userAgent,
+        authQuery: merged[at].authQuery ?? entry.authQuery,
+      };
     }
   }
   vodState.set({ library: merged });

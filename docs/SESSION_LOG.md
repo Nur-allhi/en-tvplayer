@@ -44,6 +44,41 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-185: VOD playback integration — @nightshift (isolated worktree)
+
+**Ticket:** T-185 🔶 needs-tv · **Branch:** `feature/t-185-vod-playback` → `dev`
+**Status:** ✅ merged and gated — real playback/DRM check owed on a TV
+
+**What changed**
+- Scout confirmed `loadChannel()` already handles ClearKey and request headers;
+  the missing piece was adapting a VOD entry to a channel. New pure
+  `lib/media-channel.js` (8 tests) does that mapping.
+- `state/vod.js` and `lib/media-source.js` now carry `drm`, `customHeaders`,
+  `userAgent` and `authQuery` from M3U/JSON import through normalisation and
+  re-fetch. Tests added for each hop.
+- Library Play/Resume and episode rows now call an injected app callback;
+  `app/shell.js` maps it to the existing `handleChannelSelect`. New
+  `app/vod-resume.js` captures the position on the next switch, flushes it,
+  and seeks on `loadedmetadata` using the tested `lib/resume.js` decision.
+  644 tests total.
+
+**Verified**
+- All gates green: `npm test` 644 passed, lint, format:check, validate (137
+  files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** Actual playback, ClearKey CDM and seeking are not
+  verifiable here; the ticket stays needs-tv.
+
+**Watch out**
+- `player/load.js` is 279/300 LOC and `remote.js` 298/300 — neither was grown.
+- `app/vod-resume.js` tracks one active VOD reference; a non-VOD tune does not
+  clear it, so the next VOD play captures that channel's time. If that shows
+  up on device, clear the reference from `handleChannelSelect`.
+
+**Next**
+- T-190 — Tizen compat shims, then T-191.
+
+---
+
 ## 2026-11-17 — T-184: audio/subtitle/quality pickers — @nightshift (isolated worktree)
 
 **Ticket:** T-184 🔶 needs-tv · **Branch:** `feature/t-184-track-pickers` → `dev`
