@@ -23,6 +23,7 @@ const SLOT_NAMES = [
   'applyFocus',
   'buildFocusOrder',
   'clearFocus',
+  'copyDiagnostics',
 ];
 
 describe('settings state', () => {
@@ -58,13 +59,14 @@ describe('settings deps', () => {
 });
 
 describe('settings nav wiring', () => {
-  it('wires every slot across the hub and the nav slice', () => {
-    const hub = read('lifecycle.js').match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
-    const nav = read('nav.js').match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
-    expect(hub).not.toBeNull();
-    expect(nav).not.toBeNull();
+  it('wires every slot across the slices that own them', () => {
     const names = (block) => [...block.matchAll(/(\w+)\s*,?/g)].map((m) => m[1]);
-    const wired = new Set([...names(hub[1]), ...names(nav[1])]);
+    const wired = new Set();
+    for (const file of ['lifecycle.js', 'nav.js', 'about.js']) {
+      const block = read(file).match(/Object\.assign\(deps,\s*\{([\s\S]*?)\}\)/);
+      expect(block).not.toBeNull();
+      for (const name of names(block[1])) wired.add(name);
+    }
     for (const name of SLOT_NAMES) expect(wired.has(name)).toBe(true);
   });
 

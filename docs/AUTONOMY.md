@@ -45,9 +45,9 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 
 ```
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
-NEXT        = T-172      # T-170 + T-171 done — no decision needed
+NEXT        = T-172      # T-170 + T-171 + T-200 done — no decision needed
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-171 by night shift (continuous run)
+LAST_RUN    = 2026-11-17 # T-200 by night shift (out of order, collision avoidance)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -136,7 +136,7 @@ with the exact gate output; agent skipped it.
 | 38 | T-190 | features/tizen-compat.js | needs-tv |  |
 | 39 | T-191 | engine fallback messaging | needs-tv |  |
 | 40 | T-192 | about panel | ready |  |
-| 41 | T-200 | log ring buffer | ready |  |
+| 41 | T-200 | log ring buffer | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 42 | T-201 | favorites feature | ready |  |
 | 43 | T-202 | info bar with clock | ready |  |
 | 44 | T-203 | GitHub issue templates | ready |  |

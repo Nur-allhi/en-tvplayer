@@ -1046,6 +1046,15 @@ A ticket is only `done` when it meets the **Definition of Done**
   → "Copy diagnostics" (version, TV model, log tail).
 - **Acceptance:** no PII, no stream tokens (`redactUrl` applied); the copied
   text is directly postable in a GitHub issue.
+- **Status:** ✅ done 2026-11-17 — `lib/ring-buffer.js` bounds `[app]` lines at
+  200 and redacts URLs/tokens and email addresses on write (19 tests).
+  `lib/diagnostics.js` builds a clipboard-ready block with version, TV model
+  and a 40-line log tail (6 tests). `settings/about.js` extracts the About card
+  out of the 297-LOC `render-cards.js` (now 263) and adds a remote-focusable
+  "Copy diagnostics" button wired through a new `copyDiagnostics` settings deps
+  slot. `capabilities.js` probes the Tizen model via `systeminfo` with a safe
+  fallback (3 new tests). 408 tests, all gates green incl. WGT signing with the
+  correct certificate. No TV verification claimed.
 
 ### T-201 — Favorites feature
 - **Type:** feat · **Priority:** P1 · **Size:** M (~150 LOC)

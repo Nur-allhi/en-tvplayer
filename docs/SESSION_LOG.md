@@ -44,6 +44,62 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-200: log ring buffer + copy diagnostics — @nightshift (isolated worktree)
+
+**Ticket:** T-200 ✅ · **Branch:** `feature/t-200-log-ring-buffer` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- New DOM-free `player/src/lib/ring-buffer.js` — a 200-entry ring that pushes
+  level-tagged `[app]` lines and redacts stream query strings, fragments and
+  email addresses on write. `redactUrl` is applied to every line. 19 tests.
+- New DOM-free `player/src/lib/diagnostics.js` — assembles a clipboard-ready
+  block (version, TV model, 40-line tail) with 6 tests. All tail lines are
+  redacted again on the way out.
+- `player/dom.js` `logEvent()` now feeds the shared ring as well as the console.
+- New `settings/about.js` — the About/Links card moved verbatim out of the
+  297-LOC `render-cards.js` (now 263) plus a remote-focusable "Copy diagnostics"
+  button. `render.js` binds it, `nav.js` adds it to the About focus order and a
+  new `copyDiagnostics` deps slot carries the click (`select.js`' existing
+  generic `.btn` handler activates it). Clipboard falls back to `execCommand`.
+- `capabilities.js` probes the Tizen model through `systeminfo.getPropertyValue`
+  (async, injectable window) with a cached fallback; 3 new tests.
+
+**Verified**
+- All gates green in the worktree: `npm test` 408 passed (22 new), lint,
+  validate (modularity ok, a11y ok), format:check, `npm run build`, and
+  `npm run tizen` — the WGT signed with the committed
+  `40:71:40:30:…:51:43` certificate. New module LOC 22–96, all under the
+  300 cap; DOM purity holds for both new `lib/` modules.
+- **No TV is connected.** Clipboard behaviour on a real Tizen TV is not
+  verified; no playback claim made.
+
+**Decisions**
+- Worked T-200 out of queue order: other active nightshift runs owned T-171 in
+  the shared tree, so I isolated in `en-tvplayer-wt-night` and took the next
+  independent ready ticket. `NEXT` stays T-172 (first unresolved in queue).
+- Extracted the About card rather than growing `render-cards.js`, which was
+  297 LOC against the 300 cap.
+- TV model is best-effort: `systeminfo` is async on Tizen, so diagnostics shows
+  "Tizen TV" until the callback lands, never an empty string.
+
+**Watch out**
+- **Signing-key near miss:** the fresh worktree had no gitignored
+  `tizen/author-key.pem`, so the first `npm run tizen` generated a NEW cert
+  (`5C:A6:D9:…`). I removed that generated key/cert/WGT immediately and copied
+  the real key/cert/sha256 from the main tree (restoration, never minting);
+  the second `npm run tizen` signed with the correct fingerprint. Any future
+  worktree must copy the gitignored key before building a WGT. The main tree's
+  key was never touched.
+- Several overlapping nightshift runs are active; check `git worktree list`
+  and `git branch -a` before claiming a ticket.
+
+**Next**
+- T-172 — migrate existing features to plugins (queue order; another run may
+  already own it).
+
+---
+
 ## 2026-11-17 — T-171: app/plugins.js registry — @nightshift (isolated worktree)
 
 **Ticket:** T-171 ✅ · **Branch:** `feature/t-171-plugins-registry` → `dev`
