@@ -935,13 +935,12 @@ A ticket is only `done` when it meets the **Definition of Done**
   feature can own a key without editing `app/remote.js`.
 - **Acceptance:** a new remote binding is added entirely inside a feature
   module.
-- **Status:** ✅ done 2026-11-17 — `bindRoute(id, action, handler)` lets a
-  feature own an action from its own module; `dispatchFeatureRoute` is called
-  from `app/remote.js` only after modal/settings/sidebar precedence, so no
-  existing key changes behaviour. 11 tests cover binding, unbinding, collision,
-  disabled-feature suppression and restoration. 442 tests total; all gates +
-  tizen green. **Note:** the first real route owner arrives with the feature
-  that needs it — no existing action was safe to reassign in this ticket.
+- **Status:** ✅ done 2026-11-17 — `dispatchRoute` dispatches feature-owned
+  actions from the edge of `handleRemoteAction`, after modal/settings/sidebar
+  precedence; `bindRoute(id, action, handler)` lets a feature bind its own key
+  from its own module with an unbind handle. `features/proxy.js` declares its
+  own key/route. 16 route tests total; all gates + tizen green; no TV connected.
+  No existing key behaviour was reassigned.
 
 ---
 
@@ -1023,6 +1022,15 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Renumbered 2026-11-16:** this ticket was originally T-181, colliding with
   "Add media by URL / manifest" in Phase 8. Git history uses T-181 for both
   meanings; the settings migration is **T-186** from this point forward.
+- **Status:** ✅ done 2026-11-17 — `config.js` exports `SCHEMA_VERSION = 4` and
+  a pure `migrateSettings(input)` that adds `movies`, `favorites` and per-feature
+  `features` defaults while preserving every existing key (including unknown
+  future keys) and leaving the `en_settings` key name untouched. `getSettings()`
+  runs it on every load and persists only when something changed. New
+  `config.test.js` (9 tests) pins the exact v3→v4 path, idempotence, repair of a
+  malformed `features` value, fresh-profile defaults and the legacy
+  single-playlist path. 429 tests, all gates green incl. WGT signing with the
+  correct certificate. No TV verification claimed.
 
 ---
 

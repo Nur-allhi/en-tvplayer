@@ -1,11 +1,17 @@
 // Desktop proxy relay feature (T-172). Contract: expose the test-relay menu
 // only on a local/test host when Settings → Playback allows it, and hide it
 // entirely when the `proxyTesting` feature is disabled. The app hub wires
-// refreshProxyMenu into deps; it no longer owns these details.
-
+// refreshProxyMenu into deps; the pure host/settings gate lives in
+// proxy-toggle.js. The feature declares its own remote route here too (T-173),
+// so adding a key needs no edit to app/remote.js.
 import { getSettings } from '../config.js';
-import { isEnabled } from '../app/plugins.js';
+import { FEATURES, isEnabled, registerFeature } from '../app/plugins.js';
 import { shouldShow } from './proxy-toggle.js';
+
+registerFeature('proxyTesting', {
+  ...FEATURES.proxyTesting,
+  routes: { proxy: () => refreshProxyMenu() },
+});
 
 export function refreshProxyMenu() {
   const btn = document.getElementById('proxy-toggle-btn');

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getEnabledRoutes } from '../app/plugins.js';
 import { isLocalHost, shouldShow, contract as proxyContract } from './proxy-toggle.js';
 import { contract as tizenContract } from './tizen-compat.js';
 import { contract as searchContract } from './search.js';
@@ -102,5 +103,9 @@ describe('feature boundaries', () => {
 
   it('exposes the proxy menu refresh', () => {
     expect(typeof refreshProxyMenu).toBe('function');
+  });
+
+  it('lets a feature add a remote binding from its own module', () => {
+    expect(getEnabledRoutes()).toHaveProperty('proxy');
   });
 });

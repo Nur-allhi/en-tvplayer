@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FEATURES, bindRoute, getEnabledRoutes, isActionEnabled } from './plugins.js';
-import { dispatchFeatureRoute } from './route-dispatch.js';
+import { FEATURES, bindRoute, getEnabledRoutes, isActionEnabled, dispatchRoute } from './plugins.js';
+
+const dispatchFeatureRoute = dispatchRoute;
 
 // T-173: a feature binds its own remote action at module load. No edit to
 // app/remote.js is needed, and disabling the feature removes the binding.

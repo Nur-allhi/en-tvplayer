@@ -4,10 +4,10 @@
 // settings routing stays here; view-specific branches live in remote-views.js
 // so each file stays under the 300-LOC cap.
 import { registerTizenKeys } from '../features/tizen-compat.js';
-import { dispatchFeatureRoute } from './route-dispatch.js';
 import * as settings from '../settings/index.js';
 import * as ui from '../ui/index.js';
 import { deps } from './deps.js';
+import { dispatchRoute } from './plugins.js';
 import { state } from './state.js';
 import { handlePlayerViewAction, handleRightSidebarAction, handleSidebarAction } from './remote-views.js';
 
@@ -131,9 +131,10 @@ export function handleRemoteAction(action, value) {
     return;
   }
 
-  // A feature may own an action outright (e.g. a reserved key). Routes run
-  // only after modal/settings/sidebar precedence, so those views stay intact.
-  if (dispatchFeatureRoute(action, value)) return;
+  // A feature may own an action by registering a route from its own module.
+  // With no routes registered this is a no-op and the default handler runs.
+  // Routes run after modal/settings/sidebar precedence, so those views stay intact.
+  if (dispatchRoute(action, value)) return;
 
   handlePlayerViewAction(action, value);
 }

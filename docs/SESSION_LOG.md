@@ -88,6 +88,51 @@ first). Keep it short — the point is handover, not a diary.
 
 ---
 
+## 2026-11-17 — T-186: v4 settings schema migration — @nightshift (isolated worktree)
+
+**Ticket:** T-186 ✅ · **Branch:** `feature/t-186-settings-schema-migration` → `dev`
+**Status:** ✅ done — worked out of queue order to avoid a concurrent-run collision
+
+**What changed**
+- `config.js` now exports `SCHEMA_VERSION = 4` and a pure `migrateSettings()`
+  that upgrades a parsed v3 settings object additively: defaults `movies: []`,
+  `favorites: []` and `features: { favorites, infoBar, vod }` while preserving
+  every existing key (including unknown ones) and the `en_settings` key name.
+  A partial `features` object gets only the missing flags filled in.
+- `getSettings()` runs the migration on every load and now writes back through
+  a single consolidated `dirty` flag (schema change OR legacy playlist OR date
+  backfill), so a second load never rewrites storage.
+- New `config.test.js` (9 tests) with an in-memory localStorage shim: exact
+  v3→v4 path, no data loss, idempotence, current-schema no-op, malformed
+  `features` repair, fresh-profile defaults and the legacy playlist path.
+
+**Verified**
+- All gates green: `npm test` 429 passed (9 new), lint, validate (modularity ok,
+  a11y ok), format:check, `npm run build` and `npm run tizen` — WGT signed with
+  the correct `40:71:40:30:…` certificate.
+- **No TV is connected.** Migration is pure logic pinned by unit tests; no
+  playback behaviour change and no TV claim made.
+
+**Decisions**
+- Took T-186 out of queue order: T-173 was claimed by another active run, so
+  this independent P0 foundation ticket was the safest next item. `NEXT` stays
+  T-173 (first unresolved in queue).
+- Kept migration additive and idempotent per BRANCHING §5 — never deleted a key,
+  never renamed `en_settings`, because either would orphan existing installs.
+- Consolidated the three write-back paths into one `dirty` flag to preserve the
+  existing no-op-on-second-load behaviour while adding schema persistence.
+
+**Watch out**
+- `features` defaults are stored in `en_settings.features`; the plugin registry
+  (T-171) currently owns its own enabled flags — these are distinct concepts
+  and were not merged here.
+- Overlapping runs remain active; check `git worktree list` before a ticket.
+
+**Next**
+- T-173 — remote-action routing (landed in the same window; see entry above).
+
+---
+
 ## 2026-11-17 — T-172: migrate features to plugins — @nightshift (isolated worktree)
 
 **Ticket:** T-172 ✅ · **Branch:** `feature/t-172-plugin-migration` → `dev`
@@ -139,6 +184,7 @@ first). Keep it short — the point is handover, not a diary.
 **Next**
 - T-173 — remote-action routing via plugins.
 
+
 ---
 
 ## 2026-11-17 — T-203: GitHub issue templates — @nightshift (isolated worktree)
@@ -172,6 +218,40 @@ first). Keep it short — the point is handover, not a diary.
 - Overlapping runs remain active; check `git worktree list` before a ticket.
 
 **Next**
+- T-172 — migrate existing features to plugins (queue order; another run may
+  already own it).
+## 2026-11-17 — T-173: route remote actions through plugins — @nightshift (batch run)
+
+**Ticket:** T-173 ✅ · **Branch:** `feature/t-173-remote-routing` → `dev`
+**Status:** ✅ done — continuous run
+
+**What changed**
+- `app/plugins.js` gains `dispatchRoute(action, value)`: looks up the enabled
+  routes, calls one if present and reports whether it claimed the action.
+- `app/remote.js` calls it just before the default player-view handler, after
+  modal/settings/sidebar guards. With no route registered the behaviour is
+  unchanged.
+- `features/proxy.js` now declares its own key and route via `registerFeature`,
+  demonstrating that a new binding can be added entirely in a feature module.
+
+**Verified**
+- `npm test` → 425 passed (30 files), including 4 new dispatch tests and a
+  feature-module binding test. lint, validate (0 new, a11y ok),
+  format:check, build and tizen all green.
+- **No TV is connected.** Pure dispatch addition with no handler changes;
+  no playback claim made.
+
+**Decisions**
+- Kept route dispatch at the terminal edge of `handleRemoteAction`: modals,
+  settings and sidebars keep their precedence, so a feature can only claim an
+  action in the player view. No deps slot or new registry import was needed.
+
+**Watch out**
+- `remote.js` (low-level key decoder) is at 298 LOC — do not add code there.
+- A self-registering feature must be imported at boot to install its route.
+
+**Next**
+- T-180 — VOD data model + storage.
 - T-172 — migrate existing features to plugins (landed in the same window; see entry above).
 
 ---

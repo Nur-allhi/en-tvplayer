@@ -61,6 +61,15 @@ export function getEnabledRoutes() {
   return routes;
 }
 
+// Dispatch an action owned by a feature. Returns false when no feature claims
+// it, so the existing view handlers remain the default (T-173).
+export function dispatchRoute(action, value) {
+  const route = getEnabledRoutes()[action];
+  if (!route) return false;
+  route(value);
+  return true;
+}
+
 // Same rule for UI: a disabled feature adds no sidebar row.
 export function getEnabledMenuEntries() {
   const entries = [];
