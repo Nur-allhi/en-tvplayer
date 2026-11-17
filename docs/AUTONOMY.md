@@ -132,7 +132,7 @@ with the exact gate output; agent skipped it.
 | 34 | T-183 | episode browsing | ready |  |
 | 35 | T-184 | audio/subtitle/quality pickers | needs-tv |  |
 | 36 | T-185 | VOD playback integration | needs-tv |  |
-| 37 | T-186 | settings schema migration | ready | was T-181 |
+| 37 | T-186 | settings schema migration | done | merged + gated; was T-181 |
 | 38 | T-190 | features/tizen-compat.js | needs-tv |  |
 | 39 | T-191 | engine fallback messaging | needs-tv |  |
 | 40 | T-192 | about panel | ready |  |

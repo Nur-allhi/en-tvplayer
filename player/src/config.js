@@ -2,6 +2,46 @@ const SETTINGS_KEY = 'en_settings';
 
 export const APP_VERSION = __APP_VERSION__;
 
+// v4 settings schema (T-186). v3 had no schemaVersion. Migrations are additive:
+// new keys get defaults, every existing key survives, and the en_settings key
+// name never changes — changing it would orphan every installed TV.
+export const SCHEMA_VERSION = 4;
+
+const FEATURE_DEFAULTS = { favorites: true, infoBar: true, vod: true };
+
+// Pure, idempotent v3 → v4 upgrade on a parsed settings object. `changed` tells
+// the caller (getSettings) whether it needs to persist the result.
+export function migrateSettings(input) {
+  const s = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  let changed = false;
+
+  if (!s.schemaVersion || s.schemaVersion < SCHEMA_VERSION) {
+    if (!Array.isArray(s.movies)) {
+      s.movies = [];
+      changed = true;
+    }
+    if (!Array.isArray(s.favorites)) {
+      s.favorites = [];
+      changed = true;
+    }
+    if (!s.features || typeof s.features !== 'object' || Array.isArray(s.features)) {
+      s.features = { ...FEATURE_DEFAULTS };
+      changed = true;
+    } else {
+      for (const [key, value] of Object.entries(FEATURE_DEFAULTS)) {
+        if (!(key in s.features)) {
+          s.features[key] = value;
+          changed = true;
+        }
+      }
+    }
+    s.schemaVersion = SCHEMA_VERSION;
+    changed = true;
+  }
+
+  return { settings: s, changed };
+}
+
 const settingsDefaults = {
   playlists: [],
   activePlaylistIndex: -1,
@@ -28,19 +68,19 @@ export function getSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     const defaults = { ...settingsDefaults, playlists: [] };
-    const s = raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
+    const parsed = raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
+    const migrated = migrateSettings(parsed);
+    const s = migrated.settings;
+    let dirty = migrated.changed;
     // Migration from legacy single playlistUrl
     if ((!s.playlists || s.playlists.length === 0) && s.playlistUrl) {
       s.playlists = [{ name: 'Playlist 1', url: s.playlistUrl }];
       s.activePlaylistIndex = 0;
       delete s.playlistUrl;
-      try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-      } catch {}
+      dirty = true;
     }
     // Backfill per-playlist dates for entries saved before date tracking.
     if (Array.isArray(s.playlists) && s.playlists.length > 0) {
-      let dirty = false;
       const fallback = s.channelsFetched || null;
       for (const p of s.playlists) {
         if (!p || typeof p !== 'object') continue;
@@ -53,11 +93,11 @@ export function getSettings() {
           dirty = true;
         }
       }
-      if (dirty) {
-        try {
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-        } catch {}
-      }
+    }
+    if (dirty) {
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      } catch {}
     }
     return s;
   } catch {
