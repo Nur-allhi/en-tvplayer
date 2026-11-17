@@ -635,6 +635,18 @@ A ticket is only `done` when it meets the **Definition of Done**
 - **Acceptance:** the BUG-011/012 remote paths still work — OK in the proxy
   URL field saves, OK in a playlist name field advances to the URL field, OK
   in the URL field saves.
+- **Status:** ✅ done 2026-11-17 — `settings/state.js` (11 shared vars),
+  `settings/deps.js` (11 slots), `settings/nav.js` (222 LOC),
+  `settings/select.js` (181 LOC). `settings.js` 1082 → 698 LOC. 7 new tests
+  pin the state defaults, deps contract and the BUG-011/012 field routing.
+  Bundle byte-identical to before (`index.CLX2ctDt.js`, 948.7 KB).
+  - `selectFocused` split into its own file in this ticket: at 188 LOC it
+    would have pushed nav.js past the 300 cap. Same pattern as T-127.
+  - Browser smoke test: app loads, settings opens, no new console errors. The
+    pre-existing onboarding `render()` null-container error was reproduced on
+    the committed baseline — unrelated to this refactor, tracked separately.
+  - **Not TV-verified.** The BUG-011/012 paths are pinned by static assertions
+    on the field routing, not exercised with a real remote.
 
 ### T-141 — `settings/render.js` + `settings/playlists.js`
 - **Type:** refactor · **Priority:** P0 · **Size:** L (~480 LOC combined)

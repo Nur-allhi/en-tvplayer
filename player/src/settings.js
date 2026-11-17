@@ -5,21 +5,23 @@ import { setConsented } from './update.js';
 import * as player from './player/index.js';
 import * as ui from './ui/index.js';
 import { timeAgo, formatDate } from './lib/time.js';
-import { capabilities } from './capabilities.js';
-import { hasTvKeyInput } from './lib/capabilities.js';
+// T-140: navigation and OK/Enter handling moved to their own slices.
+import { state } from './settings/state.js';
+import { deps } from './settings/deps.js';
+export { navigate, navigateNav } from './settings/nav.js';
+export { selectFocused } from './settings/select.js';
+// T-140: wire the callbacks the nav/select slices call through deps.
+Object.assign(deps, {
+  render,
+  saveAddPlaylist,
+  saveEditPlaylist,
+  setFormType,
+  testXtreamLogin,
+  handleFetch,
+  groupNames,
+});
 
-let container = null;
-let onPlaylistFetched = null;
-let onRender = null;
-let editIndex = -1;
-let activeSection = 'source';
-let focusIdx = 0;
-let focusOrder = [];
-let addMode = false;
-let editMode = false;
 // Playlist form type: 'm3u' (URL) or 'xtream' (host + credentials).
-let addType = 'm3u';
-let editType = 'm3u';
 
 const NAV_ITEMS = [
   { id: 'source', icon: '📡', label: 'Channel Source' },
@@ -33,380 +35,51 @@ const MAX_PLAYLISTS = 3;
 // Tizen TVs don't open the IME on programmatic focus — the keyboard only
 // appears on an explicit user gesture, so the first OK re-focuses the field
 // (blur + focus) to pop the keyboard. Desktop keeps the old advance-on-Enter.
-// Read at call time, not module load: this module evaluates before Tizen has
-// finished injecting globals on some firmwares.
-const onTv = () => hasTvKeyInput(capabilities());
-
+// The Tizen check now lives in settings/nav.js and settings/select.js.
 export function init(settingsContainer, callbacks) {
-  container = settingsContainer;
-  onPlaylistFetched = callbacks.onPlaylistFetched;
-  onRender = callbacks.onRender;
+  state.container = settingsContainer;
+  state.onPlaylistFetched = callbacks.onPlaylistFetched;
+  state.onRender = callbacks.onRender;
 }
 
 export function show() {
-  if (!container) return;
-  editIndex = -1;
-  addMode = false;
-  editMode = false;
-  activeSection = 'source';
-  focusIdx = 0;
-  container.classList.remove('hidden');
+  if (!state.container) return;
+  state.editIndex = -1;
+  state.addMode = false;
+  state.editMode = false;
+  state.activeSection = 'source';
+  state.focusIdx = 0;
+  state.container.classList.remove('hidden');
   render();
-  applyFocus();
+  deps.applyFocus();
 }
 
 // Opens Settings → Source with the add form showing, preset to the given
 // type ('m3u' or 'xtream'). Used by the first-run source picker.
 export function openAddForm(type) {
-  if (!container) return;
-  activeSection = 'source';
-  addMode = true;
-  editMode = false;
-  editIndex = -1;
-  addType = type === 'xtream' ? 'xtream' : 'm3u';
-  focusIdx = 0;
-  container.classList.remove('hidden');
+  if (!state.container) return;
+  state.activeSection = 'source';
+  state.addMode = true;
+  state.editMode = false;
+  state.editIndex = -1;
+  state.addType = type === 'xtream' ? 'xtream' : 'm3u';
+  state.focusIdx = 0;
+  state.container.classList.remove('hidden');
   render();
-  applyFocus();
+  deps.applyFocus();
 }
 
 export function hide() {
-  if (!container) return;
-  container.classList.add('hidden');
+  if (!state.container) return;
+  state.container.classList.add('hidden');
 }
 
 export function isVisible() {
-  return container && !container.classList.contains('hidden');
-}
-
-export function navigate(dir) {
-  buildFocusOrder();
-  const total = focusOrder.length;
-  if (total === 0) return;
-
-  const navCount = document.querySelectorAll('.nav-item').length;
-  const cur = document.querySelector('[data-focused]');
-  const curIdx = focusOrder.indexOf(cur);
-  const inNavZone = curIdx >= 0 && curIdx < navCount;
-  const contentStart = navCount; // content follows the nav directly (no back button)
-  const hasContent = total > navCount;
-
-  const activeNavIdx = () => {
-    const tabs = Array.from(document.querySelectorAll('.nav-item'));
-    const activeTab = document.querySelector('.nav-item.active');
-    const idx = tabs.indexOf(activeTab);
-    return idx >= 0 ? idx : 0;
-  };
-
-  if (dir > 0) {
-    // DOWN: next item in the same column, wrapping.
-    if (inNavZone) {
-      focusIdx = (curIdx + 1) % navCount;
-    } else if (curIdx >= contentStart && hasContent) {
-      focusIdx = curIdx + 1;
-      if (focusIdx >= total) focusIdx = contentStart;
-    } else {
-      focusIdx = Math.min(total - 1, focusIdx + 1);
-    }
-  } else {
-    // UP: previous item in the same column, wrapping.
-    if (inNavZone) {
-      focusIdx = (curIdx - 1 + navCount) % navCount;
-    } else if (curIdx >= contentStart && hasContent) {
-      if (curIdx === contentStart) {
-        focusIdx = activeNavIdx(); // back to this section's tab
-      } else {
-        focusIdx = curIdx - 1;
-      }
-    } else {
-      focusIdx = Math.max(0, focusIdx - 1);
-    }
-  }
-
-  applyFocus();
-}
-
-export function navigateNav(dir) {
-  const cur = document.querySelector('[data-focused]');
-  if (!cur) return;
-
-  buildFocusOrder();
-  const navCount = document.querySelectorAll('.nav-item').length;
-  const curIdx = focusOrder.indexOf(cur);
-  const inNavZone = curIdx >= 0 && curIdx < navCount;
-  const contentStart = navCount;
-  const total = focusOrder.length;
-
-  // Channel Source lays its playlist cards side by side, so Left/Right
-  // steps across the row (prev/next focusable) instead of jumping zones.
-  // Left from the first card is the escape hatch back to the side nav.
-  if (activeSection === 'source' && !inNavZone && curIdx >= contentStart) {
-    if (dir < 0) {
-      if (curIdx === contentStart) {
-        const tabs = Array.from(document.querySelectorAll('.nav-item'));
-        const activeTab = document.querySelector('.nav-item.active');
-        const idx = tabs.indexOf(activeTab);
-        focusIdx = idx >= 0 ? idx : 0;
-      } else {
-        focusIdx = curIdx - 1;
-      }
-      applyFocus();
-      return;
-    }
-    focusIdx = curIdx + 1 >= total ? contentStart : curIdx + 1;
-    applyFocus();
-    return;
-  }
-
-  const btnGroup = cur.closest('.btn-group');
-  if (btnGroup) {
-    const buttons = Array.from(btnGroup.querySelectorAll('.btn'));
-    const btnIdx = buttons.indexOf(cur);
-    if (btnIdx >= 0) {
-      if (dir > 0 && btnIdx < buttons.length - 1) {
-        const newIdx = focusOrder.indexOf(buttons[btnIdx + 1]);
-        if (newIdx >= 0) {
-          focusIdx = newIdx;
-          applyFocus();
-        }
-        return;
-      } else if (dir < 0 && btnIdx > 0) {
-        const newIdx = focusOrder.indexOf(buttons[btnIdx - 1]);
-        if (newIdx >= 0) {
-          focusIdx = newIdx;
-          applyFocus();
-        }
-        return;
-      }
-      if (dir < 0 && btnIdx === 0) {
-        const tabs = Array.from(document.querySelectorAll('.nav-item'));
-        const activeTab = document.querySelector('.nav-item.active');
-        const idx = tabs.indexOf(activeTab);
-        focusIdx = idx >= 0 ? idx : 0;
-        applyFocus();
-        return;
-      }
-      return;
-    }
-  }
-
-  if (dir > 0) {
-    if (inNavZone) {
-      focusIdx = contentStart;
-      applyFocus();
-    }
-  } else {
-    if (curIdx >= contentStart) {
-      const tabs = Array.from(document.querySelectorAll('.nav-item'));
-      const activeTab = document.querySelector('.nav-item.active');
-      const idx = tabs.indexOf(activeTab);
-      focusIdx = idx >= 0 ? idx : 0;
-      applyFocus();
-    }
-  }
-}
-
-export function selectFocused() {
-  const el = document.querySelector('[data-focused]');
-  if (!el) return;
-
-  if (el.classList.contains('nav-item')) {
-    document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
-    el.classList.add('active');
-    activeSection = el.dataset.section;
-    focusIdx = 0;
-    render();
-    applyFocus();
-    return;
-  }
-
-  if (el.classList.contains('toggle')) {
-    // Trigger the click handler registered in render() — it saves the setting
-    // and applies it to the player. (classList.toggle alone never persisted.)
-    el.click();
-    return;
-  }
-
-  if (el.tagName === 'INPUT') {
-    // On Tizen the first OK hands focus to the IME so the TV keyboard
-    // opens; the second OK advances/saves. Desktop keeps advance-on-Enter.
-    if (onTv() && !el.dataset.ime) {
-      el.dataset.ime = '1';
-      try {
-        el.blur();
-      } catch {}
-      el.focus();
-      return;
-    }
-    delete el.dataset.ime;
-    // On TV the remote layer intercepts Enter/OK and routes it here, so the
-    // desktop-only keydown Enter handlers never run. Make OK inside a text
-    // field act like pressing Enter on a desktop form: advance to the next
-    // field, or save from the last field (playlist URL).
-    if (el.id === 'pl-add-name') {
-      saveAddPlaylist();
-    } else if (el.id === 'pl-add-url') {
-      moveSettingsFocus('pl-add-name');
-    } else if (el.id === 'pl-add-host') {
-      moveSettingsFocus('pl-add-user');
-    } else if (el.id === 'pl-add-user') {
-      moveSettingsFocus('pl-add-pass');
-    } else if (el.id === 'pl-add-pass') {
-      moveSettingsFocus('pl-add-name');
-    } else if (el.id === 'pl-edit-name') {
-      saveEditPlaylist();
-    } else if (el.id === 'pl-edit-url') {
-      moveSettingsFocus('pl-edit-name');
-    } else if (el.id === 'pl-edit-host') {
-      moveSettingsFocus('pl-edit-user');
-    } else if (el.id === 'pl-edit-user') {
-      moveSettingsFocus('pl-edit-pass');
-    } else if (el.id === 'pl-edit-pass') {
-      moveSettingsFocus('pl-edit-name');
-    } else {
-      el.focus();
-    }
-    return;
-  }
-
-  if (el.id === 'pl-add-btn') {
-    addMode = true;
-    addType = 'm3u';
-    render();
-    applyFocus();
-    return;
-  }
-
-  // NOTE: only match per-row buttons like "pl-edit-0". The edit form's
-  // "pl-edit-save"/"pl-edit-cancel" buttons start with the same prefix and
-  // used to be swallowed here, so editing a playlist never saved.
-  if (el.id && /^pl-edit-\d+$/.test(el.id)) {
-    const idx = parseInt(el.id.split('-')[2], 10);
-    const entry = getSettings().playlists[idx];
-    editMode = true;
-    editIndex = idx;
-    editType = entry && entry.type === 'xtream' ? 'xtream' : 'm3u';
-    render();
-    applyFocus();
-    return;
-  }
-
-  if (el.id && /^pl-delete-\d+$/.test(el.id)) {
-    const idx = parseInt(el.id.split('-')[2], 10);
-    const p = getSettings().playlists[idx];
-    const name = p ? p.name : 'this playlist';
-    ui.showConfirmDialog(`Delete "${name}"?`, (confirmed) => {
-      if (!confirmed) return;
-      const playlists = getSettings().playlists.filter((_, j) => j !== idx);
-      let active = getSettings().activePlaylistIndex;
-      if (active >= playlists.length) active = playlists.length - 1;
-      if (active < 0) active = -1;
-      saveSettings({ playlists, activePlaylistIndex: active });
-      render();
-      applyFocus();
-    });
-    return;
-  }
-
-  if (el.id === 'pl-add-type-m3u') {
-    setFormType('pl-add', 'm3u');
-    return;
-  }
-
-  if (el.id === 'pl-add-type-xtream') {
-    setFormType('pl-add', 'xtream');
-    return;
-  }
-
-  if (el.id === 'pl-add-test') {
-    testXtreamLogin('pl-add');
-    return;
-  }
-
-  if (el.id === 'pl-edit-type-m3u') {
-    setFormType('pl-edit', 'm3u');
-    return;
-  }
-
-  if (el.id === 'pl-edit-type-xtream') {
-    setFormType('pl-edit', 'xtream');
-    return;
-  }
-
-  if (el.id === 'pl-edit-test') {
-    testXtreamLogin('pl-edit');
-    return;
-  }
-
-  if (el.id === 'pl-add-save') {
-    saveAddPlaylist();
-    return;
-  }
-
-  if (el.id === 'pl-add-cancel') {
-    addMode = false;
-    render();
-    const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-      activeEl.blur();
-    }
-    document.body.focus();
-    focusIdx = 0;
-    applyFocus();
-    return;
-  }
-
-  if (el.id === 'pl-edit-save') {
-    saveEditPlaylist();
-    return;
-  }
-
-  if (el.id === 'pl-edit-cancel') {
-    editMode = false;
-    editIndex = -1;
-    render();
-    const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-      activeEl.blur();
-    }
-    document.body.focus();
-    focusIdx = 0;
-    applyFocus();
-    return;
-  }
-
-  // OK on a playlist card selects that source AND loads it into the app
-  // (same path as the Active button). Mouse click stays select-only.
-  if (el.classList.contains('playlist-entry') && el.id && /^playlist-entry-\d+$/.test(el.id)) {
-    const idx = parseInt(el.id.split('-')[2], 10);
-    const s = getSettings();
-    if (idx >= 0 && idx < s.playlists.length && !(editMode && editIndex === idx)) {
-      saveSettings({ activePlaylistIndex: idx });
-      render();
-      applyFocus();
-      handleFetch();
-    }
-    return;
-  }
-
-  if (el.classList.contains('btn') || el.classList.contains('playlist-entry')) {
-    el.click();
-    return;
-  }
+  return state.container && !state.container.classList.contains('hidden');
 }
 
 // Move focus to another element by id through the normal focus-order machinery.
 // Used to make Enter/OK advance from the name field to the URL field.
-function moveSettingsFocus(targetId) {
-  const target = document.getElementById(targetId);
-  if (!target) return;
-  buildFocusOrder();
-  const idx = focusOrder.indexOf(target);
-  if (idx >= 0) {
-    focusIdx = idx;
-    applyFocus();
-  }
-}
 
 function saveAddPlaylist() {
   const nameEl = document.getElementById('pl-add-name');
@@ -415,7 +88,7 @@ function saveAddPlaylist() {
   if (settings.playlists.length >= MAX_PLAYLISTS) return;
   const playlists = settings.playlists;
   const base = { name: name || 'Unnamed', addedAt: new Date().toISOString(), lastPlayedAt: null };
-  if (addType === 'xtream') {
+  if (state.addType === 'xtream') {
     const host = valOf('pl-add-host');
     const username = valOf('pl-add-user');
     const password = document.getElementById('pl-add-pass') ? document.getElementById('pl-add-pass').value : '';
@@ -427,15 +100,15 @@ function saveAddPlaylist() {
     playlists.push({ ...base, type: 'm3u', url });
   }
   saveSettings({ playlists, activePlaylistIndex: playlists.length - 1 });
-  addMode = false;
+  state.addMode = false;
   render();
   const activeEl = document.activeElement;
   if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
     activeEl.blur();
   }
   document.body.focus();
-  focusIdx = 0;
-  applyFocus();
+  state.focusIdx = 0;
+  deps.applyFocus();
 }
 
 function valOf(id) {
@@ -446,15 +119,15 @@ function valOf(id) {
 function saveEditPlaylist() {
   const nameEl = document.getElementById('pl-edit-name');
   const name = nameEl ? nameEl.value.trim() : '';
-  if (editIndex < 0) return;
+  if (state.editIndex < 0) return;
   const playlists = getSettings().playlists;
-  if (editType === 'xtream') {
+  if (state.editType === 'xtream') {
     const host = valOf('pl-edit-host');
     const username = valOf('pl-edit-user');
     const password = document.getElementById('pl-edit-pass') ? document.getElementById('pl-edit-pass').value : '';
     if (!host || !username || !password) return;
-    playlists[editIndex] = {
-      ...playlists[editIndex],
+    playlists[state.editIndex] = {
+      ...playlists[state.editIndex],
       name: name || 'Unnamed',
       type: 'xtream',
       host,
@@ -465,26 +138,26 @@ function saveEditPlaylist() {
   } else {
     const url = valOf('pl-edit-url');
     if (!url) return;
-    playlists[editIndex] = { ...playlists[editIndex], name: name || 'Unnamed', type: 'm3u', url };
+    playlists[state.editIndex] = { ...playlists[state.editIndex], name: name || 'Unnamed', type: 'm3u', url };
   }
   saveSettings({ playlists });
-  editMode = false;
-  editIndex = -1;
+  state.editMode = false;
+  state.editIndex = -1;
   render();
   const activeEl = document.activeElement;
   if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
     activeEl.blur();
   }
   document.body.focus();
-  focusIdx = 0;
-  applyFocus();
+  state.focusIdx = 0;
+  deps.applyFocus();
 }
 
 // Switches the add/edit form between M3U URL and Xtream login fields
 // without re-rendering (typed values survive).
 function setFormType(prefix, type) {
-  if (prefix === 'pl-add') addType = type;
-  else editType = type;
+  if (prefix === 'pl-add') state.addType = type;
+  else state.editType = type;
   const m3u = document.getElementById(prefix + '-m3u-fields');
   const xt = document.getElementById(prefix + '-xtream-fields');
   if (m3u) m3u.classList.toggle('hidden', type !== 'm3u');
@@ -495,7 +168,7 @@ function setFormType(prefix, type) {
   if (xtBtn) xtBtn.classList.toggle('active', type === 'xtream');
   const testBtn = document.getElementById(prefix + '-test');
   if (testBtn) testBtn.classList.toggle('hidden', type !== 'xtream');
-  moveSettingsFocus(prefix + (type === 'm3u' ? '-url' : '-host'));
+  deps.moveSettingsFocus(prefix + (type === 'm3u' ? '-url' : '-host'));
 }
 
 // Tests Xtream credentials, reporting plainly in the form status line.
@@ -517,97 +190,6 @@ async function testXtreamLogin(prefix) {
   }
 }
 
-function buildFocusOrder() {
-  focusOrder = [];
-  document.querySelectorAll('.nav-item').forEach((el) => focusOrder.push(el));
-
-  if (activeSection === 'source') {
-    if (addMode) {
-      focusOrder.push(document.getElementById('pl-add-type-m3u'));
-      focusOrder.push(document.getElementById('pl-add-type-xtream'));
-      if (addType === 'xtream') {
-        focusOrder.push(document.getElementById('pl-add-host'));
-        focusOrder.push(document.getElementById('pl-add-user'));
-        focusOrder.push(document.getElementById('pl-add-pass'));
-        focusOrder.push(document.getElementById('pl-add-test'));
-      } else {
-        focusOrder.push(document.getElementById('pl-add-url'));
-      }
-      focusOrder.push(document.getElementById('pl-add-name'));
-      focusOrder.push(document.getElementById('pl-add-save'));
-      focusOrder.push(document.getElementById('pl-add-cancel'));
-    } else if (editMode && editIndex >= 0) {
-      focusOrder.push(document.getElementById('pl-edit-type-m3u'));
-      focusOrder.push(document.getElementById('pl-edit-type-xtream'));
-      if (editType === 'xtream') {
-        focusOrder.push(document.getElementById('pl-edit-host'));
-        focusOrder.push(document.getElementById('pl-edit-user'));
-        focusOrder.push(document.getElementById('pl-edit-pass'));
-        focusOrder.push(document.getElementById('pl-edit-test'));
-      } else {
-        focusOrder.push(document.getElementById('pl-edit-url'));
-      }
-      focusOrder.push(document.getElementById('pl-edit-name'));
-      focusOrder.push(document.getElementById('pl-edit-save'));
-      focusOrder.push(document.getElementById('pl-edit-cancel'));
-    } else {
-      const s = getSettings();
-      for (let i = 0; i < s.playlists.length; i++) {
-        const entry = document.getElementById('playlist-entry-' + i);
-        if (entry) focusOrder.push(entry);
-        const editBtn = document.getElementById('pl-edit-' + i);
-        if (editBtn) focusOrder.push(editBtn);
-        const deleteBtn = document.getElementById('pl-delete-' + i);
-        if (deleteBtn) focusOrder.push(deleteBtn);
-      }
-      const addBtn = document.getElementById('pl-add-btn');
-      if (addBtn) focusOrder.push(addBtn);
-      focusOrder.push(document.getElementById('settings-fetch-btn'));
-    }
-  } else if (activeSection === 'playback') {
-    focusOrder.push(document.getElementById('toggle-autoq'));
-    focusOrder.push(document.getElementById('toggle-auto-refresh'));
-    focusOrder.push(document.getElementById('toggle-update-check'));
-    focusOrder.push(document.getElementById('toggle-watermark'));
-    focusOrder.push(document.getElementById('toggle-badge'));
-    focusOrder.push(document.getElementById('toggle-proxymenu'));
-    focusOrder.push(document.getElementById('toggle-channelsort'));
-    const gn = groupNames();
-    for (let i = 0; i < gn.length; i++) {
-      focusOrder.push(document.getElementById('show-group-' + i));
-    }
-  }
-}
-
-function clearFocus() {
-  document.querySelectorAll('[data-focused]').forEach((el) => el.removeAttribute('data-focused'));
-}
-
-function applyFocus() {
-  clearFocus();
-  // Stale IME-engage flags die on every focus move — the next OK re-opens
-  // the keyboard instead of acting on a field the user already left.
-  document.querySelectorAll('input[data-ime]').forEach((i) => i.removeAttribute('data-ime'));
-  buildFocusOrder();
-  if (focusIdx >= 0 && focusIdx < focusOrder.length) {
-    const el = focusOrder[focusIdx];
-    if (el) {
-      el.setAttribute('data-focused', '');
-      el.scrollIntoView({ block: 'nearest' });
-      const activeEl = document.activeElement;
-      const elIsField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
-      // Desktop focuses fields on arrival so typing works at once. On Tizen
-      // the keyboard must open only after OK on the field (selectFocused),
-      // never while merely passing through it.
-      if (elIsField && !onTv()) {
-        el.focus();
-      } else if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl !== el) {
-        activeEl.blur();
-      }
-    }
-  }
-}
-
 function render() {
   const s = getSettings();
   const lastFetched = s.channelsFetched ? timeAgo(s.channelsFetched) : 'Never';
@@ -615,7 +197,7 @@ function render() {
   const navHtml = NAV_ITEMS.map(
     (item) =>
       '<div class="nav-item' +
-      (activeSection === item.id ? ' active' : '') +
+      (state.activeSection === item.id ? ' active' : '') +
       '" data-section="' +
       item.id +
       '">' +
@@ -629,9 +211,9 @@ function render() {
 
   let mainHtml = '';
 
-  if (activeSection === 'source') {
+  if (state.activeSection === 'source') {
     mainHtml += renderSourceCard(s, lastFetched);
-  } else if (activeSection === 'playback') {
+  } else if (state.activeSection === 'playback') {
     mainHtml += renderPlaybackCard();
   } else {
     mainHtml += renderAboutCard();
@@ -642,7 +224,7 @@ function render() {
   mainHtml += '<span class="footer-version">' + APP_VERSION + '</span>';
   mainHtml += '</div>';
 
-  container.innerHTML =
+  state.container.innerHTML =
     '<div class="bg-glow"></div>' +
     '<div class="settings-layout">' +
     '<nav class="settings-nav">' +
@@ -668,37 +250,37 @@ function render() {
     '<div class="hint-group"><kbd>Back</kbd> <span class="sep">|</span> Close</div>' +
     '</div>';
 
-  buildFocusOrder();
+  deps.buildFocusOrder();
 
   document.querySelectorAll('.nav-item').forEach((item) => {
     item.addEventListener('click', () => {
       document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
       item.classList.add('active');
-      activeSection = item.dataset.section;
-      focusIdx = 0;
+      state.activeSection = item.dataset.section;
+      state.focusIdx = 0;
       render();
-      applyFocus();
+      deps.applyFocus();
     });
   });
 
-  if (activeSection === 'source') {
+  if (state.activeSection === 'source') {
     for (let i = 0; i < s.playlists.length; i++) {
       const entry = document.getElementById('playlist-entry-' + i);
       if (entry) {
         entry.addEventListener('click', () => {
           saveSettings({ activePlaylistIndex: i });
           render();
-          applyFocus();
+          deps.applyFocus();
         });
       }
       const editBtn = document.getElementById('pl-edit-' + i);
       if (editBtn) {
         editBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          editMode = true;
-          editIndex = i;
+          state.editMode = true;
+          state.editIndex = i;
           render();
-          applyFocus();
+          deps.applyFocus();
         });
       }
       const deleteBtn = document.getElementById('pl-delete-' + i);
@@ -715,7 +297,7 @@ function render() {
             if (active < 0) active = -1;
             saveSettings({ playlists, activePlaylistIndex: active });
             render();
-            applyFocus();
+            deps.applyFocus();
           });
         });
       }
@@ -723,9 +305,9 @@ function render() {
     const addBtn = document.getElementById('pl-add-btn');
     if (addBtn) {
       addBtn.addEventListener('click', () => {
-        addMode = true;
+        state.addMode = true;
         render();
-        applyFocus();
+        deps.applyFocus();
       });
     }
     const saveBtn = document.getElementById('pl-add-save');
@@ -749,9 +331,9 @@ function render() {
     const cancelBtn = document.getElementById('pl-add-cancel');
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => {
-        addMode = false;
+        state.addMode = false;
         render();
-        applyFocus();
+        deps.applyFocus();
       });
     }
     const editSaveBtn = document.getElementById('pl-edit-save');
@@ -775,14 +357,14 @@ function render() {
     const editCancelBtn = document.getElementById('pl-edit-cancel');
     if (editCancelBtn) {
       editCancelBtn.addEventListener('click', () => {
-        editMode = false;
-        editIndex = -1;
+        state.editMode = false;
+        state.editIndex = -1;
         render();
-        applyFocus();
+        deps.applyFocus();
       });
     }
     document.getElementById('settings-fetch-btn').addEventListener('click', handleFetch);
-  } else if (activeSection === 'playback') {
+  } else if (state.activeSection === 'playback') {
     document.querySelectorAll('.toggle').forEach((t) => {
       t.addEventListener('click', function () {
         this.classList.toggle('on');
@@ -824,7 +406,7 @@ function render() {
     });
   }
 
-  if (typeof onRender === 'function') onRender();
+  if (typeof state.onRender === 'function') state.onRender();
 }
 
 function renderSourceCard(s, lastFetched) {
@@ -838,27 +420,27 @@ function renderSourceCard(s, lastFetched) {
     '/' +
     MAX_PLAYLISTS +
     '). Select one, then press Active.</p>';
-  if (addMode) {
+  if (state.addMode) {
     html += '<div class="input-group">';
     html += '<label>Source Type</label>';
     html += '<div class="select-grid">';
     html +=
       '<button id="pl-add-type-m3u" class="select-opt' +
-      (addType !== 'xtream' ? ' active' : '') +
+      (state.addType !== 'xtream' ? ' active' : '') +
       '" type="button">M3U URL</button>';
     html +=
       '<button id="pl-add-type-xtream" class="select-opt' +
-      (addType === 'xtream' ? ' active' : '') +
+      (state.addType === 'xtream' ? ' active' : '') +
       '" type="button">Xtream Login</button>';
     html += '</div>';
     html += '</div>';
-    html += '<div id="pl-add-m3u-fields"' + (addType === 'xtream' ? ' class="hidden"' : '') + '>';
+    html += '<div id="pl-add-m3u-fields"' + (state.addType === 'xtream' ? ' class="hidden"' : '') + '>';
     html += '<div class="input-group">';
     html += '<label for="pl-add-url">Playlist URL</label>';
     html += '<input id="pl-add-url" class="input-field" type="text" placeholder="https://..." />';
     html += '</div>';
     html += '</div>';
-    html += '<div id="pl-add-xtream-fields"' + (addType !== 'xtream' ? ' class="hidden"' : '') + '>';
+    html += '<div id="pl-add-xtream-fields"' + (state.addType !== 'xtream' ? ' class="hidden"' : '') + '>';
     html += '<div class="input-group">';
     html += '<label for="pl-add-host">Host</label>';
     html += '<input id="pl-add-host" class="input-field" type="text" placeholder="http://host:port" />';
@@ -880,7 +462,7 @@ function renderSourceCard(s, lastFetched) {
     html += '<div class="btn-group">';
     html +=
       '<button id="pl-add-test" class="btn btn-secondary' +
-      (addType !== 'xtream' ? ' hidden' : '') +
+      (state.addType !== 'xtream' ? ' hidden' : '') +
       '" type="button">Test Login</button>';
     html += '<button id="pl-add-save" class="btn btn-primary">Save</button>';
     html += '<button id="pl-add-cancel" class="btn btn-secondary">Cancel</button>';
@@ -890,7 +472,7 @@ function renderSourceCard(s, lastFetched) {
     for (let i = 0; i < s.playlists.length; i++) {
       const p = s.playlists[i];
       const isActive = i === s.activePlaylistIndex;
-      if (editMode && editIndex === i) {
+      if (state.editMode && state.editIndex === i) {
         const et = p.type === 'xtream' ? 'xtream' : 'm3u';
         html += '<div id="playlist-entry-' + i + '" class="playlist-entry active">';
         html += '<div class="input-group">';
@@ -1138,7 +720,7 @@ async function handleFetch() {
     const channels = await fetchPlaylistEntry(active);
     saveSettings({ channels, channelsFetched: new Date().toISOString() });
     statusEl.textContent = 'Fetched ' + channels.length + ' channels';
-    if (onPlaylistFetched) onPlaylistFetched(channels);
+    if (state.onPlaylistFetched) state.onPlaylistFetched(channels);
   } catch (e) {
     statusEl.textContent = 'Could not load playlist: ' + e.message;
   } finally {
