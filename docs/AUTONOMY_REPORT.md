@@ -18,3 +18,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T08:54:55.750Z | `8da319a` | chore(agents): add an overlap-safe autonomy watchdog | 25/46 | 15 | T-162 |
 | 2026-11-17T08:56:27.412Z | `2429888` | chore(agents): add the Windows watchdog launcher | 25/46 | 15 | T-162 |
 | 2026-11-17T09:06:38.598Z | `8b1aa37` | feat(ui): complete the accessibility pass (T-162) | 26/46 | 14 | T-170 |
+| 2026-11-17T09:27:49.438Z | `d982e71` | merge: land the plugin registry (T-171) | 28/46 | 12 | T-172 |
