@@ -1011,6 +1011,12 @@ A ticket is only `done` when it meets the **Definition of Done**
   subtitles, and quality.
 - **Acceptance:** pickers list real tracks from the loaded stream, not a
   hard-coded list; selection takes effect immediately.
+- **Status:** 🔶 needs-tv 2026-11-17 — audio and quality already listed real
+  Shaka tracks; subtitles added via pure `lib/tracks.js` (11 tests),
+  `player/stream.js` text-track API and a remote-friendly cycle button in a new
+  `ui/subtitle-picker.js` (right-menu is 297/300 LOC, so no room there). Player
+  hub API grew 24 → 26 names. 631 tests; all gates + tizen green.
+  **Actual caption rendering/selection needs a TV**, so this stays needs-tv.
 
 ### T-185 — VOD playback integration
 - **Type:** feat · **Priority:** P0 · **Size:** M

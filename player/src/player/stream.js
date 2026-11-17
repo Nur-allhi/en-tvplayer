@@ -107,6 +107,31 @@ export function selectAudioTrackById(id) {
   }
 }
 
+// Subtitles (T-184): real Shaka text tracks, never a hard-coded list.
+export function getTextTracks() {
+  if (state.useAvplay || !state.player) return [];
+  try {
+    return state.player.getTextTracks().map((track) => ({
+      id: track.id,
+      label: track.label || '',
+      language: track.language || '',
+      active: !!track.active,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function selectTextTrackById(id) {
+  if (state.useAvplay || !state.player) return;
+  try {
+    const track = id == null ? null : state.player.getTextTracks().find((t) => t.id === id);
+    state.player.selectTextTrack(track || null);
+  } catch (e) {
+    console.warn('Subtitle select failed:', e);
+  }
+}
+
 export function getVideoElement() {
   return state.videoElement;
 }

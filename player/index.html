@@ -1,33 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>IPTV Player</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="stylesheet" href="/src/styles/base.css">
-  <!-- Samsung AVPlay (native fallback for streams the browser can't render).
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>IPTV Player</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/src/styles/base.css" />
+    <!-- Samsung AVPlay (native fallback for streams the browser can't render).
        $WEBAPIS resolves on Tizen only; elsewhere this 404s harmlessly. -->
-  <script src="$WEBAPIS/webapis/webapis.js"></script>
-</head>
-<body>
-  <div id="app">
-    <!-- Channel List Sidebar -->
-    <div id="sidebar" class="sidebar closed">
-      <div class="sidebar-header">
-        <span class="logo">
-          <img src="logo.svg" class="logo-icon" width="48" height="48" alt="EN IPTV logo">
-        </span>
-        <span id="sidebar-title" class="sidebar-title">Groups</span>
+    <script src="$WEBAPIS/webapis/webapis.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Channel List Sidebar -->
+      <div id="sidebar" class="sidebar closed">
+        <div class="sidebar-header">
+          <span class="logo">
+            <img src="logo.svg" class="logo-icon" width="48" height="48" alt="EN IPTV logo" />
+          </span>
+          <span id="sidebar-title" class="sidebar-title">Groups</span>
+        </div>
+        <div id="channel-list" class="channel-list"></div>
+        <div id="group-list" class="group-list hidden"></div>
       </div>
-      <div id="channel-list" class="channel-list"></div>
-      <div id="group-list" class="group-list hidden"></div>
-    </div>
 
       <!-- Main Content -->
       <div id="main" class="main">
-
         <!-- Fullscreen left-edge hover zone to reveal the channel list -->
         <div id="sidebar-hover-zone" class="sidebar-hover-zone"></div>
 
@@ -45,7 +44,7 @@
             <span id="empty-logo-message" class="empty-logo-message hidden"></span>
           </div>
           <div id="player-watermark" class="player-watermark">
-            <img src="logo.svg" class="watermark-icon" width="22" height="22" alt="">
+            <img src="logo.svg" class="watermark-icon" width="22" height="22" alt="" />
             <span class="watermark-text">EN <span>IPTV</span></span>
           </div>
           <div id="loading" class="loading hidden">
@@ -67,7 +66,7 @@
 
           <!-- Play/Pause status overlay -->
           <div id="play-state" class="play-state hidden">
-            <div class="play-state-icon"><img src="logo.svg" width="72" height="72" alt="Paused"></div>
+            <div class="play-state-icon"><img src="logo.svg" width="72" height="72" alt="Paused" /></div>
           </div>
 
           <!-- Progress toast for right sidebar actions -->
@@ -81,9 +80,10 @@
         <div id="now-playing" class="now-playing">
           <span id="channel-name" class="channel-name">No Channel</span>
           <span id="channel-info" class="channel-info"></span>
-          <button id="playpause-button" class="playpause-button" type="button" aria-label="Play or pause">&#10073;&#10073;</button>
+          <button id="playpause-button" class="playpause-button" type="button" aria-label="Play or pause">
+            &#10073;&#10073;
+          </button>
         </div>
-
       </div>
 
       <!-- Right Sidebar -->
@@ -100,6 +100,7 @@
           <button id="refresh-stream-btn" class="right-sidebar-btn" type="button">&#8635; Reload Stream</button>
           <button id="refresh-channels-btn" class="right-sidebar-btn" type="button">&#8634; Refresh Channels</button>
           <button id="settings-btn" class="right-sidebar-btn" type="button">&#9881; Settings</button>
+          <button id="subtitle-btn" class="right-sidebar-btn hidden" type="button">Subtitles: Off</button>
           <div id="proxy-testing-label" class="section-label">Testing</div>
           <button id="proxy-toggle-btn" class="right-sidebar-btn" type="button">Proxy (test): Off</button>
         </div>
@@ -109,7 +110,14 @@
       <div id="boot-splash" class="boot-splash hidden">
         <div class="boot-splash-content">
           <div class="boot-logo" id="boot-logo">
-            <img src="logo.svg" class="boot-logo-icon" id="boot-logo-icon" width="120" height="120" alt="EN IPTV logo">
+            <img
+              src="logo.svg"
+              class="boot-logo-icon"
+              id="boot-logo-icon"
+              width="120"
+              height="120"
+              alt="EN IPTV logo"
+            />
             <span class="boot-logo-text typing" id="boot-logo-text"></span>
           </div>
           <span id="boot-typewriter" class="boot-typewriter"></span>
@@ -125,7 +133,13 @@
       <div id="settings-page" class="settings-page hidden" role="dialog" aria-modal="true" aria-label="Settings"></div>
 
       <!-- What's New modal -->
-      <div id="whats-new-modal" class="whats-new-modal hidden" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
+      <div
+        id="whats-new-modal"
+        class="whats-new-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="whats-new-title"
+      >
         <div class="whats-new-box">
           <div class="whats-new-header">
             <h2 id="whats-new-title">What's New</h2>
@@ -139,13 +153,22 @@
       </div>
 
       <!-- First-run source picker -->
-      <div id="onboarding-modal" class="whats-new-modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      <div
+        id="onboarding-modal"
+        class="whats-new-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
         <div class="whats-new-box">
           <div class="whats-new-header">
             <h2 id="onboarding-title">Add your source</h2>
           </div>
           <div class="whats-new-body">
-            <div class="wn-item"><span class="wn-icon added">✓</span><span>Choose how to load channels. You can add more sources later in Settings.</span></div>
+            <div class="wn-item">
+              <span class="wn-icon added">✓</span
+              ><span>Choose how to load channels. You can add more sources later in Settings.</span>
+            </div>
           </div>
           <div class="whats-new-footer onboarding-actions">
             <button id="onboard-m3u" class="btn btn-secondary" type="button">M3U / M3U8 Playlist</button>
@@ -155,7 +178,13 @@
       </div>
 
       <!-- Confirm Dialog -->
-      <div id="confirm-dialog" class="confirm-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-message">
+      <div
+        id="confirm-dialog"
+        class="confirm-dialog hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-message"
+      >
         <div class="confirm-dialog-box">
           <p id="confirm-dialog-message" class="confirm-dialog-message"></p>
           <div class="confirm-dialog-buttons">
@@ -164,8 +193,8 @@
           </div>
         </div>
       </div>
-  </div>
+    </div>
 
-  <script type="module" src="/src/main.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

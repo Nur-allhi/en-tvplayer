@@ -44,6 +44,44 @@ first). Keep it short — the point is handover, not a diary.
 
 ## Log
 
+## 2026-11-17 — T-184: audio/subtitle/quality pickers — @nightshift (isolated worktree)
+
+**Ticket:** T-184 🔶 needs-tv · **Branch:** `feature/t-184-track-pickers` → `dev`
+**Status:** ✅ merged and gated — caption check owed on a TV
+
+**Important correction**
+- The queue had rows 35/36/38/39 (T-184/185/190/191) marked `needs-tv`, but
+  none had a ticket status or a commit — `needs-tv` means merged and gated.
+  They were **never implemented**. The queue was corrected to `ready`, and this
+  ticket is the first of them. `NEXT = none` in the previous handover was wrong.
+
+**What changed**
+- Scout confirmed audio and quality pickers already list real Shaka tracks;
+  only subtitles were missing. Added pure `lib/tracks.js` (11 tests) and
+  `getTextTracks`/`selectTextTrackById` in `player/stream.js`.
+- New `ui/subtitle-picker.js` — a remote-reachable cycle button driven by the
+  real text-track list. New `#subtitle-btn` in the right sidebar; right-menu
+  gained one array entry (it is 297/300 LOC, so a separate slice was required).
+  `app/tune.js` populates tracks; `app/shell.js` wires selection.
+- Player hub public API grew 24 → 26; `player/index.test.js` updated to pin the
+  new names.
+
+**Verified**
+- All gates green: `npm test` 631 passed, lint, format:check, validate (134
+  files, 0 new), `npm run build`, `npm run tizen` (signed WGT).
+- **No TV is connected.** Caption rendering and immediate on-screen effect
+  cannot be verified here; the ticket is `needs-tv`.
+
+**Watch out**
+- `ui/right-menu.js` is one line from the 300 LOC cap — do not add code there.
+- `selectTextTrack(null)` clears subtitles; a caption-less TV build simply
+  hides the button when the track list is empty.
+
+**Next**
+- T-185 — VOD playback integration, then T-190/T-191.
+
+---
+
 ## 2026-11-17 — batch handover: queue exhausted — @nightshift
 
 **Status:** ✅ final `dev` green on both CI checks

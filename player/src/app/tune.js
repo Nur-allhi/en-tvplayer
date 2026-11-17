@@ -27,6 +27,7 @@ async function handleChannelSelect(channel) {
   ui.resetTuneStatus(channel && channel.name);
   hideProgress();
   ui.setAudioTracks([]);
+  ui.setSubtitleTracks([]);
   // Force the veil + name through layout before the teardown/load below
   // runs — on Tizen the first paint can otherwise stall until load
   // resolves, leaving a bare logo with no indication of what's happening.
@@ -91,6 +92,7 @@ async function handleChannelSelect(channel) {
   if (p) {
     ui.setResolutions(player.getResolutions());
     ui.setAudioTracks(player.getAudioTracks());
+    ui.setSubtitleTracks(player.getTextTracks());
     const height = player.getActiveHeight();
     if (height) updateResolutionBadge(height);
   }
