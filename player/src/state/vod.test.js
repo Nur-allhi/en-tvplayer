@@ -11,6 +11,7 @@ import {
   findMedia,
   setVodSearch,
   library,
+  setResumeAt,
 } from './vod.js';
 
 const movie = (url, title) => ({ url, title, type: 'movie' });
@@ -135,5 +136,63 @@ describe('library storage', () => {
   it('normalises a non-string query', () => {
     setVodSearch(null);
     expect(vodState.get().search).toBe('');
+  });
+});
+
+describe('resume positions (T-183)', () => {
+  const series = () => ({
+    url: 'https://a.example/series',
+    title: 'Series',
+    type: 'series',
+    episodes: [{ url: 'https://a.example/e1', title: 'One', season: 1, number: 1 }],
+  });
+
+  const add = (entry) => {
+    addMedia(entry);
+    return library()[library().length - 1].id;
+  };
+
+  it('preserves an episode resumeAt when normalising', () => {
+    const id = add({ ...series(), episodes: [{ ...series().episodes[0], resumeAt: 42 }] });
+    expect(findMedia(id).episodes[0].resumeAt).toBe(42);
+  });
+
+  it('keeps episode positions across a re-fetch', () => {
+    const id = add(series());
+    setResumeAt(id, null, 12);
+    setResumeAt(id, findMedia(id).episodes[0].id, 75);
+    mergeMedia({ ...series(), title: 'Renamed' });
+    const entry = findMedia(id);
+    expect(entry.title).toBe('Renamed');
+    expect(entry.resumeAt).toBe(12);
+    expect(entry.episodes[0].resumeAt).toBe(75);
+  });
+
+  it('sets an entry position when no episode id is given', () => {
+    const id = add(movie('https://a.example/1', 'One'));
+    expect(setResumeAt(id, null, 30)).toBe(true);
+    expect(findMedia(id).resumeAt).toBe(30);
+  });
+
+  it('sets an episode position', () => {
+    const id = add(series());
+    const episodeId = findMedia(id).episodes[0].id;
+    expect(setResumeAt(id, episodeId, 90)).toBe(true);
+    expect(findMedia(id).episodes[0].resumeAt).toBe(90);
+  });
+
+  it('ignores an unknown media id', () => {
+    expect(setResumeAt('missing', null, 30)).toBe(false);
+  });
+
+  it('ignores an unknown episode id', () => {
+    const id = add(series());
+    expect(setResumeAt(id, 'missing', 30)).toBe(false);
+  });
+
+  it('floors negative positions at zero', () => {
+    const id = add(movie('https://a.example/1', 'One'));
+    setResumeAt(id, null, -5);
+    expect(findMedia(id).resumeAt).toBe(0);
   });
 });

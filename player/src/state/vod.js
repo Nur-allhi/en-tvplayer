@@ -25,13 +25,15 @@ export function normalizeEpisodes(episodes, entryId) {
   return episodes
     .map((ep) => {
       if (!ep || typeof ep.url !== 'string') return null;
-      return {
+      const episode = {
         id: ep.id || episodeId(entryId, ep.season || 0, ep.number || 0),
         title: ep.title || 'Episode ' + ep.number,
         url: ep.url,
         season: ep.season || 0,
         number: ep.number || 0,
       };
+      if (Number.isFinite(ep.resumeAt)) episode.resumeAt = ep.resumeAt;
+      return episode;
     })
     .filter(Boolean);
 }
@@ -64,7 +66,15 @@ export function mergeMedia(entries) {
   for (const entry of incoming) {
     const at = merged.findIndex((item) => item.id === entry.id);
     if (at === -1) merged.push(entry);
-    else merged[at] = { ...entry, resumeAt: merged[at].resumeAt ?? entry.resumeAt };
+    else {
+      // Positions are user data. A re-fetch must not discard them even when
+      // the source omits the field, so merge by episode id.
+      const savedEpisodes = new Map((merged[at].episodes || []).map((ep) => [ep.id, ep.resumeAt]));
+      const episodes = (entry.episodes || []).map((ep) =>
+        Number.isFinite(savedEpisodes.get(ep.id)) ? { ...ep, resumeAt: savedEpisodes.get(ep.id) } : ep,
+      );
+      merged[at] = { ...entry, episodes, resumeAt: merged[at].resumeAt ?? entry.resumeAt };
+    }
   }
   vodState.set({ library: merged });
   return merged.length;
@@ -92,4 +102,21 @@ export function clearMedia() {
 
 export function setVodSearch(query) {
   vodState.set({ search: typeof query === 'string' ? query : '' });
+}
+
+/** Save a resume position on an entry (episodeId null) or one of its episodes. */
+export function setResumeAt(id, episodeId, seconds) {
+  const list = library().slice();
+  const at = list.findIndex((entry) => entry.id === id);
+  if (at === -1) return false;
+  const value = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  if (!episodeId) {
+    list[at] = { ...list[at], resumeAt: value };
+  } else {
+    const episodes = (list[at].episodes || []).map((ep) => (ep.id === episodeId ? { ...ep, resumeAt: value } : ep));
+    if (!episodes.some((ep) => ep.id === episodeId && ep.resumeAt === value)) return false;
+    list[at] = { ...list[at], episodes };
+  }
+  vodState.set({ library: list });
+  return true;
 }

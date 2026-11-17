@@ -26,7 +26,7 @@ const rowCount = (frame, ctx) => {
     case LEVELS.LIST:
       return ctx.listCount || 0;
     case LEVELS.DETAIL:
-      return 1;
+      return ctx.detailCount || 1;
     case LEVELS.EPISODES:
       return ctx.episodeCount || 0;
     default:
@@ -66,7 +66,9 @@ export function select(nav, ctx = {}) {
       return push(nav, { level: LEVELS.DETAIL, index: 0, selected: id });
     }
     case LEVELS.DETAIL:
-      if (ctx.selectedType !== 'series' || !ctx.episodeCount) return nav;
+      if (ctx.selectedType !== 'series' || !ctx.episodeCount || frame.index < (ctx.episodeStart ?? 1)) {
+        return nav;
+      }
       return push(nav, { level: LEVELS.EPISODES, index: 0, selected: frame.selected });
     default:
       return nav;

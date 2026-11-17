@@ -5,6 +5,7 @@
 import { escapeHtml } from '../utils.js';
 import { library } from '../state/vod.js';
 import { LEVELS, initialNav, current, move, select, back } from '../lib/library-nav.js';
+import { resumeDecision } from '../lib/resume.js';
 import { deps } from './deps.js';
 import { state } from './state.js';
 
@@ -14,6 +15,16 @@ const container = () => document.getElementById('group-list');
 
 const itemsFor = (type) => library().filter((item) => item.type === type);
 
+function detailRows(id) {
+  const media = library().find((item) => item.id === id);
+  const rows = [{ label: '▶ Play', count: '' }];
+  const decision = resumeDecision(media?.resumeAt, media?.duration);
+  if (decision.at) rows.push({ label: '↻ ' + decision.label, count: '' });
+  const hasEpisodes = media?.type === 'series' && media.episodes?.length > 0;
+  if (hasEpisodes) rows.push({ label: '📺 Episodes', count: media.episodes.length });
+  return { rows, episodeStart: hasEpisodes ? rows.length - 1 : Infinity };
+}
+
 function context() {
   const frame = current(nav);
   if (frame.level === LEVELS.LIST) {
@@ -22,9 +33,12 @@ function context() {
   }
   if (frame.level === LEVELS.DETAIL) {
     const media = library().find((item) => item.id === frame.selected);
+    const detail = detailRows(frame.selected);
     return {
       selectedType: media?.type,
       episodeCount: media?.episodes?.length || 0,
+      detailCount: detail.rows.length,
+      episodeStart: detail.episodeStart,
     };
   }
   return {};
@@ -45,12 +59,7 @@ function rows() {
     }));
   }
   if (frame.level === LEVELS.DETAIL) {
-    const media = library().find((item) => item.id === frame.selected);
-    const rows = [{ label: '▶ Play', count: '' }];
-    if (media?.type === 'series' && media.episodes?.length) {
-      rows.push({ label: '📺 Episodes', count: media.episodes.length });
-    }
-    return rows;
+    return detailRows(frame.selected).rows;
   }
   const media = library().find((item) => item.id === frame.selected);
   return (media?.episodes || []).map((ep) => ({

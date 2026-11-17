@@ -47,7 +47,7 @@ Morning review: newest `docs/SESSION_LOG.md` entry,
 BATCH_LIMIT = 30         # effectively unbounded — the 19:30 deadline is the real cap
 NEXT        = T-183      # T-202 done out of order; T-183 claimed by another worktree
 MODE        = unattended # agent must not ask questions; no human retry needed
-LAST_RUN    = 2026-11-17 # T-182 by night shift (continuous run)
+LAST_RUN    = 2026-11-17 # T-183 by night shift (continuous run)
 ```
 
 The agent updates `NEXT`, `LAST_RUN` and the `State` column after each ticket,
@@ -129,7 +129,7 @@ with the exact gate output; agent skipped it.
 | 31 | T-180 | VOD data model + storage | done | merged + gated; taken early to avoid a concurrent-run collision |
 | 32 | T-181 | add media by URL | done | merged + gated; first T-181 |
 | 33 | T-182 | ui/library.js | done | merged + gated; pure nav stack |
-| 34 | T-183 | episode browsing | ready |  |
+| 34 | T-183 | episode browsing | needs-tv | merged + gated; restore needs T-185 + TV |
 | 35 | T-184 | audio/subtitle/quality pickers | needs-tv |  |
 | 36 | T-185 | VOD playback integration | needs-tv |  |
 | 37 | T-186 | settings schema migration | done | merged + gated; was T-181 |
