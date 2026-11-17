@@ -65,9 +65,11 @@ function writeDoc(relPath, text, eol) {
 const changelogMd = readText('CHANGELOG.md');
 if (!/## \[Unreleased\]\n\n(\s*###)/.test(changelogMd))
   fail('CHANGELOG.md [Unreleased] is empty — write the release notes first');
-const mainJs = readFileSync(join(ROOT, 'player', 'src', 'main.js'), 'utf8');
-if (!mainJs.includes(`version: '${base}'`)) {
-  fail(`player/src/main.js in-app CHANGELOG lacks version '${base}' — add the short entry first`);
+// M5 emptied main.js into app/; the in-app CHANGELOG now lives in its own
+// slice (T-153). Reading the old path would abort every release.
+const changelogJs = readFileSync(join(ROOT, 'player', 'src', 'app', 'changelog.js'), 'utf8');
+if (!changelogJs.includes(`version: '${base}'`)) {
+  fail(`player/src/app/changelog.js in-app CHANGELOG lacks version '${base}' — add the short entry first`);
 }
 
 // ── Plan ────────────────────────────────────────────────────────────

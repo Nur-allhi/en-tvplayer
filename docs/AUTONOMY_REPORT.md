@@ -10,3 +10,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T07:52:25.719Z | `b05038d` | refactor(app): add the M5 cross-slice deps registry (T-152) | 18/46 | 22 | T-152b |
 | 2026-11-17T08:03:19.736Z | `2d617ed` | refactor(app): extract onboarding and What's New slices (T-152) | 19/46 | 21 | T-152c |
 | 2026-11-17T08:12:33.541Z | `8beb50b` | refactor(app): split startup into four app slices (T-152) | 20/46 | 20 | T-151 |
+| 2026-11-17T08:26:56.592Z | `8b166be` | refactor(app): split remote routing into app slices (T-151) | 21/46 | 19 | T-152 |
