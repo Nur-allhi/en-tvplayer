@@ -39,3 +39,4 @@ One row per commit during unattended runs. Newest last.
 | 2026-11-17T14:17:58.948Z | `22bcedf` | fix(settings): null-guard the fetch listener in first-run mode (T-211) | 39/46 | 0 | none |
 | 2026-11-17T14:19:51.985Z | `50f0534` | docs(agents): record the T-211 report row | 39/46 | 0 | none |
 | 2026-11-17T14:20:25.645Z | `cdae79a` | docs(roadmap): close T-150 and T-211 in the queue | 41/46 | 0 | none |
+| 2026-11-17T14:50:31.628Z | `9a59bf6` | docs(agents): record the final report rows | 41/46 | 0 | none |
