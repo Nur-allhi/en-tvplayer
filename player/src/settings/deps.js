@@ -20,4 +20,5 @@ export const deps = {
   buildFocusOrder: unwired('buildFocusOrder'),
   clearFocus: unwired('clearFocus'),
   copyDiagnostics: unwired('copyDiagnostics'),
+  importMediaSource: unwired('importMediaSource'),
 };

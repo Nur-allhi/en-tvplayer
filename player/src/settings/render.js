@@ -5,6 +5,7 @@ import * as ui from '../ui/index.js';
 import { bindPlaybackToggles } from './playback.js';
 import { renderSourceCard, renderPlaybackCard } from './render-cards.js';
 import { renderAboutCard } from './about.js';
+import { renderVodAddCard } from './media.js';
 import { timeAgo } from '../lib/time.js';
 import { NAV_ITEMS } from './state.js';
 
@@ -35,6 +36,7 @@ export function render() {
     mainHtml += renderPlaybackCard();
   } else {
     mainHtml += renderAboutCard();
+    mainHtml += renderVodAddCard();
   }
 
   mainHtml += '<div class="settings-footer">';
@@ -187,6 +189,8 @@ export function render() {
   } else {
     const copyBtn = document.getElementById('about-copy-diagnostics');
     if (copyBtn) copyBtn.addEventListener('click', () => deps.copyDiagnostics());
+    const addBtn = document.getElementById('vod-add-btn');
+    if (addBtn) addBtn.addEventListener('click', () => deps.importMediaSource());
   }
 
   if (typeof state.onRender === 'function') state.onRender();
